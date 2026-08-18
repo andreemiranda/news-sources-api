@@ -25,8 +25,8 @@ export async function GET(req: NextRequest) {
       },
     },
     servers: baseUrl
-      ? [{ url: `${baseUrl}/api`, description: 'API Server' }]
-      : [{ url: '/api', description: 'API Server' }],
+      ? [{ url: `${baseUrl}`, description: 'API Server' }]
+      : [{ url: '/', description: 'API Server' }],
     components: {
       securitySchemes: {
         ApiKeyAuth: {
@@ -45,10 +45,10 @@ export async function GET(req: NextRequest) {
         Source: {
           type: 'object',
           properties: {
-            id: { type: 'string', example: 'clebertoledo-com-br' },
+            id: { type: 'string', example: '1' },
             category: { type: 'string', example: 'Tocantins' },
             site: { type: 'string', example: 'clebertoledo.com.br' },
-            type: { type: 'string', example: 'wp-api', enum: ['wp-api', 'rss'] },
+            type: { type: 'string', example: 'wp-api', enum: types },
             url: {
               type: 'string',
               format: 'uri',
@@ -123,9 +123,9 @@ export async function GET(req: NextRequest) {
             {
               name: 'limit',
               in: 'query',
-              description: 'Items per page (default: 20, max: 100)',
+              description: 'Items per page (default: 100, max: 1000)',
               required: false,
-              schema: { type: 'integer', default: 20, minimum: 1, maximum: 100 },
+              schema: { type: 'integer', default: 100, minimum: 1, maximum: 1000 },
             },
             {
               name: 'category',
@@ -258,9 +258,9 @@ export async function GET(req: NextRequest) {
             {
               name: 'limit',
               in: 'query',
-              description: 'Items per page (default: 20, max: 100)',
+              description: 'Items per page (default: 100, max: 1000)',
               required: false,
-              schema: { type: 'integer', default: 20, minimum: 1, maximum: 100 },
+              schema: { type: 'integer', default: 100, minimum: 1, maximum: 1000 },
             },
           ],
           responses: {
@@ -352,7 +352,7 @@ export async function GET(req: NextRequest) {
           tags: ['Types'],
           summary: 'List all source types',
           description:
-            'Returns a list of all news source types (wp-api, rss) with the count of sources in each.',
+            'Returns a list of all news source types with the count of sources in each.',
           responses: {
             '200': {
               description: 'Successful response',

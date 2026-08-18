@@ -1,17 +1,13 @@
 {
-  "$schema": "./node_modules/wrangler/config-schema.json",
+  "$schema": "node_modules/wrangler/config-schema.json",
   "name": "news-sources-api",
   "main": ".open-next/worker.js",
-  "compatibility_date": "2026-08-17",
-  "compatibility_flags": ["nodejs_compat"],
+  "compatibility_date": "2024-12-30",
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
   "assets": {
     "directory": ".open-next/assets",
     "binding": "ASSETS"
-  },
-  "observability": {
-    "enabled": true
-  },
-  "secrets": {
-    "required": ["API_KEY"]
   }
 }

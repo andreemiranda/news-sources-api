@@ -1,0 +1,6 @@
+{
+  "name": "News Sources API",
+  "description": "API REST para acesso a fontes de notícias brasileiras com documentação interativa via Swagger UI e RapiDoc.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -20,7 +20,7 @@ export async function GET(
 
   const url = new URL(req.url);
   const page = parseInt(url.searchParams.get('page') || '1', 10);
-  const limit = parseInt(url.searchParams.get('limit') || '20', 10);
+  const limit = parseInt(url.searchParams.get('limit') || '100', 10);
   const result = paginate(sources, page, limit);
 
   return NextResponse.json({

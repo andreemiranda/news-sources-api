@@ -1,5 +1,7 @@
 import { getAllSources, getCategories, getTypes } from '@/lib/sources';
 import SwaggerUIWrapper from '@/components/SwaggerUIWrapper';
+import Link from 'next/link';
+import { BookOpen } from 'lucide-react';
 
 
 export default function Home() {
@@ -15,7 +17,7 @@ export default function Home() {
         'REST API for accessing news sources data aggregated from various Brazilian news outlets. All endpoints require API key authentication.',
       version: '1.0.0',
     },
-    servers: [{ url: '/api', description: 'API Server' }],
+    servers: [{ url: '/', description: 'API Server' }],
     components: {
       securitySchemes: {
         ApiKeyAuth: {
@@ -34,10 +36,10 @@ export default function Home() {
         Source: {
           type: 'object',
           properties: {
-            id: { type: 'string', example: 'clebertoledo-com-br' },
+            id: { type: 'string', example: '1' },
             category: { type: 'string', example: 'Tocantins' },
             site: { type: 'string', example: 'clebertoledo.com.br' },
-            type: { type: 'string', example: 'wp-api', enum: ['wp-api', 'rss'] },
+            type: { type: 'string', example: 'wp-api', enum: types },
             url: {
               type: 'string',
               format: 'uri',
@@ -82,8 +84,8 @@ export default function Home() {
             {
               name: 'limit',
               in: 'query',
-              description: 'Items per page (default: 20, max: 100)',
-              schema: { type: 'integer', default: 20, minimum: 1, maximum: 100 },
+              description: 'Items per page (default: 100, max: 1000)',
+              schema: { type: 'integer', default: 100, minimum: 1, maximum: 1000 },
             },
             {
               name: 'category',
@@ -203,8 +205,8 @@ export default function Home() {
             {
               name: 'limit',
               in: 'query',
-              description: 'Items per page (default: 20, max: 100)',
-              schema: { type: 'integer', default: 20, minimum: 1, maximum: 100 },
+              description: 'Items per page (default: 100, max: 1000)',
+              schema: { type: 'integer', default: 100, minimum: 1, maximum: 1000 },
             },
           ],
           responses: {
@@ -417,6 +419,16 @@ export default function Home() {
                 <span className="text-lg font-semibold text-emerald-400">
                   {types.length}
                 </span>
+              </div>
+              <div className="ml-auto flex items-center">
+                <Link
+                  href="/docs"
+                  id="btn-nav-docs"
+                  className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm"
+                >
+                  <BookOpen className="w-4 h-4" />
+                  <span>Documentação completa</span>
+                </Link>
               </div>
             </div>
           </div>
