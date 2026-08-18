@@ -1,0 +1,580 @@
+{
+  "sources": [
+    {
+      "id": "clebertoledo-com-br",
+      "category": "Tocantins",
+      "site": "clebertoledo.com.br",
+      "type": "wp-api",
+      "url": "https://clebertoledo.com.br/wp-json/wp/v2/posts",
+      "active": true
+    },
+    {
+      "id": "infoeducacao-com-br",
+      "category": "Educação",
+      "site": "infoeducacao.com.br",
+      "type": "wp-api",
+      "url": "https://infoeducacao.com.br/wp-json/wp/v2/posts",
+      "active": true
+    },
+    {
+      "id": "nacaojuridica-com-br",
+      "category": "Justiça",
+      "site": "nacaojuridica.com.br",
+      "type": "wp-api",
+      "url": "https://www.nacaojuridica.com.br/wp-json/wp/v2/posts",
+      "active": true
+    },
+    {
+      "id": "atitudeto-com-br",
+      "category": "Tocantins",
+      "site": "atitudeto.com.br",
+      "type": "wp-api",
+      "url": "https://atitudeto.com.br/wp-json/wp/v2/posts",
+      "active": true
+    },
+    {
+      "id": "pmwnoticias-com-br",
+      "category": "Tocantins",
+      "site": "pmwnoticias.com.br",
+      "type": "wp-api",
+      "url": "https://pmwnoticias.com.br/wp-json/wp/v2/posts",
+      "active": true
+    },
+    {
+      "id": "admin-cnnbrasil-com-br",
+      "category": "Notícias Gerais",
+      "site": "admin.cnnbrasil.com.br",
+      "type": "wp-api",
+      "url": "https://admin.cnnbrasil.com.br/wp-json/wp/v2/posts",
+      "active": true
+    },
+    {
+      "id": "gazetadocerrado-com-br",
+      "category": "Tocantins",
+      "site": "gazetadocerrado.com.br",
+      "type": "wp-api",
+      "url": "https://gazetadocerrado.com.br/wp-json/wp/v2/posts",
+      "active": true
+    },
+    {
+      "id": "minhaseconomias-com-br",
+      "category": "Economia",
+      "site": "minhaseconomias.com.br",
+      "type": "wp-api",
+      "url": "https://minhaseconomias.com.br/wp-json/wp/v2/posts",
+      "active": true
+    },
+    {
+      "id": "gazetaesportiva-com",
+      "category": "Esporte",
+      "site": "gazetaesportiva.com",
+      "type": "wp-api",
+      "url": "https://www.gazetaesportiva.com/wp-json/wp/v2/posts",
+      "active": true
+    },
+    {
+      "id": "vocesa-abril-com-br",
+      "category": "Notícias Gerais",
+      "site": "vocesa.abril.com.br",
+      "type": "wp-api",
+      "url": "https://vocesa.abril.com.br/wp-json/wp/v2/posts",
+      "active": true
+    },
+    {
+      "id": "classic-exame-com",
+      "category": "Finanças",
+      "site": "classic.exame.com",
+      "type": "wp-api",
+      "url": "https://classic.exame.com/wp-json/wp/v2/posts",
+      "active": true
+    },
+    {
+      "id": "palmeiras-com-br",
+      "category": "Palmeiras",
+      "site": "palmeiras.com.br",
+      "type": "wp-api",
+      "url": "https://www.palmeiras.com.br/wp-json/wp/v2/posts",
+      "active": true
+    },
+    {
+      "id": "opiniaogoias-com-br",
+      "category": "Goiás",
+      "site": "opiniaogoias.com.br",
+      "type": "wp-api",
+      "url": "https://opiniaogoias.com.br/wp-json/wp/v2/posts",
+      "active": true
+    },
+    {
+      "id": "portalnoticiasgoias-com-br",
+      "category": "Goiás",
+      "site": "portalnoticiasgoias.com.br",
+      "type": "wp-api",
+      "url": "https://portalnoticiasgoias.com.br/wp-json/wp/v2/posts",
+      "active": true
+    },
+    {
+      "id": "diariodegoias-com-br",
+      "category": "Goiás",
+      "site": "diariodegoias.com.br",
+      "type": "wp-api",
+      "url": "https://diariodegoias.com.br/wp-json/wp/v2/posts",
+      "active": true
+    },
+    {
+      "id": "conjur-com-br",
+      "category": "Justiça",
+      "site": "conjur.com.br",
+      "type": "wp-api",
+      "url": "https://conjur.com.br/wp-json/wp/v2/posts",
+      "active": true
+    },
+    {
+      "id": "meusitejuridico-editorajuspodivm-com-br",
+      "category": "Justiça",
+      "site": "meusitejuridico.editorajuspodivm.com.br",
+      "type": "wp-api",
+      "url": "https://meusitejuridico.editorajuspodivm.com.br/wp-json/wp/v2/posts",
+      "active": true
+    },
+    {
+      "id": "inw-org-br",
+      "category": "Justiça",
+      "site": "inw.org.br",
+      "type": "wp-api",
+      "url": "https://inw.org.br/wp-json/wp/v2/posts",
+      "active": true
+    },
+    {
+      "id": "santacatarinaempauta-com-br",
+      "category": "Santa Catarina",
+      "site": "santacatarinaempauta.com.br",
+      "type": "wp-api",
+      "url": "https://www.santacatarinaempauta.com.br/wp-json/wp/v2/posts",
+      "active": true
+    },
+    {
+      "id": "vozdobico-com-br",
+      "category": "Tocantins",
+      "site": "vozdobico.com.br",
+      "type": "wp-api",
+      "url": "https://www.vozdobico.com.br/wp-json/wp/v2/posts",
+      "active": true
+    },
+    {
+      "id": "portaldobico-com-br",
+      "category": "Tocantins",
+      "site": "portaldobico.com.br",
+      "type": "wp-api",
+      "url": "https://portaldobico.com.br/wp-json/wp/v2/posts",
+      "active": true
+    },
+    {
+      "id": "folhadobico-com-br",
+      "category": "Tocantins",
+      "site": "folhadobico.com.br",
+      "type": "wp-api",
+      "url": "https://folhadobico.com.br/wp-json/wp/v2/posts",
+      "active": true
+    },
+    {
+      "id": "bico24horas-com-br",
+      "category": "Tocantins",
+      "site": "bico24horas.com.br",
+      "type": "wp-api",
+      "url": "https://bico24horas.com.br/wp-json/wp/v2/posts",
+      "active": true
+    },
+    {
+      "id": "guaraiense-com-br",
+      "category": "Tocantins",
+      "site": "guaraiense.com.br",
+      "type": "wp-api",
+      "url": "https://guaraiense.com.br/wp-json/wp/v2/posts",
+      "active": true
+    },
+    {
+      "id": "jornalobico-com-br",
+      "category": "Tocantins",
+      "site": "jornalobico.com.br",
+      "type": "wp-api",
+      "url": "https://jornalobico.com.br/wp-json/wp/v2/posts",
+      "active": true
+    },
+    {
+      "id": "ludopedio-org-br",
+      "category": "Esporte",
+      "site": "ludopedio.org.br",
+      "type": "wp-api",
+      "url": "https://ludopedio.org.br/wp-json/wp/v2/posts",
+      "active": true
+    },
+    {
+      "id": "folhadestra-com",
+      "category": "Notícias Gerais",
+      "site": "folhadestra.com",
+      "type": "wp-api",
+      "url": "https://www.folhadestra.com/wp-json/wp/v2/posts",
+      "active": true
+    },
+    {
+      "id": "g1-globo-com-noticias-gerais",
+      "category": "Notícias Gerais",
+      "site": "g1.globo.com",
+      "type": "rss",
+      "url": "https://g1.globo.com/dynamo/rss2.xml",
+      "active": true
+    },
+    {
+      "id": "g1-globo-com-santa-catarina",
+      "category": "Santa Catarina",
+      "site": "g1.globo.com",
+      "type": "rss",
+      "url": "https://g1.globo.com/dynamo/sc/santa-catarina/rss2.xml",
+      "active": true
+    },
+    {
+      "id": "g1-globo-com-tocantins",
+      "category": "Tocantins",
+      "site": "g1.globo.com",
+      "type": "rss",
+      "url": "https://g1.globo.com/dynamo/to/tocantins/rss2.xml",
+      "active": true
+    },
+    {
+      "id": "g1-globo-com-sergipe",
+      "category": "Sergipe",
+      "site": "g1.globo.com",
+      "type": "rss",
+      "url": "https://g1.globo.com/dynamo/se/sergipe/rss2.xml",
+      "active": true
+    },
+    {
+      "id": "g1-globo-com-vale-do-paraiba-e-regiao",
+      "category": "Vale do Paraíba e região",
+      "site": "g1.globo.com",
+      "type": "rss",
+      "url": "https://g1.globo.com/dynamo/sp/vale-do-paraiba-regiao/rss2.xml",
+      "active": true
+    },
+    {
+      "id": "g1-globo-com-sao-carlos-e-araraquara",
+      "category": "São Carlos e Araraquara",
+      "site": "g1.globo.com",
+      "type": "rss",
+      "url": "https://g1.globo.com/dynamo/sp/sao-carlos-regiao/rss2.xml",
+      "active": true
+    },
+    {
+      "id": "g1-globo-com-santos-e-regiao",
+      "category": "Santos e Região",
+      "site": "g1.globo.com",
+      "type": "rss",
+      "url": "https://g1.globo.com/dynamo/sp/santos-regiao/rss2.xml",
+      "active": true
+    },
+    {
+      "id": "g1-globo-com-ribeirao-preto-e-franca",
+      "category": "Ribeirão Preto e Franca",
+      "site": "g1.globo.com",
+      "type": "rss",
+      "url": "https://g1.globo.com/dynamo/sp/ribeirao-preto-franca/rss2.xml",
+      "active": true
+    },
+    {
+      "id": "g1-globo-com-mogi-das-cruzes-e-suzano",
+      "category": "Mogi das Cruzes e Suzano",
+      "site": "g1.globo.com",
+      "type": "rss",
+      "url": "https://g1.globo.com/dynamo/sp/mogi-das-cruzes-suzano/rss2.xml",
+      "active": true
+    },
+    {
+      "id": "g1-globo-com-campinas-e-regiao",
+      "category": "Campinas e região",
+      "site": "g1.globo.com",
+      "type": "rss",
+      "url": "https://g1.globo.com/dynamo/sp/campinas-regiao/rss2.xml",
+      "active": true
+    },
+    {
+      "id": "g1-globo-com-bauru-e-marilia",
+      "category": "Bauru e Marília",
+      "site": "g1.globo.com",
+      "type": "rss",
+      "url": "https://g1.globo.com/dynamo/sp/bauru-marilia/rss2.xml",
+      "active": true
+    },
+    {
+      "id": "g1-globo-com-roraima",
+      "category": "Roraima",
+      "site": "g1.globo.com",
+      "type": "rss",
+      "url": "https://g1.globo.com/dynamo/rr/roraima/rss2.xml",
+      "active": true
+    },
+    {
+      "id": "g1-globo-com-rondonia",
+      "category": "Rondônia",
+      "site": "g1.globo.com",
+      "type": "rss",
+      "url": "https://g1.globo.com/dynamo/ro/rondonia/rss2.xml",
+      "active": true
+    },
+    {
+      "id": "g1-globo-com-rio-grande-do-sul",
+      "category": "Rio Grande do Sul",
+      "site": "g1.globo.com",
+      "type": "rss",
+      "url": "https://g1.globo.com/dynamo/rs/rio-grande-do-sul/rss2.xml",
+      "active": true
+    },
+    {
+      "id": "g1-globo-com-rio-grande-do-norte",
+      "category": "Rio Grande do Norte",
+      "site": "g1.globo.com",
+      "type": "rss",
+      "url": "https://g1.globo.com/dynamo/rn/rio-grande-do-norte/rss2.xml",
+      "active": true
+    },
+    {
+      "id": "g1-globo-com-sul-e-costa-verde-fluminense",
+      "category": "Sul e Costa Verde Fluminense",
+      "site": "g1.globo.com",
+      "type": "rss",
+      "url": "https://g1.globo.com/dynamo/rj/sul-do-rio-costa-verde/rss2.xml",
+      "active": true
+    },
+    {
+      "id": "g1-globo-com-norte-fluminense",
+      "category": "Norte Fluminense",
+      "site": "g1.globo.com",
+      "type": "rss",
+      "url": "https://g1.globo.com/dynamo/rj/norte-fluminense/rss2.xml",
+      "active": true
+    },
+    {
+      "id": "g1-globo-com-regiao-dos-lagos-fluminense",
+      "category": "Região dos Lagos Fluminense",
+      "site": "g1.globo.com",
+      "type": "rss",
+      "url": "https://g1.globo.com/dynamo/rj/regiao-dos-lagos/rss2.xml",
+      "active": true
+    },
+    {
+      "id": "g1-globo-com-regiao-serrana-fluminense",
+      "category": "Região Serrana Fluminense",
+      "site": "g1.globo.com",
+      "type": "rss",
+      "url": "https://g1.globo.com/dynamo/rj/regiao-serrana/rss2.xml",
+      "active": true
+    },
+    {
+      "id": "g1-globo-com-petrolina-e-regiao",
+      "category": "Petrolina e Região",
+      "site": "g1.globo.com",
+      "type": "rss",
+      "url": "https://g1.globo.com/dynamo/pe/petrolina-regiao/rss2.xml",
+      "active": true
+    },
+    {
+      "id": "g1-globo-com-caruaru-e-regiao",
+      "category": "Caruaru e Região",
+      "site": "g1.globo.com",
+      "type": "rss",
+      "url": "https://g1.globo.com/dynamo/pe/caruaru-regiao/rss2.xml",
+      "active": true
+    },
+    {
+      "id": "g1-globo-com-norte-e-noroeste-do-parana",
+      "category": "Norte e Noroeste do Paraná",
+      "site": "g1.globo.com",
+      "type": "rss",
+      "url": "https://g1.globo.com/dynamo/pr/norte-noroeste/rss2.xml",
+      "active": true
+    },
+    {
+      "id": "g1-globo-com-oeste-e-sudoeste-do-parana",
+      "category": "Oeste e Sudoeste do Paraná",
+      "site": "g1.globo.com",
+      "type": "rss",
+      "url": "https://g1.globo.com/dynamo/pr/oeste-sudoeste/rss2.xml",
+      "active": true
+    },
+    {
+      "id": "g1-globo-com-campos-gerais-e-sul-do-parana",
+      "category": "Campos Gerais e Sul do Paraná",
+      "site": "g1.globo.com",
+      "type": "rss",
+      "url": "https://g1.globo.com/dynamo/pr/campos-gerais-sul/rss2.xml",
+      "active": true
+    },
+    {
+      "id": "g1-globo-com-parana",
+      "category": "Paraná",
+      "site": "g1.globo.com",
+      "type": "rss",
+      "url": "https://g1.globo.com/dynamo/pr/parana/rss2.xml",
+      "active": true
+    },
+    {
+      "id": "g1-globo-com-paraiba",
+      "category": "Paraíba",
+      "site": "g1.globo.com",
+      "type": "rss",
+      "url": "https://g1.globo.com/dynamo/pb/paraiba/rss2.xml",
+      "active": true
+    },
+    {
+      "id": "g1-globo-com-para",
+      "category": "Pará",
+      "site": "g1.globo.com",
+      "type": "rss",
+      "url": "https://g1.globo.com/dynamo/pa/para/rss2.xml",
+      "active": true
+    },
+    {
+      "id": "g1-globo-com-zona-da-mata-mineira",
+      "category": "Zona da Mata Mineira",
+      "site": "g1.globo.com",
+      "type": "rss",
+      "url": "https://g1.globo.com/dynamo/mg/zona-da-mata/rss2.xml",
+      "active": true
+    },
+    {
+      "id": "g1-globo-com-vales-de-minas-gerais",
+      "category": "Vales de Minas Gerais",
+      "site": "g1.globo.com",
+      "type": "rss",
+      "url": "https://g1.globo.com/dynamo/mg/vales-mg/rss2.xml",
+      "active": true
+    },
+    {
+      "id": "g1-globo-com-sul-de-minas",
+      "category": "Sul de Minas",
+      "site": "g1.globo.com",
+      "type": "rss",
+      "url": "https://g1.globo.com/dynamo/mg/sul-de-minas/rss2.xml",
+      "active": true
+    },
+    {
+      "id": "g1-globo-com-grande-minas",
+      "category": "Grande Minas",
+      "site": "g1.globo.com",
+      "type": "rss",
+      "url": "https://g1.globo.com/dynamo/mg/grande-minas/rss2.xml",
+      "active": true
+    },
+    {
+      "id": "g1-globo-com-centro-oeste-de-minas",
+      "category": "Centro-Oeste de Minas",
+      "site": "g1.globo.com",
+      "type": "rss",
+      "url": "https://g1.globo.com/dynamo/mg/centro-oeste/rss2.xml",
+      "active": true
+    },
+    {
+      "id": "g1-globo-com-maranhao",
+      "category": "Maranhão",
+      "site": "g1.globo.com",
+      "type": "rss",
+      "url": "https://g1.globo.com/dynamo/ma/maranhao/rss2.xml",
+      "active": true
+    },
+    {
+      "id": "g1-globo-com-amazonas",
+      "category": "Amazonas",
+      "site": "g1.globo.com",
+      "type": "rss",
+      "url": "https://g1.globo.com/dynamo/am/amazonas/rss2.xml",
+      "active": true
+    },
+    {
+      "id": "g1-globo-com-amapa",
+      "category": "Amapá",
+      "site": "g1.globo.com",
+      "type": "rss",
+      "url": "https://g1.globo.com/dynamo/ap/amapa/rss2.xml",
+      "active": true
+    },
+    {
+      "id": "g1-globo-com-alagoas",
+      "category": "Alagoas",
+      "site": "g1.globo.com",
+      "type": "rss",
+      "url": "https://g1.globo.com/dynamo/al/alagoas/rss2.xml",
+      "active": true
+    },
+    {
+      "id": "g1-globo-com-acre",
+      "category": "Acre",
+      "site": "g1.globo.com",
+      "type": "rss",
+      "url": "https://g1.globo.com/dynamo/ac/acre/rss2.xml",
+      "active": true
+    },
+    {
+      "id": "g1-globo-com-turismo-e-viagem",
+      "category": "Turismo e Viagem",
+      "site": "g1.globo.com",
+      "type": "rss",
+      "url": "https://g1.globo.com/dynamo/turismo-e-viagem/rss2.xml",
+      "active": true
+    },
+    {
+      "id": "g1-globo-com-tecnologia-e-games",
+      "category": "Tecnologia e Games",
+      "site": "g1.globo.com",
+      "type": "rss",
+      "url": "https://g1.globo.com/dynamo/tecnologia/rss2.xml",
+      "active": true
+    },
+    {
+      "id": "g1-globo-com-pop-arte",
+      "category": "Pop & Arte",
+      "site": "g1.globo.com",
+      "type": "rss",
+      "url": "https://g1.globo.com/dynamo/pop-arte/rss2.xml",
+      "active": true
+    },
+    {
+      "id": "g1-globo-com-mundo",
+      "category": "Mundo",
+      "site": "g1.globo.com",
+      "type": "rss",
+      "url": "https://g1.globo.com/dynamo/mundo/rss2.xml",
+      "active": true
+    },
+    {
+      "id": "g1-globo-com-loterias",
+      "category": "Loterias",
+      "site": "g1.globo.com",
+      "type": "rss",
+      "url": "https://g1.globo.com/dynamo/loterias/rss2.xml",
+      "active": true
+    },
+    {
+      "id": "g1-globo-com-educacao",
+      "category": "Educação",
+      "site": "g1.globo.com",
+      "type": "rss",
+      "url": "https://g1.globo.com/dynamo/educacao/rss2.xml",
+      "active": true
+    },
+    {
+      "id": "g1-globo-com-economia",
+      "category": "Economia",
+      "site": "g1.globo.com",
+      "type": "rss",
+      "url": "https://g1.globo.com/dynamo/economia/rss2.xml",
+      "active": true
+    },
+    {
+      "id": "g1-globo-com-autoesporte",
+      "category": "Autoesporte",
+      "site": "g1.globo.com",
+      "type": "rss",
+      "url": "https://g1.globo.com/dynamo/carros/rss2.xml",
+      "active": true
+    }
+  ]
+}
