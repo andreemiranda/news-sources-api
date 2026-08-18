@@ -1,6 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { validateApiKey, unauthorizedResponse } from '@/lib/auth';
 import { getAllSources, getCategories, getTypes } from '@/lib/sources';
+import { getCloudflareContext } from '@opennextjs/cloudflare';
+
+function getBaseUrl(): string {
+  if (process.env.NEXT_PUBLIC_BASE_URL) {
+    return process.env.NEXT_PUBLIC_BASE_URL;
+  }
+  try {
+    const ctx = getCloudflareContext();
+    const envBaseUrl = (ctx?.env as Record<string, string> | undefined)?.NEXT_PUBLIC_BASE_URL;
+    if (envBaseUrl) {
+      return envBaseUrl;
+    }
+  } catch {
+    // Ignore
+  }
+  return '';
+}
 
 export async function GET(req: NextRequest) {
   if (!validateApiKey(req)) {
@@ -11,7 +28,7 @@ export async function GET(req: NextRequest) {
   const categories = getCategories().map((c) => c.category);
   const types = getTypes().map((t) => t.type);
 
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || '';
+  const baseUrl = getBaseUrl();
 
   const spec = {
     openapi: '3.0.3',

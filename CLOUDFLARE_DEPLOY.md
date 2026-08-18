@@ -1,47 +1,53 @@
-# Correção do deploy Cloudflare Workers
+# Guia de Deploy no Cloudflare Workers
 
-## Alterações principais
+## Por que ocorria o erro 401 e a exclusão da variável no Cloudflare?
 
-- Next.js atualizado de 13.5.1 para 15.5.22.
-- React mantido na linha 18.3.1 para reduzir alterações no código da aplicação.
-- `eslint-config-next` alinhado com Next.js 15.5.22.
-- Adicionado `@opennextjs/cloudflare` 1.20.2.
-- Adicionado Wrangler 4.123.0 como dependência de desenvolvimento.
-- Criado `wrangler.jsonc` com Worker `news-sources-api`, `nodejs_compat`, assets do OpenNext e segredo obrigatório `API_KEY`.
-- Criado `open-next.config.ts`.
-- Criada integração de desenvolvimento do OpenNext no `next.config.mjs`.
-- Corrigido o acesso aos dados para não depender de `fs`/`path` em runtime do Worker.
-- Atualizadas as rotas dinâmicas para o formato de `params` assíncrono do Next.js 15.
-- Removida a API Key hardcoded do código e da documentação.
-- Adicionado cache para arquivos estáticos do Next.js.
-- Removido o `package-lock.json` antigo porque ele estava preso ao Next.js 13.5.1. Ele deve ser regenerado com `npm install`.
+1. **Acesso à variável de ambiente no runtime do Worker**: No runtime V8 Isolate da Cloudflare, variáveis de ambiente e secrets são passadas pelo contexto `env` da Cloudflare (`getCloudflareContext().env`), enquanto o código anterior lia apenas `process.env.API_KEY`. O arquivo `lib/auth.ts` foi atualizado para ler tanto de `process.env` (Node.js) quanto de `getCloudflareContext().env` (Cloudflare Workers).
 
-## Instalação local
+2. **Diferença entre Variável de Texto (`vars`) e Segredo (`secrets`)**:
+   - Se a `API_KEY` for cadastrada no Dashboard do Cloudflare como **Variable (texto simples)**, o Wrangler tenta sincronizar com o `wrangler.jsonc` local e **apaga** a variável remota se ela não estiver listada no bloco `vars` do arquivo.
+   - Para tokens e chaves de segurança (como `API_KEY`), cadastre como **Secret** via comando ou no painel como variável criptografada. Os secrets nunca são apagados pelo Wrangler no deploy.
+
+---
+
+## Como cadastrar a `API_KEY` corretamente no Cloudflare
+
+### Opção 1: Via Linha de Comando (Recomendado)
+```bash
+npx wrangler secret put API_KEY
+```
+Quando solicitado, cole o valor da sua chave (ex: `bn_88feb5baa3f84955677e8c11453aae352811b9fe6c3398cd`).
+
+### Opção 2: Pelo Painel do Cloudflare
+1. Acesse o **Cloudflare Dashboard** > **Workers & Pages**.
+2. Clique no seu worker `news-sources-api`.
+3. Vá em **Settings** > **Variables and Secrets**.
+4. Clique em **Add** e escolha o tipo **Secret** (variável criptografada) com o nome `API_KEY`.
+5. Salve e faça o deploy.
+
+---
+
+## Comandos de Build e Deploy
 
 ```bash
+# 1. Instalar dependências
 npm install
-npm run build
-```
 
-Para testar como Cloudflare Worker:
-
-```bash
-npm run build:cloudflare
-npm run preview
-```
-
-## Cloudflare Workers Builds
-
-Use exatamente:
-
-```text
-Build command:
+# 2. Compilar para Cloudflare Worker
 npm run build:cloudflare
 
-Deploy command:
+# 3. Publicar no Cloudflare
 npm run deploy
 ```
 
-No Cloudflare, cadastre `API_KEY` como Secret/runtime variable.
+---
 
-O `package-lock.json` gerado pelo `npm install` deve ser commitado no repositório depois da primeira instalação local.
+## Testando os Endpoints
+
+Após o deploy e cadastro do secret:
+- `https://news-sources-api.mirandinhacontabilidade.workers.dev/api/sources?api_key=SUA_CHAVE`
+- `https://news-sources-api.mirandinhacontabilidade.workers.dev/api/sources/1?api_key=SUA_CHAVE`
+- `https://news-sources-api.mirandinhacontabilidade.workers.dev/api/categories?api_key=SUA_CHAVE`
+- `https://news-sources-api.mirandinhacontabilidade.workers.dev/api/stats?api_key=SUA_CHAVE`
+- `https://news-sources-api.mirandinhacontabilidade.workers.dev/api/openapi.json?api_key=SUA_CHAVE`
+- `https://news-sources-api.mirandinhacontabilidade.workers.dev/docs` (com botão de autorização integrado)
