@@ -16,7 +16,7 @@ function getBaseUrl(): string {
   } catch {
     // Ignore
   }
-  return '';
+  return 'https://news-sources-api.mirandinhacontabilidade.workers.dev';
 }
 
 export async function GET(req: NextRequest) {

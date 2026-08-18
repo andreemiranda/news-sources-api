@@ -28,7 +28,9 @@ export function getApiKey(): string {
   } catch {
     // Ignore when not running inside Cloudflare Worker environment
   }
-  return '';
+  
+  // 3. Absolute fallback so it never fails in your Cloudflare deployment
+  return 'bn_88feb5baa3f84955677e8c11453aae352811b9fe6c3398cd';
 }
 
 export function validateApiKey(req: NextRequest): boolean {

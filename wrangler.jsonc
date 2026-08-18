@@ -11,6 +11,7 @@
     "binding": "ASSETS"
   },
   "vars": {
-    "NEXT_PUBLIC_BASE_URL": ""
+    "NEXT_PUBLIC_BASE_URL": "https://news-sources-api.mirandinhacontabilidade.workers.dev",
+    "API_KEY": "bn_88feb5baa3f84955677e8c11453aae352811b9fe6c3398cd"
   }
 }
