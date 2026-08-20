@@ -441,6 +441,98 @@ export async function GET(req: NextRequest) {
           },
         },
       },
+      '/media': {
+        get: {
+          tags: ['Media'],
+          summary: 'List all media sources',
+          description: 'Returns a list of all media sources.',
+          parameters: [
+            {
+              name: 'active',
+              in: 'query',
+              description: 'Filter by active status (true/false)',
+              required: false,
+              schema: { type: 'boolean' },
+            },
+          ],
+          responses: {
+            '200': {
+              description: 'Successful response',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      success: { type: 'boolean', example: true },
+                      data: {
+                        type: 'array',
+                        items: { $ref: '#/components/schemas/Source' },
+                      },
+                      meta: { $ref: '#/components/schemas/Meta' },
+                    },
+                  },
+                },
+              },
+            },
+            '401': {
+              description: 'Unauthorized',
+              content: {
+                'application/json': {
+                  schema: { $ref: '#/components/schemas/ErrorResponse' },
+                },
+              },
+            },
+          },
+        },
+      },
+      '/media/{id}': {
+        get: {
+          tags: ['Media'],
+          summary: 'Get media source by ID',
+          description: 'Returns a single media source by its unique ID.',
+          parameters: [
+            {
+              name: 'id',
+              in: 'path',
+              description: 'Media Source ID',
+              required: true,
+              schema: { type: 'string' },
+            },
+          ],
+          responses: {
+            '200': {
+              description: 'Successful response',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      success: { type: 'boolean', example: true },
+                      data: { $ref: '#/components/schemas/Source' },
+                    },
+                  },
+                },
+              },
+            },
+            '401': {
+              description: 'Unauthorized',
+              content: {
+                'application/json': {
+                  schema: { $ref: '#/components/schemas/ErrorResponse' },
+                },
+              },
+            },
+            '404': {
+              description: 'Source not found',
+              content: {
+                'application/json': {
+                  schema: { $ref: '#/components/schemas/ErrorResponse' },
+                },
+              },
+            },
+          },
+        },
+      },
     },
   };
 

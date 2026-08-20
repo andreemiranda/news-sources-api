@@ -1,0 +1,220 @@
+{
+  "sources": [
+    {
+      "id": "28",
+      "category": "Tocantins",
+      "site": "clebertoledo.com.br",
+      "type": "wp-api",
+      "url": "https://clebertoledo.com.br/wp-json/wp/v2/media",
+      "active": true
+    },
+    {
+      "id": "29",
+      "category": "Educação",
+      "site": "infoeducacao.com.br",
+      "type": "wp-api",
+      "url": "https://infoeducacao.com.br/wp-json/wp/v2/media",
+      "active": true
+    },
+    {
+      "id": "30",
+      "category": "Justiça",
+      "site": "nacaojuridica.com.br",
+      "type": "wp-api",
+      "url": "https://www.nacaojuridica.com.br/wp-json/wp/v2/media",
+      "active": true
+    },
+    {
+      "id": "31",
+      "category": "Tocantins",
+      "site": "atitudeto.com.br",
+      "type": "wp-api",
+      "url": "https://atitudeto.com.br/wp-json/wp/v2/media",
+      "active": true
+    },
+    {
+      "id": "32",
+      "category": "Tocantins",
+      "site": "pmwnoticias.com.br",
+      "type": "wp-api",
+      "url": "https://pmwnoticias.com.br/wp-json/wp/v2/media",
+      "active": true
+    },
+    {
+      "id": "33",
+      "category": "Notícias Gerais",
+      "site": "admin.cnnbrasil.com.br",
+      "type": "wp-api",
+      "url": "https://admin.cnnbrasil.com.br/wp-json/wp/v2/media",
+      "active": true
+    },
+    {
+      "id": "34",
+      "category": "Tocantins",
+      "site": "gazetadocerrado.com.br",
+      "type": "wp-api",
+      "url": "https://gazetadocerrado.com.br/wp-json/wp/v2/media",
+      "active": true
+    },
+    {
+      "id": "35",
+      "category": "Economia",
+      "site": "minhaseconomias.com.br",
+      "type": "wp-api",
+      "url": "https://minhaseconomias.com.br/wp-json/wp/v2/media",
+      "active": true
+    },
+    {
+      "id": "36",
+      "category": "Esporte",
+      "site": "gazetaesportiva.com",
+      "type": "wp-api",
+      "url": "https://www.gazetaesportiva.com/wp-json/wp/v2/media",
+      "active": true
+    },
+    {
+      "id": "37",
+      "category": "Notícias Gerais",
+      "site": "vocesa.abril.com.br",
+      "type": "wp-api",
+      "url": "https://vocesa.abril.com.br/wp-json/wp/v2/media",
+      "active": true
+    },
+    {
+      "id": "38",
+      "category": "Finanças",
+      "site": "classic.exame.com",
+      "type": "wp-api",
+      "url": "https://classic.exame.com/wp-json/wp/v2/media",
+      "active": true
+    },
+    {
+      "id": "39",
+      "category": "Palmeiras",
+      "site": "palmeiras.com.br",
+      "type": "wp-api",
+      "url": "https://www.palmeiras.com.br/wp-json/wp/v2/media",
+      "active": true
+    },
+    {
+      "id": "40r",
+      "category": "Goiás",
+      "site": "opiniaogoias.com.br",
+      "type": "wp-api",
+      "url": "https://opiniaogoias.com.br/wp-json/wp/v2/media",
+      "active": true
+    },
+    {
+      "id": "41",
+      "category": "Goiás",
+      "site": "portalnoticiasgoias.com.br",
+      "type": "wp-api",
+      "url": "https://portalnoticiasgoias.com.br/wp-json/wp/v2/media",
+      "active": true
+    },
+    {
+      "id": "42",
+      "category": "Goiás",
+      "site": "diariodegoias.com.br",
+      "type": "wp-api",
+      "url": "https://diariodegoias.com.br/wp-json/wp/v2/media",
+      "active": true
+    },
+    {
+      "id": "43",
+      "category": "Justiça",
+      "site": "conjur.com.br",
+      "type": "wp-api",
+      "url": "https://conjur.com.br/wp-json/wp/v2/media",
+      "active": true
+    },
+    {
+      "id": "44",
+      "category": "Justiça",
+      "site": "meusitejuridico.editorajuspodivm.com.br",
+      "type": "wp-api",
+      "url": "https://meusitejuridico.editorajuspodivm.com.br/wp-json/wp/v2/media",
+      "active": true
+    },
+    {
+      "id": "45",
+      "category": "Justiça",
+      "site": "inw.org.br",
+      "type": "wp-api",
+      "url": "https://inw.org.br/wp-json/wp/v2/media",
+      "active": true
+    },
+    {
+      "id": "46",
+      "category": "Santa Catarina",
+      "site": "santacatarinaempauta.com.br",
+      "type": "wp-api",
+      "url": "https://www.santacatarinaempauta.com.br/wp-json/wp/v2/media",
+      "active": true
+    },
+    {
+      "id": "47",
+      "category": "Tocantins",
+      "site": "vozdobico.com.br",
+      "type": "wp-api",
+      "url": "https://www.vozdobico.com.br/wp-json/wp/v2/media",
+      "active": true
+    },
+    {
+      "id": "48",
+      "category": "Tocantins",
+      "site": "portaldobico.com.br",
+      "type": "wp-api",
+      "url": "https://portaldobico.com.br/wp-json/wp/v2/media",
+      "active": true
+    },
+    {
+      "id": "49",
+      "category": "Tocantins",
+      "site": "folhadobico.com.br",
+      "type": "wp-api",
+      "url": "https://folhadobico.com.br/wp-json/wp/v2/media",
+      "active": true
+    },
+    {
+      "id": "50",
+      "category": "Tocantins",
+      "site": "bico24horas.com.br",
+      "type": "wp-api",
+      "url": "https://bico24horas.com.br/wp-json/wp/v2/media",
+      "active": true
+    },
+    {
+      "id": "51",
+      "category": "Tocantins",
+      "site": "guaraiense.com.br",
+      "type": "wp-api",
+      "url": "https://guaraiense.com.br/wp-json/wp/v2/media",
+      "active": true
+    },
+    {
+      "id": "52",
+      "category": "Tocantins",
+      "site": "jornalobico.com.br",
+      "type": "wp-api",
+      "url": "https://jornalobico.com.br/wp-json/wp/v2/media",
+      "active": true
+    },
+    {
+      "id": "53",
+      "category": "Esporte",
+      "site": "ludopedio.org.br",
+      "type": "wp-api",
+      "url": "https://ludopedio.org.br/wp-json/wp/v2/media",
+      "active": true
+    },
+    {
+      "id": "54",
+      "category": "Notícias Gerais",
+      "site": "folhadestra.com",
+      "type": "wp-api",
+      "url": "https://www.folhadestra.com/wp-json/wp/v2/media",
+      "active": true
+    }
+  ]
+}
