@@ -51,7 +51,7 @@ Para a lista detalhada com os endpoints individuais nominais de cada uma das **7
 Retorna as matérias e publicações atualizadas diretamente do portal (WordPress REST API ou RSS Feed XML).
 
 ```bash
-# Exemplo: Obter as últimas 5 notícias da fonte 1 (clebertoledo.com.br)
+# Exemplo: Obter as últimas 5 notícias da fonte 1 (example.com.br)
 curl -H "x-api-key: <SUA_API_KEY>" "https://seu-dominio.workers.dev/api/news/1?limit=5"
 ```
 
