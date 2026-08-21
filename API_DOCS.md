@@ -1,30 +1,30 @@
-# News Sources API - Documentação
+# News Sources API - Documentação Completa
 
 ## Autenticação
 
-Todos os endpoints da API são protegidos por API Key. A chave deve ser enviada em toda requisição.
+Todos os endpoints da API são protegidos por API Key. A chave deve ser enviada em todas as requisições.
 
 ### API Key
 
-A API Key é fornecida exclusivamente por variável de ambiente/segredo `API_KEY` e não deve ser armazenada no repositório.
+A API Key é configurada via variável de ambiente/segredo `API_KEY`.
 
-> **Produção:** no Cloudflare Workers, cadastre `API_KEY` como Secret. Em desenvolvimento, você pode usar `.env.local` ou `.dev.vars`.
+> **Produção:** no Cloudflare Workers, cadastre `API_KEY` como Secret ou nas variáveis do Worker. Em desenvolvimento, configure em `.env.local`.
 
 ### Formas de envio da API Key
 
-A API aceita a chave de três formas diferentes (qualquer uma funciona):
+A API aceita a chave de três formas diferentes (qualquer uma é válida):
 
 1. **Header Authorization (Bearer Token):**
-   ```
+   ```http
    Authorization: Bearer <SUA_API_KEY>
    ```
 
 2. **Header x-api-key:**
-   ```
+   ```http
    x-api-key: <SUA_API_KEY>
    ```
 
-3. **Query parameter:**
+3. **Query parameter na URL:**
    ```
    ?api_key=<SUA_API_KEY>
    ```
@@ -41,13 +41,13 @@ A API aceita a chave de três formas diferentes (qualquer uma funciona):
 
 ## Endpoints
 
-### 1. Listar todas as fontes
+### 1. Listar todas as fontes de notícias
 
-```
+```http
 GET /api/sources
 ```
 
-Lista todas as fontes de notícias com suporte a paginação e filtros.
+Lista todas as fontes de notícias agregadas, com suporte a paginação e filtros.
 
 #### Parâmetros de Query
 
@@ -64,7 +64,7 @@ Lista todas as fontes de notícias com suporte a paginação e filtros.
 
 ```bash
 curl -H "x-api-key: <SUA_API_KEY>" \
-  "http://localhost:3000/api/sources?page=1&limit=10"
+  "https://seu-dominio.workers.dev/api/sources?page=1&limit=10"
 ```
 
 #### Resposta (200 OK)
@@ -74,11 +74,11 @@ curl -H "x-api-key: <SUA_API_KEY>" \
   "success": true,
   "data": [
     {
-      "id": "clebertoledo-com-br",
+      "id": "1",
       "category": "Tocantins",
-      "site": "clebertoledo.com.br",
+      "site": "exemplo.com.br",
       "type": "wp-api",
-      "url": "https://clebertoledo.com.br/wp-json/wp/v2/posts",
+      "url": "https://exemplo.com.br/wp-json/wp/v2/posts",
       "active": true
     }
   ],
@@ -93,13 +93,13 @@ curl -H "x-api-key: <SUA_API_KEY>" \
 
 ---
 
-### 2. Obter fonte por ID
+### 2. Obter fonte de notícia por ID
 
-```
+```http
 GET /api/sources/{id}
 ```
 
-Retorna uma única fonte pelo seu ID único.
+Retorna uma única fonte de notícia pelo seu identificador único.
 
 #### Parâmetros de Path
 
@@ -111,7 +111,7 @@ Retorna uma única fonte pelo seu ID único.
 
 ```bash
 curl -H "x-api-key: <SUA_API_KEY>" \
-  "http://localhost:3000/api/sources/clebertoledo-com-br"
+  "https://seu-dominio.workers.dev/api/sources/1"
 ```
 
 #### Resposta (200 OK)
@@ -120,11 +120,11 @@ curl -H "x-api-key: <SUA_API_KEY>" \
 {
   "success": true,
   "data": {
-    "id": "clebertoledo-com-br",
+    "id": "1",
     "category": "Tocantins",
-    "site": "clebertoledo.com.br",
+    "site": "exemplo.com.br",
     "type": "wp-api",
-    "url": "https://clebertoledo.com.br/wp-json/wp/v2/posts",
+    "url": "https://exemplo.com.br/wp-json/wp/v2/posts",
     "active": true
   }
 }
@@ -143,11 +143,11 @@ curl -H "x-api-key: <SUA_API_KEY>" \
 
 ### 3. Listar fontes por categoria
 
-```
+```http
 GET /api/sources/category/{category}
 ```
 
-Retorna todas as fontes pertencentes a uma categoria específica (case-insensitive).
+Retorna todas as fontes pertencentes a uma categoria específica.
 
 #### Parâmetros de Path
 
@@ -166,7 +166,30 @@ Retorna todas as fontes pertencentes a uma categoria específica (case-insensiti
 
 ```bash
 curl -H "x-api-key: <SUA_API_KEY>" \
-  "http://localhost:3000/api/sources/category/Tocantins"
+  "https://seu-dominio.workers.dev/api/sources/category/Tocantins"
+```
+
+---
+
+### 4. Listar todas as fontes de mídia (WordPress Media API)
+
+```http
+GET /api/media
+```
+
+Retorna a lista de todas as fontes com endpoints específicos de mídia do WordPress (`/wp-json/wp/v2/media`), permitindo consulta de anexos, imagens e arquivos multimídia das fontes.
+
+#### Parâmetros de Query
+
+| Parâmetro | Tipo    | Padrão | Descrição                                     |
+|-----------|---------|--------|-----------------------------------------------|
+| `active`  | boolean | -      | Filtrar por status ativo (`true` ou `false`) |
+
+#### Exemplo de Requisição
+
+```bash
+curl -H "x-api-key: <SUA_API_KEY>" \
+  "https://seu-dominio.workers.dev/api/media?active=true"
 ```
 
 #### Resposta (200 OK)
@@ -174,32 +197,93 @@ curl -H "x-api-key: <SUA_API_KEY>" \
 ```json
 {
   "success": true,
-  "category": "Tocantins",
-  "data": [...],
+  "data": [
+    {
+      "id": "1",
+      "category": "Tocantins",
+      "site": "exemplo.com.br",
+      "type": "wp-api",
+      "url": "https://exemplo.com.br/wp-json/wp/v2/media",
+      "active": true
+    },
+    {
+      "id": "2",
+      "category": "Educação",
+      "site": "exemplo-educacao.com.br",
+      "type": "wp-api",
+      "url": "https://exemplo-educacao.com.br/wp-json/wp/v2/media",
+      "active": true
+    }
+  ],
   "meta": {
-    "total": 10,
-    "page": 1,
-    "limit": 20,
-    "totalPages": 1
+    "total": 27
   }
 }
 ```
 
 ---
 
-### 4. Listar todas as categorias
+### 5. Obter fonte de mídia por ID
 
-```
-GET /api/categories
+```http
+GET /api/media/{id}
 ```
 
-Retorna uma lista de todas as categorias com a contagem de fontes em cada uma.
+Retorna uma fonte de mídia específica pelo seu ID único.
+
+#### Parâmetros de Path
+
+| Parâmetro | Tipo   | Descrição               |
+|-----------|--------|-------------------------|
+| `id`      | string | Identificador da mídia  |
 
 #### Exemplo de Requisição
 
 ```bash
 curl -H "x-api-key: <SUA_API_KEY>" \
-  "http://localhost:3000/api/categories"
+  "https://seu-dominio.workers.dev/api/media/1"
+```
+
+#### Resposta (200 OK)
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "1",
+    "category": "Tocantins",
+    "site": "exemplo.com.br",
+    "type": "wp-api",
+    "url": "https://exemplo.com.br/wp-json/wp/v2/media",
+    "active": true
+  }
+}
+```
+
+#### Resposta (404 Not Found)
+
+```json
+{
+  "success": false,
+  "error": "Media source not found"
+}
+```
+
+---
+
+### 6. Listar todas as categorias
+
+```http
+GET /api/categories
+```
+
+Retorna uma lista de todas as categorias cadastradas com a respectiva contagem de fontes.
+
+#### Exemplo de Requisição
+
+```bash
+curl -H "x-api-key: <SUA_API_KEY>" \
+  "https://seu-dominio.workers.dev/api/categories"
 ```
 
 #### Resposta (200 OK)
@@ -219,84 +303,40 @@ curl -H "x-api-key: <SUA_API_KEY>" \
 
 ---
 
-### 5. Listar todos os tipos
+### 7. Listar todos os tipos
 
-```
+```http
 GET /api/types
 ```
 
-Retorna uma lista de todos os tipos de fonte (`wp-api`, `rss`) com a contagem de fontes em cada um.
-
-#### Exemplo de Requisição
-
-```bash
-curl -H "x-api-key: <SUA_API_KEY>" \
-  "http://localhost:3000/api/types"
-```
-
-#### Resposta (200 OK)
-
-```json
-{
-  "success": true,
-  "data": [
-    { "type": "rss", "count": 44 },
-    { "type": "wp-api", "count": 25 }
-  ],
-  "meta": { "total": 2 }
-}
-```
+Retorna a lista de formatos/protocolos de integração suportados (`wp-api`, `rss`) com a contagem de fontes.
 
 ---
 
-### 6. Estatísticas da API
+### 8. Estatísticas da API
 
-```
+```http
 GET /api/stats
 ```
 
-Retorna estatísticas agregadas sobre o banco de fontes de notícias, incluindo contagens totais e breakdowns por categoria e tipo.
-
-#### Exemplo de Requisição
-
-```bash
-curl -H "x-api-key: <SUA_API_KEY>" \
-  "http://localhost:3000/api/stats"
-```
-
-#### Resposta (200 OK)
-
-```json
-{
-  "success": true,
-  "data": {
-    "totalSources": 69,
-    "totalCategories": 30,
-    "totalTypes": 2,
-    "activeSources": 69,
-    "categories": [...],
-    "types": [...]
-  }
-}
-```
+Retorna métricas agregadas sobre o acervo de fontes de notícias e categorias.
 
 ---
 
-### 7. Especificação OpenAPI
+### 9. Especificação OpenAPI
 
-```
+```http
 GET /api/openapi.json
 ```
 
-Retorna a especificação OpenAPI 3.0.3 completa da API em formato JSON. Este endpoint também requer autenticação.
+Retorna o documento de especificação OpenAPI 3.0.3 estruturado em JSON com todos os endpoints e schemas da API.
 
 ---
 
-## Erros
+## Tratamento de Erros
 
 ### 401 Unauthorized
-
-Retornado quando a API Key está ausente ou é inválida.
+Retornado quando a API Key não foi informada ou é inválida.
 
 ```json
 {
@@ -306,8 +346,7 @@ Retornado quando a API Key está ausente ou é inválida.
 ```
 
 ### 404 Not Found
-
-Retornado quando uma fonte ou categoria solicitada não existe.
+Retornado quando o recurso solicitado não foi encontrado.
 
 ```json
 {
@@ -318,15 +357,19 @@ Retornado quando uma fonte ou categoria solicitada não existe.
 
 ---
 
-## Modelo de Dados
+## Modelo de Dados (Schema)
 
-### Source
+### Source / MediaSource
 
 | Campo      | Tipo    | Descrição                                          |
 |------------|---------|----------------------------------------------------|
-| `id`       | string  | Identificador único da fonte                       |
-| `category` | string  | Categoria da notícia (ex: Tocantins, Economia)     |
-| `site`     | string  | Nome do site de origem                             |
-| `type`     | string  | Tipo da fonte (`wp-api` ou `rss`)                 |
-| `url`      | string  | URL do endpoint da fonte                           |
-| `active`   | boolean | Status da fonte (ativa ou inativa)                 |
+| `id`       | string  | Identificador único do registro                    |
+| `category` | string  | Categoria editorial (ex: Tocantins, Educação)      |
+| `site`     | string  | Nome de domínio ou portal de origem                |
+| `type`     | string  | Tipo do protocolo de extração (`wp-api` ou `rss`)  |
+| `url`      | string  | URL completa do endpoint da fonte de notícias/mídia |
+| `active`   | boolean | Status de atividade do endpoint                    |
+
+---
+
+© 2026 News Sources API. Todos os direitos reservados.

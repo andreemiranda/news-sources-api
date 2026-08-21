@@ -41,9 +41,10 @@ export async function GET(req: NextRequest) {
         name: 'API Support',
       },
     },
-    servers: baseUrl
-      ? [{ url: `${baseUrl}`, description: 'API Server' }]
-      : [{ url: '/', description: 'API Server' }],
+    servers: [
+      { url: '/', description: 'Servidor Atual (Relativo)' },
+      { url: baseUrl, description: 'Servidor de Produção' },
+    ],
     components: {
       securitySchemes: {
         ApiKeyAuth: {
@@ -64,12 +65,12 @@ export async function GET(req: NextRequest) {
           properties: {
             id: { type: 'string', example: '1' },
             category: { type: 'string', example: 'Tocantins' },
-            site: { type: 'string', example: 'clebertoledo.com.br' },
+            site: { type: 'string', example: 'exemplo.com.br' },
             type: { type: 'string', example: 'wp-api', enum: types },
             url: {
               type: 'string',
               format: 'uri',
-              example: 'https://clebertoledo.com.br/wp-json/wp/v2/posts',
+              example: 'https://exemplo.com.br/wp-json/wp/v2/posts',
             },
             active: { type: 'boolean', example: true },
           },

@@ -38,12 +38,12 @@ export default function Home() {
           properties: {
             id: { type: 'string', example: '1' },
             category: { type: 'string', example: 'Tocantins' },
-            site: { type: 'string', example: 'clebertoledo.com.br' },
+            site: { type: 'string', example: 'exemplo.com.br' },
             type: { type: 'string', example: 'wp-api', enum: types },
             url: {
               type: 'string',
               format: 'uri',
-              example: 'https://clebertoledo.com.br/wp-json/wp/v2/posts',
+              example: 'https://exemplo.com.br/wp-json/wp/v2/posts',
             },
             active: { type: 'boolean', example: true },
           },
@@ -362,6 +362,98 @@ export default function Home() {
           },
         },
       },
+      '/media': {
+        get: {
+          tags: ['Media'],
+          summary: 'List all media sources',
+          description: 'Returns a list of all media sources.',
+          parameters: [
+            {
+              name: 'active',
+              in: 'query',
+              description: 'Filter by active status (true/false)',
+              required: false,
+              schema: { type: 'boolean' },
+            },
+          ],
+          responses: {
+            '200': {
+              description: 'Successful response',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      success: { type: 'boolean', example: true },
+                      data: {
+                        type: 'array',
+                        items: { $ref: '#/components/schemas/Source' },
+                      },
+                      meta: { $ref: '#/components/schemas/Meta' },
+                    },
+                  },
+                },
+              },
+            },
+            '401': {
+              description: 'Unauthorized',
+              content: {
+                'application/json': {
+                  schema: { $ref: '#/components/schemas/ErrorResponse' },
+                },
+              },
+            },
+          },
+        },
+      },
+      '/media/{id}': {
+        get: {
+          tags: ['Media'],
+          summary: 'Get media source by ID',
+          description: 'Returns a single media source by its unique ID.',
+          parameters: [
+            {
+              name: 'id',
+              in: 'path',
+              description: 'Media Source ID',
+              required: true,
+              schema: { type: 'string' },
+            },
+          ],
+          responses: {
+            '200': {
+              description: 'Successful response',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      success: { type: 'boolean', example: true },
+                      data: { $ref: '#/components/schemas/Source' },
+                    },
+                  },
+                },
+              },
+            },
+            '401': {
+              description: 'Unauthorized',
+              content: {
+                'application/json': {
+                  schema: { $ref: '#/components/schemas/ErrorResponse' },
+                },
+              },
+            },
+            '404': {
+              description: 'Source not found',
+              content: {
+                'application/json': {
+                  schema: { $ref: '#/components/schemas/ErrorResponse' },
+                },
+              },
+            },
+          },
+        },
+      },
     },
   };
 
@@ -458,8 +550,7 @@ export default function Home() {
               </p>
               <p className="text-amber-800 mb-2">
                 Para testar os endpoints no Swagger UI, clique no bot&atilde;o
-                &quot;Authorize&quot; e insira a API Key. A chave est&aacute; dispon&iacute;vel
-                no reposit&oacute;rio.
+                &quot;Authorize&quot; e insira a sua API Key.
               </p>
               <p className="text-amber-700 text-xs mt-2">
                 A chave pode ser enviada via header
@@ -483,7 +574,7 @@ export default function Home() {
       <footer className="border-t border-slate-200 bg-slate-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 text-center">
           <p className="text-sm text-slate-500">
-            News Sources API &middot; Documentação completa disponível no repositório.
+            &copy; {new Date().getFullYear()} News Sources API. Todos os direitos reservados.
           </p>
         </div>
       </footer>
