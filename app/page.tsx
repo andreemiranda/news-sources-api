@@ -1,11 +1,12 @@
 import { getAllSources, getCategories, getTypes } from '@/lib/sources';
+import { getAllMediaSources } from '@/lib/media';
 import SwaggerUIWrapper from '@/components/SwaggerUIWrapper';
 import Link from 'next/link';
 import { BookOpen } from 'lucide-react';
 
-
 export default function Home() {
   const sources = getAllSources();
+  const mediaSources = getAllMediaSources();
   const categories = getCategories().map((c) => c.category);
   const types = getTypes().map((t) => t.type);
 
@@ -14,7 +15,7 @@ export default function Home() {
     info: {
       title: 'News Sources API',
       description:
-        'REST API for accessing news sources data aggregated from various Brazilian news outlets. All endpoints require API key authentication.',
+        'REST API for accessing news sources data and live articles/media aggregated from various Brazilian news outlets. All endpoints require API key authentication.',
       version: '1.0.0',
     },
     servers: [{ url: '/', description: 'API Server' }],
@@ -62,6 +63,42 @@ export default function Home() {
           properties: {
             success: { type: 'boolean', example: false },
             error: { type: 'string' },
+          },
+        },
+        ContentItem: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', example: '101' },
+            title: { type: 'string', example: 'Título da Notícia ou Mídia' },
+            link: { type: 'string', example: 'https://exemplo.com.br/noticia-exemplo' },
+            description: { type: 'string', example: 'Resumo da publicação jornalística.' },
+            content: { type: 'string', example: '<p>Conteúdo completo da notícia...</p>' },
+            pubDate: { type: 'string', example: '2026-08-21T10:00:00Z' },
+            author: { type: 'string', example: 'Redação' },
+            categories: {
+              type: 'array',
+              items: { type: 'string' },
+              example: ['Geral', 'Economia'],
+            },
+            imageUrl: { type: 'string', example: 'https://exemplo.com.br/wp-content/uploads/imagem.jpg' },
+            mediaUrl: { type: 'string', example: 'https://exemplo.com.br/wp-content/uploads/arquivo.pdf' },
+          },
+        },
+        ContentResponse: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean', example: true },
+            data: {
+              type: 'object',
+              properties: {
+                source: { $ref: '#/components/schemas/Source' },
+                pagination: { $ref: '#/components/schemas/Meta' },
+                items: {
+                  type: 'array',
+                  items: { $ref: '#/components/schemas/ContentItem' },
+                },
+              },
+            },
           },
         },
       },
@@ -173,6 +210,85 @@ export default function Home() {
             },
             '404': {
               description: 'Source not found',
+              content: {
+                'application/json': {
+                  schema: { $ref: '#/components/schemas/ErrorResponse' },
+                },
+              },
+            },
+          },
+        },
+      },
+      '/sources/{id}/content': {
+        get: {
+          tags: ['Content'],
+          summary: 'Get live news content from source (72 sources available)',
+          description:
+            'Fetches the real news content directly from the selected source ID (1 to 72). Automatically handles both WordPress REST APIs and RSS Feeds, parsing posts, authors, dates, excerpts, and images.',
+          parameters: [
+            {
+              name: 'id',
+              in: 'path',
+              description: 'Source ID (1 to 72)',
+              required: true,
+              schema: { type: 'string', example: '1' },
+            },
+            {
+              name: 'page',
+              in: 'query',
+              description: 'Page number (default: 1)',
+              required: false,
+              schema: { type: 'integer', default: 1, minimum: 1 },
+            },
+            {
+              name: 'limit',
+              in: 'query',
+              description: 'Items per page (default: 10, max: 100)',
+              required: false,
+              schema: { type: 'integer', default: 10, minimum: 1, maximum: 100 },
+            },
+            {
+              name: 'search',
+              in: 'query',
+              description: 'Search keyword to filter news articles',
+              required: false,
+              schema: { type: 'string' },
+            },
+            {
+              name: 'raw',
+              in: 'query',
+              description: 'Return raw upstream JSON payload alongside parsed items',
+              required: false,
+              schema: { type: 'boolean', default: false },
+            },
+          ],
+          responses: {
+            '200': {
+              description: 'Successful response with live news articles',
+              content: {
+                'application/json': {
+                  schema: { $ref: '#/components/schemas/ContentResponse' },
+                },
+              },
+            },
+            '401': {
+              description: 'Unauthorized',
+              content: {
+                'application/json': {
+                  schema: { $ref: '#/components/schemas/ErrorResponse' },
+                },
+              },
+            },
+            '404': {
+              description: 'Source not found',
+              content: {
+                'application/json': {
+                  schema: { $ref: '#/components/schemas/ErrorResponse' },
+                },
+              },
+            },
+            '502': {
+              description: 'Bad Gateway / Upstream Source Error',
               content: {
                 'application/json': {
                   schema: { $ref: '#/components/schemas/ErrorResponse' },
@@ -454,6 +570,85 @@ export default function Home() {
           },
         },
       },
+      '/media/{id}/content': {
+        get: {
+          tags: ['Content', 'Media'],
+          summary: 'Get live media items from source (27 media endpoints available)',
+          description:
+            'Fetches the real media uploads and attachment items directly from the selected WordPress media source ID (28 to 54). Supports pagination, search, and raw upstream payload.',
+          parameters: [
+            {
+              name: 'id',
+              in: 'path',
+              description: 'Media Source ID (28 to 54)',
+              required: true,
+              schema: { type: 'string', example: '28' },
+            },
+            {
+              name: 'page',
+              in: 'query',
+              description: 'Page number (default: 1)',
+              required: false,
+              schema: { type: 'integer', default: 1, minimum: 1 },
+            },
+            {
+              name: 'limit',
+              in: 'query',
+              description: 'Items per page (default: 10, max: 100)',
+              required: false,
+              schema: { type: 'integer', default: 10, minimum: 1, maximum: 100 },
+            },
+            {
+              name: 'search',
+              in: 'query',
+              description: 'Search keyword to filter media uploads',
+              required: false,
+              schema: { type: 'string' },
+            },
+            {
+              name: 'raw',
+              in: 'query',
+              description: 'Return raw upstream JSON payload alongside parsed items',
+              required: false,
+              schema: { type: 'boolean', default: false },
+            },
+          ],
+          responses: {
+            '200': {
+              description: 'Successful response with live media uploads',
+              content: {
+                'application/json': {
+                  schema: { $ref: '#/components/schemas/ContentResponse' },
+                },
+              },
+            },
+            '401': {
+              description: 'Unauthorized',
+              content: {
+                'application/json': {
+                  schema: { $ref: '#/components/schemas/ErrorResponse' },
+                },
+              },
+            },
+            '404': {
+              description: 'Media source not found',
+              content: {
+                'application/json': {
+                  schema: { $ref: '#/components/schemas/ErrorResponse' },
+                },
+              },
+            },
+            '502': {
+              description: 'Bad Gateway / Upstream Source Error',
+              content: {
+                'application/json': {
+                  schema: { $ref: '#/components/schemas/ErrorResponse' },
+                },
+              },
+            },
+          },
+        },
+      },
     },
   };
 
@@ -489,15 +684,21 @@ export default function Home() {
               </div>
             </div>
             <p className="text-slate-300 text-sm max-w-2xl">
-              API REST para acesso a fontes de notícias brasileiras. Todos os
+              API REST para acesso a fontes de notícias brasileiras e conteúdos em tempo real. Todos os
               endpoints requerem autenticação por API Key. Use a documentação
               interativa abaixo para explorar e testar cada endpoint.
             </p>
             <div className="flex flex-wrap gap-3 mt-2">
               <div className="bg-slate-700/50 rounded-lg px-4 py-2 border border-slate-600">
-                <span className="text-xs text-slate-400 block">Total de fontes</span>
+                <span className="text-xs text-slate-400 block">Fontes (Conteúdo)</span>
                 <span className="text-lg font-semibold text-emerald-400">
                   {sources.length}
+                </span>
+              </div>
+              <div className="bg-slate-700/50 rounded-lg px-4 py-2 border border-slate-600">
+                <span className="text-xs text-slate-400 block">Mídias (Conteúdo)</span>
+                <span className="text-lg font-semibold text-emerald-400">
+                  {mediaSources.length}
                 </span>
               </div>
               <div className="bg-slate-700/50 rounded-lg px-4 py-2 border border-slate-600">
