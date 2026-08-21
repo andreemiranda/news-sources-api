@@ -1,6 +1,8 @@
+"use client";
 import { getAllSources, getCategories, getTypes } from '@/lib/sources';
 import { getAllMediaSources } from '@/lib/media';
-import SwaggerUIWrapper from '@/components/SwaggerUIWrapper';
+import dynamic from 'next/dynamic';
+const SwaggerUIWrapper = dynamic(() => import('@/components/SwaggerUIWrapper'), { ssr: false });
 import Link from 'next/link';
 import { BookOpen } from 'lucide-react';
 
@@ -105,9 +107,9 @@ export default function Home() {
     },
     security: [{ ApiKeyAuth: [] }, { BearerAuth: [] }],
     paths: {
-      '/sources': {
+      '/news': {
         get: {
-          tags: ['Sources'],
+          tags: ['News'],
           summary: 'List all sources',
           description:
             'Returns a paginated list of all news sources. Supports filtering by category, type, and active status.',
@@ -179,50 +181,10 @@ export default function Home() {
           },
         },
       },
-      '/sources/{id}': {
+      '/news/{id}': {
         get: {
-          tags: ['Sources'],
-          summary: 'Get source by ID',
-          description: 'Returns a single news source by its unique ID.',
-          parameters: [
-            {
-              name: 'id',
-              in: 'path',
-              description: 'Source ID',
-              required: true,
-              schema: { type: 'string' },
-            },
-          ],
-          responses: {
-            '200': {
-              description: 'Successful response',
-              content: {
-                'application/json': {
-                  schema: {
-                    type: 'object',
-                    properties: {
-                      success: { type: 'boolean', example: true },
-                      data: { $ref: '#/components/schemas/Source' },
-                    },
-                  },
-                },
-              },
-            },
-            '404': {
-              description: 'Source not found',
-              content: {
-                'application/json': {
-                  schema: { $ref: '#/components/schemas/ErrorResponse' },
-                },
-              },
-            },
-          },
-        },
-      },
-      '/sources/{id}/content': {
-        get: {
-          tags: ['Content'],
-          summary: 'Get live news content from source (72 sources available)',
+          tags: ['News Content'],
+          summary: 'Get live news content',
           description:
             'Fetches the real news content directly from the selected source ID (1 to 72). Automatically handles both WordPress REST APIs and RSS Feeds, parsing posts, authors, dates, excerpts, and images.',
           parameters: [
@@ -298,197 +260,17 @@ export default function Home() {
           },
         },
       },
-      '/sources/category/{category}': {
+      '/images': {
         get: {
-          tags: ['Sources'],
-          summary: 'Get sources by category',
+          tags: ['Images'],
+          summary: 'List all media endpoints',
           description:
-            'Returns all news sources belonging to a specific category (case-insensitive).',
-          parameters: [
-            {
-              name: 'category',
-              in: 'path',
-              description: 'Category name',
-              required: true,
-              schema: { type: 'string', enum: categories },
-            },
-            {
-              name: 'page',
-              in: 'query',
-              description: 'Page number (default: 1)',
-              schema: { type: 'integer', default: 1, minimum: 1 },
-            },
-            {
-              name: 'limit',
-              in: 'query',
-              description: 'Items per page (default: 100, max: 1000)',
-              schema: { type: 'integer', default: 100, minimum: 1, maximum: 1000 },
-            },
-          ],
-          responses: {
-            '200': {
-              description: 'Successful response',
-              content: {
-                'application/json': {
-                  schema: {
-                    type: 'object',
-                    properties: {
-                      success: { type: 'boolean', example: true },
-                      category: { type: 'string' },
-                      data: {
-                        type: 'array',
-                        items: { $ref: '#/components/schemas/Source' },
-                      },
-                      meta: { $ref: '#/components/schemas/Meta' },
-                    },
-                  },
-                },
-              },
-            },
-            '404': {
-              description: 'Category not found',
-              content: {
-                'application/json': {
-                  schema: { $ref: '#/components/schemas/ErrorResponse' },
-                },
-              },
-            },
-          },
-        },
-      },
-      '/categories': {
-        get: {
-          tags: ['Categories'],
-          summary: 'List all categories',
-          description:
-            'Returns a list of all news source categories with the count of sources in each.',
-          responses: {
-            '200': {
-              description: 'Successful response',
-              content: {
-                'application/json': {
-                  schema: {
-                    type: 'object',
-                    properties: {
-                      success: { type: 'boolean', example: true },
-                      data: {
-                        type: 'array',
-                        items: {
-                          type: 'object',
-                          properties: {
-                            category: { type: 'string' },
-                            count: { type: 'integer' },
-                          },
-                        },
-                      },
-                    },
-                  },
-                },
-              },
-            },
-            '401': {
-              description: 'Unauthorized',
-              content: {
-                'application/json': {
-                  schema: { $ref: '#/components/schemas/ErrorResponse' },
-                },
-              },
-            },
-          },
-        },
-      },
-      '/types': {
-        get: {
-          tags: ['Types'],
-          summary: 'List all source types',
-          description:
-            'Returns a list of all news source types (wp-api, rss) with the count of sources in each.',
-          responses: {
-            '200': {
-              description: 'Successful response',
-              content: {
-                'application/json': {
-                  schema: {
-                    type: 'object',
-                    properties: {
-                      success: { type: 'boolean', example: true },
-                      data: {
-                        type: 'array',
-                        items: {
-                          type: 'object',
-                          properties: {
-                            type: { type: 'string' },
-                            count: { type: 'integer' },
-                          },
-                        },
-                      },
-                    },
-                  },
-                },
-              },
-            },
-            '401': {
-              description: 'Unauthorized',
-              content: {
-                'application/json': {
-                  schema: { $ref: '#/components/schemas/ErrorResponse' },
-                },
-              },
-            },
-          },
-        },
-      },
-      '/stats': {
-        get: {
-          tags: ['Stats'],
-          summary: 'Get API statistics',
-          description:
-            'Returns aggregate statistics about the news sources database.',
-          responses: {
-            '200': {
-              description: 'Successful response',
-              content: {
-                'application/json': {
-                  schema: {
-                    type: 'object',
-                    properties: {
-                      success: { type: 'boolean', example: true },
-                      data: {
-                        type: 'object',
-                        properties: {
-                          totalSources: { type: 'integer' },
-                          totalCategories: { type: 'integer' },
-                          totalTypes: { type: 'integer' },
-                          activeSources: { type: 'integer' },
-                        },
-                      },
-                    },
-                  },
-                },
-              },
-            },
-            '401': {
-              description: 'Unauthorized',
-              content: {
-                'application/json': {
-                  schema: { $ref: '#/components/schemas/ErrorResponse' },
-                },
-              },
-            },
-          },
-        },
-      },
-      '/media': {
-        get: {
-          tags: ['Media'],
-          summary: 'List all media sources',
-          description: 'Returns a list of all media sources.',
+            'Returns a list of all media sources. Supports filtering by active status.',
           parameters: [
             {
               name: 'active',
               in: 'query',
               description: 'Filter by active status (true/false)',
-              required: false,
               schema: { type: 'boolean' },
             },
           ],
@@ -522,57 +304,9 @@ export default function Home() {
           },
         },
       },
-      '/media/{id}': {
+      '/images/{id}': {
         get: {
-          tags: ['Media'],
-          summary: 'Get media source by ID',
-          description: 'Returns a single media source by its unique ID.',
-          parameters: [
-            {
-              name: 'id',
-              in: 'path',
-              description: 'Media Source ID',
-              required: true,
-              schema: { type: 'string' },
-            },
-          ],
-          responses: {
-            '200': {
-              description: 'Successful response',
-              content: {
-                'application/json': {
-                  schema: {
-                    type: 'object',
-                    properties: {
-                      success: { type: 'boolean', example: true },
-                      data: { $ref: '#/components/schemas/Source' },
-                    },
-                  },
-                },
-              },
-            },
-            '401': {
-              description: 'Unauthorized',
-              content: {
-                'application/json': {
-                  schema: { $ref: '#/components/schemas/ErrorResponse' },
-                },
-              },
-            },
-            '404': {
-              description: 'Source not found',
-              content: {
-                'application/json': {
-                  schema: { $ref: '#/components/schemas/ErrorResponse' },
-                },
-              },
-            },
-          },
-        },
-      },
-      '/media/{id}/content': {
-        get: {
-          tags: ['Content', 'Media'],
+          tags: ['Images Content'],
           summary: 'Get live media items from source (27 media endpoints available)',
           description:
             'Fetches the real media uploads and attachment items directly from the selected WordPress media source ID (28 to 54). Supports pagination, search, and raw upstream payload.',
@@ -648,8 +382,8 @@ export default function Home() {
             },
           },
         },
-      },
-    },
+      }
+    }
   };
 
   return (

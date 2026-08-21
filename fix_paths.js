@@ -1,165 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { validateApiKey, unauthorizedResponse } from '@/lib/auth';
-import { getAllSources, getCategories, getTypes } from '@/lib/sources';
-import { getCloudflareContext } from '@opennextjs/cloudflare';
+const fs = require('fs');
 
-function getBaseUrl(): string {
-  if (process.env.NEXT_PUBLIC_BASE_URL) {
-    return process.env.NEXT_PUBLIC_BASE_URL;
-  }
-  try {
-    const ctx = getCloudflareContext();
-    const envBaseUrl = (ctx?.env as Record<string, string> | undefined)?.NEXT_PUBLIC_BASE_URL;
-    if (envBaseUrl) {
-      return envBaseUrl;
-    }
-  } catch {
-    // Ignore
-  }
-  return 'https://news-sources-api.mirandinhacontabilidade.workers.dev';
-}
-
-export async function GET(req: NextRequest) {
-  if (!validateApiKey(req)) {
-    return unauthorizedResponse();
-  }
-
-  const sources = getAllSources();
-  const categories = getCategories().map((c) => c.category);
-  const types = getTypes().map((t) => t.type);
-
-  const baseUrl = getBaseUrl();
-
-  const spec = {
-    openapi: '3.0.3',
-    info: {
-      title: 'News Sources API',
-      description:
-        'REST API for accessing news sources data aggregated from various Brazilian news outlets. All endpoints require API key authentication.',
-      version: '1.0.0',
-      contact: {
-        name: 'API Support',
-      },
-    },
-    servers: [
-      { url: '/', description: 'Servidor Atual (Relativo)' },
-      { url: baseUrl, description: 'Servidor de Produção' },
-    ],
-    components: {
-      securitySchemes: {
-        ApiKeyAuth: {
-          type: 'apiKey',
-          in: 'header',
-          name: 'x-api-key',
-          description: 'API key for authentication',
-        },
-        BearerAuth: {
-          type: 'http',
-          scheme: 'bearer',
-          description: 'Bearer token authentication with API key',
-        },
-      },
-      schemas: {
-        Source: {
-          type: 'object',
-          properties: {
-            id: { type: 'string', example: '1' },
-            category: { type: 'string', example: 'Tocantins' },
-            site: { type: 'string', example: 'exemplo.com.br' },
-            type: { type: 'string', example: 'wp-api', enum: types },
-            url: {
-              type: 'string',
-              format: 'uri',
-              example: 'https://exemplo.com.br/wp-json/wp/v2/posts',
-            },
-            active: { type: 'boolean', example: true },
-          },
-        },
-        Meta: {
-          type: 'object',
-          properties: {
-            total: { type: 'integer' },
-            page: { type: 'integer' },
-            limit: { type: 'integer' },
-            totalPages: { type: 'integer' },
-          },
-        },
-        ErrorResponse: {
-          type: 'object',
-          properties: {
-            success: { type: 'boolean', example: false },
-            error: { type: 'string' },
-          },
-        },
-        Stats: {
-          type: 'object',
-          properties: {
-            totalSources: { type: 'integer' },
-            totalCategories: { type: 'integer' },
-            totalTypes: { type: 'integer' },
-            activeSources: { type: 'integer' },
-            categories: {
-              type: 'array',
-              items: {
-                type: 'object',
-                properties: {
-                  category: { type: 'string' },
-                  count: { type: 'integer' },
-                },
-              },
-            },
-            types: {
-              type: 'array',
-              items: {
-                type: 'object',
-                properties: {
-                  type: { type: 'string' },
-                  count: { type: 'integer' },
-                },
-              },
-            },
-          },
-        },
-        ContentItem: {
-          type: 'object',
-          properties: {
-            id: { type: 'string', example: '101' },
-            title: { type: 'string', example: 'Título da Notícia ou Mídia' },
-            link: { type: 'string', example: 'https://exemplo.com.br/noticia-exemplo' },
-            description: { type: 'string', example: 'Resumo da publicação jornalística.' },
-            content: { type: 'string', example: '<p>Conteúdo completo da notícia...</p>' },
-            pubDate: { type: 'string', example: '2026-08-21T10:00:00Z' },
-            author: { type: 'string', example: 'Redação' },
-            categories: {
-              type: 'array',
-              items: { type: 'string' },
-              example: ['Geral', 'Economia'],
-            },
-            imageUrl: { type: 'string', example: 'https://exemplo.com.br/wp-content/uploads/imagem.jpg' },
-            mediaUrl: { type: 'string', example: 'https://exemplo.com.br/wp-content/uploads/arquivo.pdf' },
-          },
-        },
-        ContentResponse: {
-          type: 'object',
-          properties: {
-            success: { type: 'boolean', example: true },
-            data: {
-              type: 'object',
-              properties: {
-                source: { $ref: '#/components/schemas/Source' },
-                pagination: { $ref: '#/components/schemas/Meta' },
-                items: {
-                  type: 'array',
-                  items: { $ref: '#/components/schemas/ContentItem' },
-                },
-              },
-            },
-          },
-        },
-      },
-    },
-    security: [{ ApiKeyAuth: [] }, { BearerAuth: [] }],
-    paths: {
+const cleanPaths = `    paths: {
       '/news': {
         get: {
           tags: ['News'],
@@ -437,7 +278,25 @@ export async function GET(req: NextRequest) {
         },
       }
     }
-  };
+  };`;
 
-  return NextResponse.json(spec);
+function fixSpec(file) {
+  let content = fs.readFileSync(file, 'utf8');
+  let parts = content.split('    paths: {');
+  let before = parts[0];
+  let newContent = before + cleanPaths;
+  if (file === 'app/page.tsx') {
+    newContent += `\n\n  return (`;
+    // grab the rest of the file
+    let endParts = content.split('  return (');
+    if (endParts.length > 1) {
+      newContent += endParts[1];
+    }
+  } else {
+    newContent += `\n\n  return NextResponse.json(spec);\n}`;
+  }
+  fs.writeFileSync(file, newContent);
 }
+
+fixSpec('app/page.tsx');
+fixSpec('app/api/openapi.json/route.ts');
