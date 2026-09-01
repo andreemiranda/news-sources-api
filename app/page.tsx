@@ -1,6 +1,6 @@
 import { getAllSources, getCategories, getTypes } from '@/lib/sources';
 import { getAllMediaSources } from '@/lib/media';
-import SwaggerClient from '@/components/SwaggerClient';
+
 import Link from 'next/link';
 import { BookOpen } from 'lucide-react';
 
@@ -500,7 +500,18 @@ export default async function Home() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
         <div className="rounded-lg border border-slate-200 overflow-hidden shadow-sm">
-          <SwaggerClient spec={spec} />
+          <div className="bg-white p-12 text-center">
+            <h3 className="text-xl font-bold text-slate-900 mb-4">Nova Documentação</h3>
+            <p className="text-slate-600 mb-6 max-w-2xl mx-auto">
+              A documentação interativa foi movida para uma nova página, utilizando uma interface mais rápida e moderna.
+            </p>
+            <Link 
+              href="/docs" 
+              className="inline-flex items-center gap-2 bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 transition-colors"
+            >
+              Acessar Documentação da API
+            </Link>
+          </div>
         </div>
       </div>
 

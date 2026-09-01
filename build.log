@@ -1,0 +1,640 @@
+ ⚠ You are using a non-standard "NODE_ENV" value in your environment. This creates inconsistencies in the project and is strongly advised against. Read more: https://nextjs.org/docs/messages/non-standard-node-env
+   ▲ Next.js 15.5.22
+
+   Creating an optimized production build ...
+2026-09-01T18:40:06.959Z next:build:webpack-build using separate compiler workers
+2026-09-01T18:40:08.324Z next:jsconfig-paths-plugin tsconfig.json or jsconfig.json paths: { '@/*': [ './*' ] }
+2026-09-01T18:40:08.325Z next:jsconfig-paths-plugin resolved baseUrl: { baseUrl: '/app/applet', isImplicit: true }
+2026-09-01T18:40:08.334Z next:jsconfig-paths-plugin tsconfig.json or jsconfig.json paths: { '@/*': [ './*' ] }
+2026-09-01T18:40:08.334Z next:jsconfig-paths-plugin resolved baseUrl: { baseUrl: '/app/applet', isImplicit: true }
+2026-09-01T18:40:08.355Z next:jsconfig-paths-plugin tsconfig.json or jsconfig.json paths: { '@/*': [ './*' ] }
+2026-09-01T18:40:08.355Z next:jsconfig-paths-plugin resolved baseUrl: { baseUrl: '/app/applet', isImplicit: true }
+2026-09-01T18:40:08.449Z next:build:webpack-build starting compiler server
+2026-09-01T18:40:08.449Z next:build:webpack-build starting server compiler
+2026-09-01T18:40:08.832Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-app-loader
+2026-09-01T18:40:08.834Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-app-loader
+2026-09-01T18:40:08.834Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-app-loader
+2026-09-01T18:40:08.834Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-route-loader
+2026-09-01T18:40:08.866Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-app-loader
+2026-09-01T18:40:08.867Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-app-loader
+2026-09-01T18:40:08.867Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-app-loader
+2026-09-01T18:40:08.869Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-app-loader
+2026-09-01T18:40:08.870Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-app-loader
+2026-09-01T18:40:08.870Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-app-loader
+2026-09-01T18:40:08.871Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-app-loader
+2026-09-01T18:40:08.871Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-app-loader
+2026-09-01T18:40:08.872Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-app-loader
+2026-09-01T18:40:08.874Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-route-loader
+2026-09-01T18:40:08.874Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-route-loader
+2026-09-01T18:40:08.875Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-route-loader
+2026-09-01T18:40:08.898Z next:jsconfig-paths-plugin moduleName did not match any paths pattern @opentelemetry/api
+2026-09-01T18:40:08.922Z next:jsconfig-paths-plugin moduleName did not match any paths pattern @opentelemetry/api
+2026-09-01T18:40:08.994Z next:jsconfig-paths-plugin moduleName did not match any paths pattern @opentelemetry/api
+2026-09-01T18:40:08.997Z next:jsconfig-paths-plugin moduleName did not match any paths pattern @opentelemetry/api
+2026-09-01T18:40:09.001Z next:jsconfig-paths-plugin moduleName did not match any paths pattern react-server-dom-webpack/server
+2026-09-01T18:40:09.001Z next:jsconfig-paths-plugin moduleName did not match any paths pattern react-server-dom-webpack/static
+2026-09-01T18:40:09.022Z next:jsconfig-paths-plugin moduleName did not match any paths pattern react-server-dom-webpack/static
+2026-09-01T18:40:09.022Z next:jsconfig-paths-plugin moduleName did not match any paths pattern react-server-dom-webpack/server
+2026-09-01T18:40:09.022Z next:jsconfig-paths-plugin moduleName did not match any paths pattern react-server-dom-webpack/client
+2026-09-01T18:40:09.023Z next:jsconfig-paths-plugin moduleName did not match any paths pattern react-server-dom-webpack/server
+2026-09-01T18:40:09.023Z next:jsconfig-paths-plugin moduleName did not match any paths pattern react-server-dom-webpack/static
+2026-09-01T18:40:09.023Z next:jsconfig-paths-plugin moduleName did not match any paths pattern react-server-dom-webpack/static
+2026-09-01T18:40:09.023Z next:jsconfig-paths-plugin moduleName did not match any paths pattern react-server-dom-webpack/server
+2026-09-01T18:40:09.023Z next:jsconfig-paths-plugin moduleName did not match any paths pattern react-server-dom-webpack/client
+2026-09-01T18:40:09.053Z next:jsconfig-paths-plugin moduleName did not match any paths pattern server-only
+2026-09-01T18:40:09.063Z next:jsconfig-paths-plugin moduleName did not match any paths pattern server-only
+2026-09-01T18:40:09.117Z next:jsconfig-paths-plugin moduleName did not match any paths pattern react-server-dom-webpack/server
+2026-09-01T18:40:09.117Z next:jsconfig-paths-plugin moduleName did not match any paths pattern react-server-dom-webpack/server
+2026-09-01T18:40:09.122Z next:jsconfig-paths-plugin moduleName did not match any paths pattern react-server-dom-webpack/server
+2026-09-01T18:40:09.122Z next:jsconfig-paths-plugin moduleName did not match any paths pattern react-server-dom-webpack/server
+2026-09-01T18:40:09.126Z next:jsconfig-paths-plugin skipping request as it is an absolute path /app/applet/lib/sources
+2026-09-01T18:40:09.126Z next:jsconfig-paths-plugin skipping request as it is an absolute path /app/applet/lib/media
+2026-09-01T18:40:09.129Z next:jsconfig-paths-plugin skipping request as it is an absolute path /app/applet/lib/sources
+2026-09-01T18:40:09.129Z next:jsconfig-paths-plugin skipping request as it is an absolute path /app/applet/lib/media
+2026-09-01T18:40:09.130Z next:jsconfig-paths-plugin skipping request as it is an absolute path /app/applet/lib/sources
+2026-09-01T18:40:09.131Z next:jsconfig-paths-plugin skipping request as it is an absolute path /app/applet/lib/sources
+2026-09-01T18:40:09.132Z next:jsconfig-paths-plugin skipping request as it is an absolute path /app/applet/lib/media
+2026-09-01T18:40:09.133Z next:jsconfig-paths-plugin skipping request as it is an absolute path /app/applet/lib/media
+2026-09-01T18:40:09.145Z next:jsconfig-paths-plugin skipping request as it is inside node_modules react-server-dom-webpack/server
+2026-09-01T18:40:09.147Z next:jsconfig-paths-plugin skipping request as it is inside node_modules react-server-dom-webpack/server
+2026-09-01T18:40:09.148Z next:jsconfig-paths-plugin moduleName did not match any paths pattern react-server-dom-webpack/server
+2026-09-01T18:40:09.149Z next:jsconfig-paths-plugin moduleName did not match any paths pattern react-server-dom-webpack/server
+2026-09-01T18:40:09.206Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.206Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.207Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.207Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.207Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.207Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.207Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.207Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.207Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.207Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.208Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.208Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.208Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.208Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.208Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.208Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.208Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.208Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.208Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.208Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.209Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.209Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.209Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.209Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.209Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.209Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.209Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.210Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.215Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.215Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.215Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.215Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.216Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.216Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.216Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.216Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.216Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.216Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.216Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.216Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.216Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.216Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.216Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.216Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.216Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.216Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.216Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.216Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.216Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.216Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.217Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.217Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.217Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.217Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.217Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.217Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.223Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.223Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.223Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.223Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.223Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.223Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.223Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.223Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.223Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.223Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.223Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.223Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.223Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.223Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.223Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.224Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.224Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.224Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.224Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.224Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.224Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.224Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.224Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.224Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.224Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.224Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.224Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.224Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.230Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.230Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.230Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.230Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.230Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.230Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.230Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.230Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.230Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.230Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.230Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.231Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.231Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.231Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.231Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.231Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.231Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.231Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.231Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.231Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.231Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.232Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.232Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.232Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.232Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.232Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.232Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.232Z next:jsconfig-paths-plugin moduleName did not match any paths pattern next-flight-client-entry-loader
+2026-09-01T18:40:09.298Z next:jsconfig-paths-plugin moduleName did not match any paths pattern react-server-dom-webpack/client
+2026-09-01T18:40:09.299Z next:jsconfig-paths-plugin moduleName did not match any paths pattern react-server-dom-webpack/client
+2026-09-01T18:40:09.301Z next:jsconfig-paths-plugin skipping request as it is inside node_modules ../client/script
+2026-09-01T18:40:09.330Z next:jsconfig-paths-plugin skipping request as it is inside node_modules ../client/script
+2026-09-01T18:40:09.349Z next:jsconfig-paths-plugin moduleName did not match any paths pattern react-server-dom-webpack/client
+2026-09-01T18:40:09.349Z next:jsconfig-paths-plugin moduleName did not match any paths pattern react-server-dom-webpack/client
+2026-09-01T18:40:09.421Z next:jsconfig-paths-plugin moduleName did not match any paths pattern react-server-dom-webpack/server
+2026-09-01T18:40:09.421Z next:jsconfig-paths-plugin moduleName did not match any paths pattern react-server-dom-webpack/server
+2026-09-01T18:40:09.422Z next:jsconfig-paths-plugin moduleName did not match any paths pattern react-server-dom-webpack/server
+2026-09-01T18:40:09.422Z next:jsconfig-paths-plugin moduleName did not match any paths pattern react-server-dom-webpack/server
+2026-09-01T18:40:09.423Z next:jsconfig-paths-plugin moduleName did not match any paths pattern __barrel_optimize__
+2026-09-01T18:40:09.497Z next:jsconfig-paths-plugin moduleName did not match any paths pattern __barrel_optimize__
+2026-09-01T18:40:09.497Z next:jsconfig-paths-plugin moduleName did not match any paths pattern __barrel_optimize__
+2026-09-01T18:40:09.498Z next:jsconfig-paths-plugin moduleName did not match any paths pattern __barrel_optimize__
+2026-09-01T18:40:09.786Z next:build:webpack-build server compiler finished 1337ms
+2026-09-01T18:40:11.170Z next:jsconfig-paths-plugin tsconfig.json or jsconfig.json paths: { '@/*': [ './*' ] }
+2026-09-01T18:40:11.171Z next:jsconfig-paths-plugin resolved baseUrl: { baseUrl: '/app/applet', isImplicit: true }
+2026-09-01T18:40:11.181Z next:jsconfig-paths-plugin tsconfig.json or jsconfig.json paths: { '@/*': [ './*' ] }
+2026-09-01T18:40:11.181Z next:jsconfig-paths-plugin resolved baseUrl: { baseUrl: '/app/applet', isImplicit: true }
+2026-09-01T18:40:11.203Z next:jsconfig-paths-plugin tsconfig.json or jsconfig.json paths: { '@/*': [ './*' ] }
+2026-09-01T18:40:11.203Z next:jsconfig-paths-plugin resolved baseUrl: { baseUrl: '/app/applet', isImplicit: true }
+2026-09-01T18:40:11.295Z next:build:webpack-build starting compiler edge-server
+2026-09-01T18:40:11.295Z next:build:webpack-build starting edge-server compiler
+2026-09-01T18:40:12.296Z next:build:webpack-build edge-server compiler finished 1001ms
+2026-09-01T18:40:13.674Z next:jsconfig-paths-plugin tsconfig.json or jsconfig.json paths: { '@/*': [ './*' ] }
+2026-09-01T18:40:13.675Z next:jsconfig-paths-plugin resolved baseUrl: { baseUrl: '/app/applet', isImplicit: true }
+2026-09-01T18:40:13.684Z next:jsconfig-paths-plugin tsconfig.json or jsconfig.json paths: { '@/*': [ './*' ] }
+2026-09-01T18:40:13.684Z next:jsconfig-paths-plugin resolved baseUrl: { baseUrl: '/app/applet', isImplicit: true }
+2026-09-01T18:40:13.708Z next:jsconfig-paths-plugin tsconfig.json or jsconfig.json paths: { '@/*': [ './*' ] }
+2026-09-01T18:40:13.708Z next:jsconfig-paths-plugin resolved baseUrl: { baseUrl: '/app/applet', isImplicit: true }
+2026-09-01T18:40:13.817Z next:build:webpack-build starting compiler client
+2026-09-01T18:40:13.817Z next:build:webpack-build starting client compiler
+2026-09-01T18:40:14.788Z next:build:webpack-build client compiler finished 971ms
+ ✓ Compiled successfully in 3.3s
+   Linting and checking validity of types ...
+2026-09-01T18:40:15.224Z eslintrc:config-array-factory Loading JSON config file: /app/applet/package.json
+2026-09-01T18:40:15.227Z eslintrc:ignore-pattern Create with: [ IgnorePattern { patterns: [ '/**/node_modules/*' ], basePath: '/app/applet', loose: false } ]
+2026-09-01T18:40:15.228Z eslintrc:ignore-pattern   processed: { basePath: '/app/applet', patterns: [ '/**/node_modules/*' ] }
+2026-09-01T18:40:15.229Z eslint:lint-result-cache Caching results to /app/applet/.next/cache/eslint/.cache_1cdb2c2
+2026-09-01T18:40:15.229Z eslint:lint-result-cache Using "metadata" strategy to detect changes
+2026-09-01T18:40:15.242Z eslintrc:ignore-pattern Create with: [ IgnorePattern { patterns: [ '/**/node_modules/*' ], basePath: '/app/applet', loose: false } ]
+2026-09-01T18:40:15.243Z eslintrc:ignore-pattern   processed: { basePath: '/app/applet', patterns: [ '/**/node_modules/*' ] }
+2026-09-01T18:40:15.243Z eslintrc:cascading-config-array-factory Load config files for /app/applet.
+2026-09-01T18:40:15.243Z eslintrc:cascading-config-array-factory No cache found: /app/applet.
+2026-09-01T18:40:15.244Z eslintrc:config-array-factory Loading JSON config file: /app/applet/.eslintrc.json
+2026-09-01T18:40:15.244Z eslintrc:config-array-factory Config file found: /app/applet/.eslintrc.json
+2026-09-01T18:40:15.244Z eslintrc:config-array-factory Loading {extends:"next/core-web-vitals"} relative to /app/applet/.eslintrc.json
+2026-09-01T18:40:15.245Z eslintrc:config-array-factory package.json was not found: Cannot find module 'eslint-config-next/core-web-vitals/package.json'
+Require stack:
+- /app/applet/.eslintrc.json
+2026-09-01T18:40:15.245Z eslintrc:config-array-factory Loaded: eslint-config-next/core-web-vitals (/app/applet/node_modules/eslint-config-next/core-web-vitals.js)
+2026-09-01T18:40:15.246Z eslintrc:config-array-factory Loading JS config file: /app/applet/node_modules/eslint-config-next/core-web-vitals.js
+2026-09-01T18:40:15.246Z eslintrc:config-array-factory Loading {extends:"/app/applet/node_modules/eslint-config-next/index.js"} relative to /app/applet/node_modules/eslint-config-next/core-web-vitals.js
+2026-09-01T18:40:15.247Z eslintrc:config-array-factory package.json was not found: Cannot find module '/app/applet/node_modules/eslint-config-next/index.js/package.json'
+Require stack:
+- /app/applet/node_modules/eslint-config-next/core-web-vitals.js
+2026-09-01T18:40:15.247Z eslintrc:config-array-factory Loaded: /app/applet/node_modules/eslint-config-next/index.js (/app/applet/node_modules/eslint-config-next/index.js)
+2026-09-01T18:40:15.247Z eslintrc:config-array-factory Loading JS config file: /app/applet/node_modules/eslint-config-next/index.js
+2026-09-01T18:40:15.253Z eslintrc:config-array-factory Loading {extends:"plugin:react/recommended"} relative to /app/applet/node_modules/eslint-config-next/index.js
+2026-09-01T18:40:15.254Z eslintrc:config-array-factory Loading plugin "react" from /app/applet/node_modules/eslint-config-next/index.js
+2026-09-01T18:40:15.254Z eslintrc:config-array-factory Loaded: eslint-plugin-react@7.37.5 (/app/applet/node_modules/eslint-plugin-react/index.js)
+2026-09-01T18:40:15.773Z eslintrc:config-array-factory Plugin /app/applet/node_modules/eslint-plugin-react/index.js loaded in: 519ms
+2026-09-01T18:40:15.774Z eslintrc:config-array-factory Loading plugin "react" from /app/applet/node_modules/eslint-plugin-react/index.js
+2026-09-01T18:40:15.774Z eslintrc:config-array-factory Loaded: eslint-plugin-react@7.37.5 (/app/applet/node_modules/eslint-plugin-react/index.js)
+2026-09-01T18:40:15.774Z eslintrc:config-array-factory Plugin /app/applet/node_modules/eslint-plugin-react/index.js loaded in: 0ms
+2026-09-01T18:40:15.774Z eslintrc:config-array-factory Loading {extends:"plugin:react-hooks/recommended"} relative to /app/applet/node_modules/eslint-config-next/index.js
+2026-09-01T18:40:15.775Z eslintrc:config-array-factory Loading plugin "react-hooks" from /app/applet/node_modules/eslint-config-next/index.js
+2026-09-01T18:40:15.775Z eslintrc:config-array-factory Loaded: eslint-plugin-react-hooks@5.2.0 (/app/applet/node_modules/eslint-plugin-react-hooks/index.js)
+2026-09-01T18:40:15.779Z eslintrc:config-array-factory Plugin /app/applet/node_modules/eslint-plugin-react-hooks/index.js loaded in: 3ms
+2026-09-01T18:40:15.779Z eslintrc:config-array-factory Loading plugin "react-hooks" from /app/applet/node_modules/eslint-plugin-react-hooks/index.js
+2026-09-01T18:40:15.779Z eslintrc:config-array-factory Loaded: eslint-plugin-react-hooks@5.2.0 (/app/applet/node_modules/eslint-plugin-react-hooks/index.js)
+2026-09-01T18:40:15.779Z eslintrc:config-array-factory Plugin /app/applet/node_modules/eslint-plugin-react-hooks/index.js loaded in: 0ms
+2026-09-01T18:40:15.779Z eslintrc:config-array-factory Loading {extends:"plugin:@next/next/recommended"} relative to /app/applet/node_modules/eslint-config-next/index.js
+2026-09-01T18:40:15.779Z eslintrc:config-array-factory Loading plugin "@next/next" from /app/applet/node_modules/eslint-config-next/index.js
+2026-09-01T18:40:15.780Z eslintrc:config-array-factory Loaded: @next/eslint-plugin-next@15.5.22 (/app/applet/node_modules/@next/eslint-plugin-next/dist/index.js)
+2026-09-01T18:40:15.860Z eslintrc:config-array-factory Plugin /app/applet/node_modules/@next/eslint-plugin-next/dist/index.js loaded in: 80ms
+2026-09-01T18:40:15.860Z eslintrc:config-array-factory Loading plugin "@next/next" from /app/applet/node_modules/@next/eslint-plugin-next/dist/index.js
+2026-09-01T18:40:15.861Z eslintrc:config-array-factory Loaded: @next/eslint-plugin-next@15.5.22 (/app/applet/node_modules/@next/eslint-plugin-next/dist/index.js)
+2026-09-01T18:40:15.861Z eslintrc:config-array-factory Plugin /app/applet/node_modules/@next/eslint-plugin-next/dist/index.js loaded in: 0ms
+2026-09-01T18:40:15.861Z eslintrc:config-array-factory Loading parser "./parser.js" from /app/applet/node_modules/eslint-config-next/index.js
+2026-09-01T18:40:15.862Z eslintrc:config-array-factory package.json was not found: Cannot find module './parser.js/package.json'
+Require stack:
+- /app/applet/node_modules/eslint-config-next/index.js
+2026-09-01T18:40:15.862Z eslintrc:config-array-factory Loaded: ./parser.js (/app/applet/node_modules/eslint-config-next/parser.js)
+2026-09-01T18:40:16.301Z eslintrc:config-array-factory Loading plugin "import" from /app/applet/node_modules/eslint-config-next/index.js
+2026-09-01T18:40:16.302Z eslintrc:config-array-factory Loaded: eslint-plugin-import@2.32.0 (/app/applet/node_modules/eslint-plugin-import/lib/index.js)
+2026-09-01T18:40:16.495Z eslintrc:config-array-factory Plugin /app/applet/node_modules/eslint-plugin-import/lib/index.js loaded in: 193ms
+2026-09-01T18:40:16.495Z eslintrc:config-array-factory Loading plugin "react" from /app/applet/node_modules/eslint-config-next/index.js
+2026-09-01T18:40:16.496Z eslintrc:config-array-factory Loaded: eslint-plugin-react@7.37.5 (/app/applet/node_modules/eslint-plugin-react/index.js)
+2026-09-01T18:40:16.496Z eslintrc:config-array-factory Plugin /app/applet/node_modules/eslint-plugin-react/index.js loaded in: 0ms
+2026-09-01T18:40:16.497Z eslintrc:config-array-factory Loading plugin "jsx-a11y" from /app/applet/node_modules/eslint-config-next/index.js
+2026-09-01T18:40:16.498Z eslintrc:config-array-factory Loaded: eslint-plugin-jsx-a11y@6.10.2 (/app/applet/node_modules/eslint-plugin-jsx-a11y/lib/index.js)
+2026-09-01T18:40:16.931Z eslintrc:config-array-factory Plugin /app/applet/node_modules/eslint-plugin-jsx-a11y/lib/index.js loaded in: 433ms
+2026-09-01T18:40:16.932Z eslintrc:config-array-factory Loading parser "@typescript-eslint/parser" from /app/applet/node_modules/eslint-config-next/index.js
+2026-09-01T18:40:16.933Z eslintrc:config-array-factory Loaded: @typescript-eslint/parser@8.69.0 (/app/applet/node_modules/@typescript-eslint/parser/dist/index.js)
+2026-09-01T18:40:17.895Z eslintrc:config-array-factory Loading {extends:"plugin:@next/next/core-web-vitals"} relative to /app/applet/node_modules/eslint-config-next/core-web-vitals.js
+2026-09-01T18:40:17.895Z eslintrc:config-array-factory Loading plugin "@next/next" from /app/applet/node_modules/eslint-config-next/core-web-vitals.js
+2026-09-01T18:40:17.896Z eslintrc:config-array-factory Loaded: @next/eslint-plugin-next@15.5.22 (/app/applet/node_modules/@next/eslint-plugin-next/dist/index.js)
+2026-09-01T18:40:17.896Z eslintrc:config-array-factory Plugin /app/applet/node_modules/@next/eslint-plugin-next/dist/index.js loaded in: 0ms
+2026-09-01T18:40:17.896Z eslintrc:config-array-factory Loading {extends:"plugin:@next/next/recommended"} relative to /app/applet/node_modules/@next/eslint-plugin-next/dist/index.js
+2026-09-01T18:40:17.896Z eslintrc:config-array-factory Loading plugin "@next/next" from /app/applet/node_modules/@next/eslint-plugin-next/dist/index.js
+2026-09-01T18:40:17.896Z eslintrc:config-array-factory Loaded: @next/eslint-plugin-next@15.5.22 (/app/applet/node_modules/@next/eslint-plugin-next/dist/index.js)
+2026-09-01T18:40:17.896Z eslintrc:config-array-factory Plugin /app/applet/node_modules/@next/eslint-plugin-next/dist/index.js loaded in: 0ms
+2026-09-01T18:40:17.896Z eslintrc:config-array-factory Loading plugin "@next/next" from /app/applet/node_modules/@next/eslint-plugin-next/dist/index.js
+2026-09-01T18:40:17.896Z eslintrc:config-array-factory Loaded: @next/eslint-plugin-next@15.5.22 (/app/applet/node_modules/@next/eslint-plugin-next/dist/index.js)
+2026-09-01T18:40:17.896Z eslintrc:config-array-factory Plugin /app/applet/node_modules/@next/eslint-plugin-next/dist/index.js loaded in: 0ms
+2026-09-01T18:40:17.896Z eslintrc:config-array-factory Loading plugin "@next/next" from /app/applet/node_modules/@next/eslint-plugin-next/dist/index.js
+2026-09-01T18:40:17.897Z eslintrc:config-array-factory Loaded: @next/eslint-plugin-next@15.5.22 (/app/applet/node_modules/@next/eslint-plugin-next/dist/index.js)
+2026-09-01T18:40:17.897Z eslintrc:config-array-factory Plugin /app/applet/node_modules/@next/eslint-plugin-next/dist/index.js loaded in: 0ms
+2026-09-01T18:40:17.897Z eslintrc:cascading-config-array-factory No cache found: /app.
+2026-09-01T18:40:17.897Z eslintrc:config-array-factory Config file not found on /app
+2026-09-01T18:40:17.897Z eslintrc:cascading-config-array-factory No cache found: /.
+2026-09-01T18:40:17.897Z eslintrc:config-array-factory Config file not found on /
+2026-09-01T18:40:17.924Z eslintrc:cascading-config-array-factory Configuration was determined: ConfigArray(11) [ { type: 'config', name: 'DefaultIgnorePattern', filePath: '', criteria: null, env: undefined, globals: undefined, ignorePattern: IgnorePattern { patterns: [Array], basePath: '/app/applet', loose: false }, noInlineConfig: undefined, parser: undefined, parserOptions: undefined, plugins: undefined, processor: undefined, reportUnusedDisableDirectives: undefined, root: undefined, rules: undefined, settings: undefined }, { type: 'config', name: 'BaseConfig', filePath: '', criteria: null, env: undefined, globals: undefined, ignorePattern: undefined, noInlineConfig: undefined, parser: undefined, parserOptions: undefined, plugins: undefined, processor: undefined, reportUnusedDisableDirectives: undefined, root: undefined, rules: undefined, settings: undefined }, { type: 'config', name: '.eslintrc.json » eslint-config-next/core-web-vitals » /app/applet/node_modules/eslint-config-next/index.js » plugin:react/recommended', filePath: '/app/applet/node_modules/eslint-plugin-react/index.js', criteria: null, env: undefined, globals: undefined, ignorePattern: undefined, noInlineConfig: undefined, parser: undefined, parserOptions: { ecmaFeatures: [Object] }, plugins: { react: [Object] }, processor: undefined, reportUnusedDisableDirectives: undefined, root: undefined, rules: { 'react/display-name': 2, 'react/jsx-key': 2, 'react/jsx-no-comment-textnodes': 2, 'react/jsx-no-duplicate-props': 2, 'react/jsx-no-target-blank': 2, 'react/jsx-no-undef': 2, 'react/jsx-uses-react': 2, 'react/jsx-uses-vars': 2, 'react/no-children-prop': 2, 'react/no-danger-with-children': 2, 'react/no-deprecated': 2, 'react/no-direct-mutation-state': 2, 'react/no-find-dom-node': 2, 'react/no-is-mounted': 2, 'react/no-render-return-value': 2, 'react/no-string-refs': 2, 'react/no-unescaped-entities': 2, 'react/no-unknown-property': 2, 'react/no-unsafe': 0, 'react/prop-types': 2, 'react/react-in-jsx-scope': 2, 'react/require-render-return': 2 }, settings: undefined }, { type: 'config', name: '.eslintrc.json » eslint-config-next/core-web-vitals » /app/applet/node_modules/eslint-config-next/index.js » plugin:react-hooks/recommended', filePath: '/app/applet/node_modules/eslint-plugin-react-hooks/index.js', criteria: null, env: undefined, globals: undefined, ignorePattern: undefined, noInlineConfig: undefined, parser: undefined, parserOptions: undefined, plugins: { 'react-hooks': [Object] }, processor: undefined, reportUnusedDisableDirectives: undefined, root: undefined, rules: { 'react-hooks/rules-of-hooks': 'error', 'react-hooks/exhaustive-deps': 'warn' }, settings: undefined }, { type: 'config', name: '.eslintrc.json » eslint-config-next/core-web-vitals » /app/applet/node_modules/eslint-config-next/index.js » plugin:@next/next/recommended', filePath: '/app/applet/node_modules/@next/eslint-plugin-next/dist/index.js', criteria: null, env: undefined, globals: undefined, ignorePattern: undefined, noInlineConfig: undefined, parser: undefined, parserOptions: undefined, plugins: { '@next/next': [Object] }, processor: undefined, reportUnusedDisableDirectives: undefined, root: undefined, rules: { '@next/next/google-font-display': 'warn', '@next/next/google-font-preconnect': 'warn', '@next/next/next-script-for-ga': 'warn', '@next/next/no-async-client-component': 'warn', '@next/next/no-before-interactive-script-outside-document': 'warn', '@next/next/no-css-tags': 'warn', '@next/next/no-head-element': 'warn', '@next/next/no-html-link-for-pages': 'warn', '@next/next/no-img-element': 'warn', '@next/next/no-page-custom-font': 'warn', '@next/next/no-styled-jsx-in-document': 'warn', '@next/next/no-sync-scripts': 'warn', '@next/next/no-title-in-document-head': 'warn', '@next/next/no-typos': 'warn', '@next/next/no-unwanted-polyfillio': 'warn', '@next/next/inline-script-id': 'error', '@next/next/no-assign-module-variable': 'error', '@next/next/no-document-import-in-page': 'error', '@next/next/no-duplicate-head': 'error', '@next/next/no-head-import-in-document': 'error', '@next/next/no-script-component-in-head': 'error' }, settings: undefined }, { type: 'config', name: '.eslintrc.json » eslint-config-next/core-web-vitals » /app/applet/node_modules/eslint-config-next/index.js', filePath: '/app/applet/node_modules/eslint-config-next/index.js', criteria: null, env: { browser: true, node: true }, globals: undefined, ignorePattern: undefined, noInlineConfig: undefined, parser: { error: null, filePath: '/app/applet/node_modules/eslint-config-next/parser.js', id: './parser.js', importerName: '.eslintrc.json » eslint-config-next/core-web-vitals » /app/applet/node_modules/eslint-config-next/index.js', importerPath: '/app/applet/node_modules/eslint-config-next/index.js' }, parserOptions: { requireConfigFile: false, sourceType: 'module', allowImportExportEverywhere: true, babelOptions: [Object] }, plugins: { import: [Object], react: [Object], 'jsx-a11y': [Object] }, processor: undefined, reportUnusedDisableDirectives: undefined, root: undefined, rules: { 'import/no-anonymous-default-export': 'warn', 'react/no-unknown-property': 'off', 'react/react-in-jsx-scope': 'off', 'react/prop-types': 'off', 'jsx-a11y/alt-text': [Array], 'jsx-a11y/aria-props': 'warn', 'jsx-a11y/aria-proptypes': 'warn', 'jsx-a11y/aria-unsupported-elements': 'warn', 'jsx-a11y/role-has-required-aria-props': 'warn', 'jsx-a11y/role-supports-aria-props': 'warn', 'react/jsx-no-target-blank': 'off' }, settings: { react: [Object], 'import/parsers': [Object], 'import/resolver': [Object] } }, { type: 'config', name: '.eslintrc.json » eslint-config-next/core-web-vitals » /app/applet/node_modules/eslint-config-next/index.js#overrides[0]', filePath: '/app/applet/node_modules/eslint-config-next/index.js', criteria: { includes: [Array], excludes: null, basePath: '/app/applet' }, env: undefined, globals: undefined, ignorePattern: undefined, noInlineConfig: undefined, parser: { error: null, filePath: '/app/applet/node_modules/@typescript-eslint/parser/dist/index.js', id: '@typescript-eslint/parser', importerName: '.eslintrc.json » eslint-config-next/core-web-vitals » /app/applet/node_modules/eslint-config-next/index.js#overrides[0]', importerPath: '/app/applet/node_modules/eslint-config-next/index.js' }, parserOptions: { sourceType: 'module' }, plugins: undefined, processor: undefined, reportUnusedDisableDirectives: undefined, root: undefined, rules: undefined, settings: undefined }, { type: 'config', name: '.eslintrc.json » eslint-config-next/core-web-vitals » plugin:@next/next/core-web-vitals » plugin:@next/next/recommended', filePath: '/app/applet/node_modules/@next/eslint-plugin-next/dist/index.js', criteria: null, env: undefined, globals: undefined, ignorePattern: undefined, noInlineConfig: undefined, parser: undefined, parserOptions: undefined, plugins: { '@next/next': [Object] }, processor: undefined, reportUnusedDisableDirectives: undefined, root: undefined, rules: { '@next/next/google-font-display': 'warn', '@next/next/google-font-preconnect': 'warn', '@next/next/next-script-for-ga': 'warn', '@next/next/no-async-client-component': 'warn', '@next/next/no-before-interactive-script-outside-document': 'warn', '@next/next/no-css-tags': 'warn', '@next/next/no-head-element': 'warn', '@next/next/no-html-link-for-pages': 'warn', '@next/next/no-img-element': 'warn', '@next/next/no-page-custom-font': 'warn', '@next/next/no-styled-jsx-in-document': 'warn', '@next/next/no-sync-scripts': 'warn', '@next/next/no-title-in-document-head': 'warn', '@next/next/no-typos': 'warn', '@next/next/no-unwanted-polyfillio': 'warn', '@next/next/inline-script-id': 'error', '@next/next/no-assign-module-variable': 'error', '@next/next/no-document-import-in-page': 'error', '@next/next/no-duplicate-head': 'error', '@next/next/no-head-import-in-document': 'error', '@next/next/no-script-component-in-head': 'error' }, settings: undefined }, { type: 'config', name: '.eslintrc.json » eslint-config-next/core-web-vitals » plugin:@next/next/core-web-vitals', filePath: '/app/applet/node_modules/@next/eslint-plugin-next/dist/index.js', criteria: null, env: undefined, globals: undefined, ignorePattern: undefined, noInlineConfig: undefined, parser: undefined, parserOptions: undefined, plugins: { '@next/next': [Object] }, processor: undefined, reportUnusedDisableDirectives: undefined, root: undefined, rules: { '@next/next/no-html-link-for-pages': 'error', '@next/next/no-sync-scripts': 'error' }, settings: undefined }, { type: 'config', name: '.eslintrc.json » eslint-config-next/core-web-vitals', filePath: '/app/applet/node_modules/eslint-config-next/core-web-vitals.js', criteria: null, env: undefined, globals: undefined, ignorePattern: undefined, noInlineConfig: undefined, parser: undefined, parserOptions: undefined, plugins: undefined, processor: undefined, reportUnusedDisableDirectives: undefined, root: undefined, rules: undefined, settings: undefined }, { type: 'config', name: '.eslintrc.json', filePath: '/app/applet/.eslintrc.json', criteria: null, env: undefined, globals: undefined, ignorePattern: undefined, noInlineConfig: undefined, parser: undefined, parserOptions: undefined, plugins: undefined, processor: undefined, reportUnusedDisableDirectives: undefined, root: undefined, rules: undefined, settings: undefined } ] on /app/applet
+2026-09-01T18:40:17.927Z eslintrc:ignore-pattern Create with: [ IgnorePattern { patterns: [ '/**/node_modules/*' ], basePath: '/app/applet', loose: false } ]
+2026-09-01T18:40:17.927Z eslintrc:ignore-pattern   processed: { basePath: '/app/applet', patterns: [ '/**/node_modules/*' ] }
+2026-09-01T18:40:17.929Z eslint:file-enumerator Start to iterate files: [ '/app/applet/app', '/app/applet/components', '/app/applet/lib' ]
+2026-09-01T18:40:17.930Z eslint:file-enumerator Directory: /app/applet/app
+2026-09-01T18:40:17.930Z eslint:file-enumerator Enter the directory: /app/applet/app
+2026-09-01T18:40:17.930Z eslintrc:cascading-config-array-factory Load config files for /app/applet/app.
+2026-09-01T18:40:17.930Z eslintrc:cascading-config-array-factory No cache found: /app/applet/app.
+2026-09-01T18:40:17.930Z eslintrc:config-array-factory Config file not found on /app/applet/app
+2026-09-01T18:40:17.930Z eslintrc:cascading-config-array-factory Cache hit: /app/applet.
+2026-09-01T18:40:17.932Z eslintrc:ignore-pattern Check {
+  filePath: '/app/applet/app/api/',
+  dot: false,
+  relativePath: 'app/api/',
+  result: false
+}
+2026-09-01T18:40:17.932Z eslint:file-enumerator Enter the directory: /app/applet/app/api
+2026-09-01T18:40:17.932Z eslintrc:cascading-config-array-factory Load config files for /app/applet/app/api.
+2026-09-01T18:40:17.932Z eslintrc:cascading-config-array-factory No cache found: /app/applet/app/api.
+2026-09-01T18:40:17.932Z eslintrc:config-array-factory Config file not found on /app/applet/app/api
+2026-09-01T18:40:17.932Z eslintrc:cascading-config-array-factory Cache hit: /app/applet/app.
+2026-09-01T18:40:17.933Z eslintrc:ignore-pattern Check {
+  filePath: '/app/applet/app/api/categories/',
+  dot: false,
+  relativePath: 'app/api/categories/',
+  result: false
+}
+2026-09-01T18:40:17.933Z eslint:file-enumerator Enter the directory: /app/applet/app/api/categories
+2026-09-01T18:40:17.933Z eslintrc:cascading-config-array-factory Load config files for /app/applet/app/api/categories.
+2026-09-01T18:40:17.933Z eslintrc:cascading-config-array-factory No cache found: /app/applet/app/api/categories.
+2026-09-01T18:40:17.933Z eslintrc:config-array-factory Config file not found on /app/applet/app/api/categories
+2026-09-01T18:40:17.933Z eslintrc:cascading-config-array-factory Cache hit: /app/applet/app/api.
+2026-09-01T18:40:17.933Z eslintrc:ignore-pattern Create with: [ IgnorePattern { patterns: [ '/**/node_modules/*' ], basePath: '/app/applet', loose: false } ]
+2026-09-01T18:40:17.933Z eslintrc:ignore-pattern   processed: { basePath: '/app/applet', patterns: [ '/**/node_modules/*' ] }
+2026-09-01T18:40:17.934Z eslintrc:ignore-pattern Check {
+  filePath: '/app/applet/app/api/categories/route.ts',
+  dot: false,
+  relativePath: 'app/api/categories/route.ts',
+  result: false
+}
+2026-09-01T18:40:17.934Z eslint:file-enumerator Yield: route.ts
+2026-09-01T18:40:17.934Z eslintrc:cascading-config-array-factory Load config files for /app/applet/app/api/categories.
+2026-09-01T18:40:17.934Z eslintrc:cascading-config-array-factory Cache hit: /app/applet/app/api/categories.
+2026-09-01T18:40:17.936Z eslint:cli-engine Skipping file since it hasn't changed: /app/applet/app/api/categories/route.ts
+2026-09-01T18:40:17.936Z eslint:file-enumerator Leave the directory: /app/applet/app/api/categories
+2026-09-01T18:40:17.936Z eslintrc:ignore-pattern Check {
+  filePath: '/app/applet/app/api/images/',
+  dot: false,
+  relativePath: 'app/api/images/',
+  result: false
+}
+2026-09-01T18:40:17.959Z eslint:file-enumerator Enter the directory: /app/applet/app/api/images
+2026-09-01T18:40:17.960Z eslintrc:cascading-config-array-factory Load config files for /app/applet/app/api/images.
+2026-09-01T18:40:17.960Z eslintrc:cascading-config-array-factory No cache found: /app/applet/app/api/images.
+2026-09-01T18:40:17.960Z eslintrc:config-array-factory Config file not found on /app/applet/app/api/images
+2026-09-01T18:40:17.960Z eslintrc:cascading-config-array-factory Cache hit: /app/applet/app/api.
+2026-09-01T18:40:17.961Z eslintrc:ignore-pattern Check {
+  filePath: '/app/applet/app/api/images/[id]/',
+  dot: false,
+  relativePath: 'app/api/images/[id]/',
+  result: false
+}
+2026-09-01T18:40:17.961Z eslint:file-enumerator Enter the directory: /app/applet/app/api/images/[id]
+2026-09-01T18:40:17.961Z eslintrc:cascading-config-array-factory Load config files for /app/applet/app/api/images/[id].
+2026-09-01T18:40:17.961Z eslintrc:cascading-config-array-factory No cache found: /app/applet/app/api/images/[id].
+2026-09-01T18:40:17.961Z eslintrc:config-array-factory Config file not found on /app/applet/app/api/images/[id]
+2026-09-01T18:40:17.961Z eslintrc:cascading-config-array-factory Cache hit: /app/applet/app/api/images.
+2026-09-01T18:40:17.961Z eslintrc:ignore-pattern Check {
+  filePath: '/app/applet/app/api/images/[id]/route.ts',
+  dot: false,
+  relativePath: 'app/api/images/[id]/route.ts',
+  result: false
+}
+2026-09-01T18:40:17.961Z eslint:file-enumerator Yield: route.ts
+2026-09-01T18:40:17.961Z eslintrc:cascading-config-array-factory Load config files for /app/applet/app/api/images/[id].
+2026-09-01T18:40:17.961Z eslintrc:cascading-config-array-factory Cache hit: /app/applet/app/api/images/[id].
+2026-09-01T18:40:17.962Z eslint:cli-engine Skipping file since it hasn't changed: /app/applet/app/api/images/[id]/route.ts
+2026-09-01T18:40:17.962Z eslint:file-enumerator Leave the directory: /app/applet/app/api/images/[id]
+2026-09-01T18:40:17.962Z eslintrc:ignore-pattern Check {
+  filePath: '/app/applet/app/api/images/route.ts',
+  dot: false,
+  relativePath: 'app/api/images/route.ts',
+  result: false
+}
+2026-09-01T18:40:17.962Z eslint:file-enumerator Yield: route.ts
+2026-09-01T18:40:17.962Z eslintrc:cascading-config-array-factory Load config files for /app/applet/app/api/images.
+2026-09-01T18:40:17.962Z eslintrc:cascading-config-array-factory Cache hit: /app/applet/app/api/images.
+2026-09-01T18:40:17.964Z eslint:cli-engine Skipping file since it hasn't changed: /app/applet/app/api/images/route.ts
+2026-09-01T18:40:17.964Z eslint:file-enumerator Leave the directory: /app/applet/app/api/images
+2026-09-01T18:40:17.965Z eslintrc:ignore-pattern Check {
+  filePath: '/app/applet/app/api/news/',
+  dot: false,
+  relativePath: 'app/api/news/',
+  result: false
+}
+2026-09-01T18:40:17.965Z eslint:file-enumerator Enter the directory: /app/applet/app/api/news
+2026-09-01T18:40:17.965Z eslintrc:cascading-config-array-factory Load config files for /app/applet/app/api/news.
+2026-09-01T18:40:17.965Z eslintrc:cascading-config-array-factory No cache found: /app/applet/app/api/news.
+2026-09-01T18:40:17.965Z eslintrc:config-array-factory Config file not found on /app/applet/app/api/news
+2026-09-01T18:40:17.965Z eslintrc:cascading-config-array-factory Cache hit: /app/applet/app/api.
+2026-09-01T18:40:17.965Z eslintrc:ignore-pattern Check {
+  filePath: '/app/applet/app/api/news/[id]/',
+  dot: false,
+  relativePath: 'app/api/news/[id]/',
+  result: false
+}
+2026-09-01T18:40:17.966Z eslint:file-enumerator Enter the directory: /app/applet/app/api/news/[id]
+2026-09-01T18:40:17.966Z eslintrc:cascading-config-array-factory Load config files for /app/applet/app/api/news/[id].
+2026-09-01T18:40:17.966Z eslintrc:cascading-config-array-factory No cache found: /app/applet/app/api/news/[id].
+2026-09-01T18:40:17.966Z eslintrc:config-array-factory Config file not found on /app/applet/app/api/news/[id]
+2026-09-01T18:40:17.966Z eslintrc:cascading-config-array-factory Cache hit: /app/applet/app/api/news.
+2026-09-01T18:40:17.966Z eslintrc:ignore-pattern Check {
+  filePath: '/app/applet/app/api/news/[id]/route.ts',
+  dot: false,
+  relativePath: 'app/api/news/[id]/route.ts',
+  result: false
+}
+2026-09-01T18:40:17.966Z eslint:file-enumerator Yield: route.ts
+2026-09-01T18:40:17.966Z eslintrc:cascading-config-array-factory Load config files for /app/applet/app/api/news/[id].
+2026-09-01T18:40:17.966Z eslintrc:cascading-config-array-factory Cache hit: /app/applet/app/api/news/[id].
+2026-09-01T18:40:17.966Z eslint:cli-engine Skipping file since it hasn't changed: /app/applet/app/api/news/[id]/route.ts
+2026-09-01T18:40:17.966Z eslint:file-enumerator Leave the directory: /app/applet/app/api/news/[id]
+2026-09-01T18:40:17.966Z eslintrc:ignore-pattern Check {
+  filePath: '/app/applet/app/api/news/category/',
+  dot: false,
+  relativePath: 'app/api/news/category/',
+  result: false
+}
+2026-09-01T18:40:17.966Z eslint:file-enumerator Enter the directory: /app/applet/app/api/news/category
+2026-09-01T18:40:17.966Z eslintrc:cascading-config-array-factory Load config files for /app/applet/app/api/news/category.
+2026-09-01T18:40:17.967Z eslintrc:cascading-config-array-factory No cache found: /app/applet/app/api/news/category.
+2026-09-01T18:40:17.967Z eslintrc:config-array-factory Config file not found on /app/applet/app/api/news/category
+2026-09-01T18:40:17.967Z eslintrc:cascading-config-array-factory Cache hit: /app/applet/app/api/news.
+2026-09-01T18:40:17.967Z eslintrc:ignore-pattern Check {
+  filePath: '/app/applet/app/api/news/category/[category]/',
+  dot: false,
+  relativePath: 'app/api/news/category/[category]/',
+  result: false
+}
+2026-09-01T18:40:17.967Z eslint:file-enumerator Enter the directory: /app/applet/app/api/news/category/[category]
+2026-09-01T18:40:17.967Z eslintrc:cascading-config-array-factory Load config files for /app/applet/app/api/news/category/[category].
+2026-09-01T18:40:17.967Z eslintrc:cascading-config-array-factory No cache found: /app/applet/app/api/news/category/[category].
+2026-09-01T18:40:17.967Z eslintrc:config-array-factory Config file not found on /app/applet/app/api/news/category/[category]
+2026-09-01T18:40:17.967Z eslintrc:cascading-config-array-factory Cache hit: /app/applet/app/api/news/category.
+2026-09-01T18:40:17.967Z eslintrc:ignore-pattern Check {
+  filePath: '/app/applet/app/api/news/category/[category]/route.ts',
+  dot: false,
+  relativePath: 'app/api/news/category/[category]/route.ts',
+  result: false
+}
+2026-09-01T18:40:17.967Z eslint:file-enumerator Yield: route.ts
+2026-09-01T18:40:17.967Z eslintrc:cascading-config-array-factory Load config files for /app/applet/app/api/news/category/[category].
+2026-09-01T18:40:17.967Z eslintrc:cascading-config-array-factory Cache hit: /app/applet/app/api/news/category/[category].
+2026-09-01T18:40:17.967Z eslint:cli-engine Skipping file since it hasn't changed: /app/applet/app/api/news/category/[category]/route.ts
+2026-09-01T18:40:17.967Z eslint:file-enumerator Leave the directory: /app/applet/app/api/news/category/[category]
+2026-09-01T18:40:17.967Z eslint:file-enumerator Leave the directory: /app/applet/app/api/news/category
+2026-09-01T18:40:17.967Z eslintrc:ignore-pattern Check {
+  filePath: '/app/applet/app/api/news/route.ts',
+  dot: false,
+  relativePath: 'app/api/news/route.ts',
+  result: false
+}
+2026-09-01T18:40:17.967Z eslint:file-enumerator Yield: route.ts
+2026-09-01T18:40:17.967Z eslintrc:cascading-config-array-factory Load config files for /app/applet/app/api/news.
+2026-09-01T18:40:17.967Z eslintrc:cascading-config-array-factory Cache hit: /app/applet/app/api/news.
+2026-09-01T18:40:17.967Z eslint:cli-engine Skipping file since it hasn't changed: /app/applet/app/api/news/route.ts
+2026-09-01T18:40:17.967Z eslint:file-enumerator Leave the directory: /app/applet/app/api/news
+2026-09-01T18:40:17.968Z eslintrc:ignore-pattern Check {
+  filePath: '/app/applet/app/api/openapi.json/',
+  dot: false,
+  relativePath: 'app/api/openapi.json/',
+  result: false
+}
+2026-09-01T18:40:17.968Z eslint:file-enumerator Enter the directory: /app/applet/app/api/openapi.json
+2026-09-01T18:40:17.968Z eslintrc:cascading-config-array-factory Load config files for /app/applet/app/api/openapi.json.
+2026-09-01T18:40:17.968Z eslintrc:cascading-config-array-factory No cache found: /app/applet/app/api/openapi.json.
+2026-09-01T18:40:17.968Z eslintrc:config-array-factory Config file not found on /app/applet/app/api/openapi.json
+2026-09-01T18:40:17.968Z eslintrc:cascading-config-array-factory Cache hit: /app/applet/app/api.
+2026-09-01T18:40:17.968Z eslintrc:ignore-pattern Check {
+  filePath: '/app/applet/app/api/openapi.json/route.ts',
+  dot: false,
+  relativePath: 'app/api/openapi.json/route.ts',
+  result: false
+}
+2026-09-01T18:40:17.968Z eslint:file-enumerator Yield: route.ts
+2026-09-01T18:40:17.968Z eslintrc:cascading-config-array-factory Load config files for /app/applet/app/api/openapi.json.
+2026-09-01T18:40:17.968Z eslintrc:cascading-config-array-factory Cache hit: /app/applet/app/api/openapi.json.
+2026-09-01T18:40:17.968Z eslint:cli-engine Skipping file since it hasn't changed: /app/applet/app/api/openapi.json/route.ts
+2026-09-01T18:40:17.968Z eslint:file-enumerator Leave the directory: /app/applet/app/api/openapi.json
+2026-09-01T18:40:17.968Z eslintrc:ignore-pattern Check {
+  filePath: '/app/applet/app/api/stats/',
+  dot: false,
+  relativePath: 'app/api/stats/',
+  result: false
+}
+2026-09-01T18:40:17.968Z eslint:file-enumerator Enter the directory: /app/applet/app/api/stats
+2026-09-01T18:40:17.968Z eslintrc:cascading-config-array-factory Load config files for /app/applet/app/api/stats.
+2026-09-01T18:40:17.968Z eslintrc:cascading-config-array-factory No cache found: /app/applet/app/api/stats.
+2026-09-01T18:40:17.969Z eslintrc:config-array-factory Config file not found on /app/applet/app/api/stats
+2026-09-01T18:40:17.969Z eslintrc:cascading-config-array-factory Cache hit: /app/applet/app/api.
+2026-09-01T18:40:17.969Z eslintrc:ignore-pattern Check {
+  filePath: '/app/applet/app/api/stats/route.ts',
+  dot: false,
+  relativePath: 'app/api/stats/route.ts',
+  result: false
+}
+2026-09-01T18:40:17.969Z eslint:file-enumerator Yield: route.ts
+2026-09-01T18:40:17.969Z eslintrc:cascading-config-array-factory Load config files for /app/applet/app/api/stats.
+2026-09-01T18:40:17.969Z eslintrc:cascading-config-array-factory Cache hit: /app/applet/app/api/stats.
+2026-09-01T18:40:17.969Z eslint:cli-engine Skipping file since it hasn't changed: /app/applet/app/api/stats/route.ts
+2026-09-01T18:40:17.970Z eslint:file-enumerator Leave the directory: /app/applet/app/api/stats
+2026-09-01T18:40:17.970Z eslintrc:ignore-pattern Check {
+  filePath: '/app/applet/app/api/types/',
+  dot: false,
+  relativePath: 'app/api/types/',
+  result: false
+}
+2026-09-01T18:40:17.970Z eslint:file-enumerator Enter the directory: /app/applet/app/api/types
+2026-09-01T18:40:17.970Z eslintrc:cascading-config-array-factory Load config files for /app/applet/app/api/types.
+2026-09-01T18:40:17.970Z eslintrc:cascading-config-array-factory No cache found: /app/applet/app/api/types.
+2026-09-01T18:40:17.970Z eslintrc:config-array-factory Config file not found on /app/applet/app/api/types
+2026-09-01T18:40:17.970Z eslintrc:cascading-config-array-factory Cache hit: /app/applet/app/api.
+2026-09-01T18:40:17.970Z eslintrc:ignore-pattern Check {
+  filePath: '/app/applet/app/api/types/route.ts',
+  dot: false,
+  relativePath: 'app/api/types/route.ts',
+  result: false
+}
+2026-09-01T18:40:17.970Z eslint:file-enumerator Yield: route.ts
+2026-09-01T18:40:17.970Z eslintrc:cascading-config-array-factory Load config files for /app/applet/app/api/types.
+2026-09-01T18:40:17.970Z eslintrc:cascading-config-array-factory Cache hit: /app/applet/app/api/types.
+2026-09-01T18:40:17.970Z eslint:cli-engine Skipping file since it hasn't changed: /app/applet/app/api/types/route.ts
+2026-09-01T18:40:17.970Z eslint:file-enumerator Leave the directory: /app/applet/app/api/types
+2026-09-01T18:40:17.970Z eslint:file-enumerator Leave the directory: /app/applet/app/api
+2026-09-01T18:40:17.970Z eslintrc:ignore-pattern Check {
+  filePath: '/app/applet/app/docs/',
+  dot: false,
+  relativePath: 'app/docs/',
+  result: false
+}
+2026-09-01T18:40:17.970Z eslint:file-enumerator Enter the directory: /app/applet/app/docs
+2026-09-01T18:40:17.970Z eslintrc:cascading-config-array-factory Load config files for /app/applet/app/docs.
+2026-09-01T18:40:17.971Z eslintrc:cascading-config-array-factory No cache found: /app/applet/app/docs.
+2026-09-01T18:40:17.971Z eslintrc:config-array-factory Config file not found on /app/applet/app/docs
+2026-09-01T18:40:17.971Z eslintrc:cascading-config-array-factory Cache hit: /app/applet/app.
+2026-09-01T18:40:17.971Z eslintrc:ignore-pattern Check {
+  filePath: '/app/applet/app/docs/page.tsx',
+  dot: false,
+  relativePath: 'app/docs/page.tsx',
+  result: false
+}
+2026-09-01T18:40:17.971Z eslint:file-enumerator Yield: page.tsx
+2026-09-01T18:40:17.971Z eslintrc:cascading-config-array-factory Load config files for /app/applet/app/docs.
+2026-09-01T18:40:17.971Z eslintrc:cascading-config-array-factory Cache hit: /app/applet/app/docs.
+2026-09-01T18:40:17.971Z eslint:cli-engine Skipping file since it hasn't changed: /app/applet/app/docs/page.tsx
+2026-09-01T18:40:17.971Z eslint:file-enumerator Leave the directory: /app/applet/app/docs
+2026-09-01T18:40:17.971Z eslint:file-enumerator Didn't match: globals.css
+2026-09-01T18:40:17.971Z eslintrc:ignore-pattern Check {
+  filePath: '/app/applet/app/layout.tsx',
+  dot: false,
+  relativePath: 'app/layout.tsx',
+  result: false
+}
+2026-09-01T18:40:17.971Z eslint:file-enumerator Yield: layout.tsx
+2026-09-01T18:40:17.971Z eslintrc:cascading-config-array-factory Load config files for /app/applet/app.
+2026-09-01T18:40:17.971Z eslintrc:cascading-config-array-factory Cache hit: /app/applet/app.
+2026-09-01T18:40:17.971Z eslint:cli-engine Skipping file since it hasn't changed: /app/applet/app/layout.tsx
+2026-09-01T18:40:17.971Z eslintrc:ignore-pattern Check {
+  filePath: '/app/applet/app/not-found.tsx',
+  dot: false,
+  relativePath: 'app/not-found.tsx',
+  result: false
+}
+2026-09-01T18:40:17.971Z eslint:file-enumerator Yield: not-found.tsx
+2026-09-01T18:40:17.971Z eslintrc:cascading-config-array-factory Load config files for /app/applet/app.
+2026-09-01T18:40:17.971Z eslintrc:cascading-config-array-factory Cache hit: /app/applet/app.
+2026-09-01T18:40:17.971Z eslint:cli-engine Skipping file since it hasn't changed: /app/applet/app/not-found.tsx
+2026-09-01T18:40:17.971Z eslintrc:ignore-pattern Check {
+  filePath: '/app/applet/app/page.tsx',
+  dot: false,
+  relativePath: 'app/page.tsx',
+  result: false
+}
+2026-09-01T18:40:17.971Z eslint:file-enumerator Yield: page.tsx
+2026-09-01T18:40:17.971Z eslintrc:cascading-config-array-factory Load config files for /app/applet/app.
+2026-09-01T18:40:17.971Z eslintrc:cascading-config-array-factory Cache hit: /app/applet/app.
+2026-09-01T18:40:17.971Z eslint:cli-engine Skipping file since it hasn't changed: /app/applet/app/page.tsx
+2026-09-01T18:40:17.972Z eslint:file-enumerator Leave the directory: /app/applet/app
+2026-09-01T18:40:17.972Z eslint:file-enumerator Directory: /app/applet/components
+2026-09-01T18:40:17.972Z eslint:file-enumerator Enter the directory: /app/applet/components
+2026-09-01T18:40:17.972Z eslint:file-enumerator Leave the directory: /app/applet/components
+2026-09-01T18:40:17.972Z eslint:file-enumerator Directory: /app/applet/lib
+2026-09-01T18:40:17.972Z eslint:file-enumerator Enter the directory: /app/applet/lib
+2026-09-01T18:40:17.972Z eslintrc:cascading-config-array-factory Load config files for /app/applet/lib.
+2026-09-01T18:40:17.972Z eslintrc:cascading-config-array-factory No cache found: /app/applet/lib.
+2026-09-01T18:40:17.972Z eslintrc:config-array-factory Config file not found on /app/applet/lib
+2026-09-01T18:40:17.972Z eslintrc:cascading-config-array-factory Cache hit: /app/applet.
+2026-09-01T18:40:17.972Z eslintrc:ignore-pattern Check {
+  filePath: '/app/applet/lib/auth.ts',
+  dot: false,
+  relativePath: 'lib/auth.ts',
+  result: false
+}
+2026-09-01T18:40:17.972Z eslint:file-enumerator Yield: auth.ts
+2026-09-01T18:40:17.972Z eslintrc:cascading-config-array-factory Load config files for /app/applet/lib.
+2026-09-01T18:40:17.972Z eslintrc:cascading-config-array-factory Cache hit: /app/applet/lib.
+2026-09-01T18:40:17.972Z eslint:cli-engine Skipping file since it hasn't changed: /app/applet/lib/auth.ts
+2026-09-01T18:40:17.972Z eslintrc:ignore-pattern Check {
+  filePath: '/app/applet/lib/content.ts',
+  dot: false,
+  relativePath: 'lib/content.ts',
+  result: false
+}
+2026-09-01T18:40:17.972Z eslint:file-enumerator Yield: content.ts
+2026-09-01T18:40:17.972Z eslintrc:cascading-config-array-factory Load config files for /app/applet/lib.
+2026-09-01T18:40:17.972Z eslintrc:cascading-config-array-factory Cache hit: /app/applet/lib.
+2026-09-01T18:40:17.972Z eslint:cli-engine Skipping file since it hasn't changed: /app/applet/lib/content.ts
+2026-09-01T18:40:17.973Z eslintrc:ignore-pattern Check {
+  filePath: '/app/applet/lib/media.ts',
+  dot: false,
+  relativePath: 'lib/media.ts',
+  result: false
+}
+2026-09-01T18:40:17.973Z eslint:file-enumerator Yield: media.ts
+2026-09-01T18:40:17.973Z eslintrc:cascading-config-array-factory Load config files for /app/applet/lib.
+2026-09-01T18:40:17.973Z eslintrc:cascading-config-array-factory Cache hit: /app/applet/lib.
+2026-09-01T18:40:17.973Z eslint:cli-engine Skipping file since it hasn't changed: /app/applet/lib/media.ts
+2026-09-01T18:40:17.973Z eslintrc:ignore-pattern Check {
+  filePath: '/app/applet/lib/sources.ts',
+  dot: false,
+  relativePath: 'lib/sources.ts',
+  result: false
+}
+2026-09-01T18:40:17.973Z eslint:file-enumerator Yield: sources.ts
+2026-09-01T18:40:17.973Z eslintrc:cascading-config-array-factory Load config files for /app/applet/lib.
+2026-09-01T18:40:17.973Z eslintrc:cascading-config-array-factory Cache hit: /app/applet/lib.
+2026-09-01T18:40:17.973Z eslint:cli-engine Skipping file since it hasn't changed: /app/applet/lib/sources.ts
+2026-09-01T18:40:17.973Z eslint:file-enumerator Leave the directory: /app/applet/lib
+2026-09-01T18:40:17.973Z eslint:file-enumerator Complete iterating files: ["/app/applet/app","/app/applet/components","/app/applet/lib"]
+2026-09-01T18:40:17.973Z eslint:lint-result-cache Persisting cached results: /app/applet/.next/cache/eslint/.cache_1cdb2c2
+2026-09-01T18:40:17.975Z eslint:cli-engine Linting complete in: 46ms
+   Collecting page data ...
+ ⚠ Using edge runtime on a page currently disables static generation for that page
+2026-09-01T18:40:21.806Z next:build:build-traces starting build traces
+   Generating static pages (0/5) ...
+Error: <Html> should not be imported outside of pages/_document.
+Read more: https://nextjs.org/docs/messages/no-document-import-in-page
+    at x (.next/server/chunks/611.js:6:1351)
+Error occurred prerendering page "/404". Read more: https://nextjs.org/docs/messages/prerender-error
+Error: <Html> should not be imported outside of pages/_document.
+Read more: https://nextjs.org/docs/messages/no-document-import-in-page
+    at x (.next/server/chunks/611.js:6:1351)
+Export encountered an error on /_error: /404, exiting the build.
+ ⨯ Next.js build worker exited with code: 1 and signal: null
