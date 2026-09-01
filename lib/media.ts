@@ -1,16 +1,14 @@
 import mediaData from '@/data/media.json';
 import { Source, SourcesData } from './sources';
 
-const DATA: SourcesData = mediaData as SourcesData;
-
 export function getMediaSourcesData(): SourcesData {
-  return DATA;
+  return mediaData as SourcesData;
 }
 
 export function getAllMediaSources(): Source[] {
-  return DATA.sources;
+  return getMediaSourcesData().sources;
 }
 
 export function getMediaSourceById(id: string): Source | undefined {
-  return DATA.sources.find((s) => s.id === id);
+  return getAllMediaSources().find((s) => s.id === id);
 }

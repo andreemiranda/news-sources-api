@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { getMediaSourceById } from '@/lib/media';
 import { fetchMediaContent } from '@/lib/content';
@@ -22,14 +23,26 @@ export async function GET(
   }
 
   const url = new URL(req.url);
+  const metaOnly = url.searchParams.get('meta') === 'true';
+
+  if (metaOnly) {
+    return NextResponse.json({ success: true, data: source });
+  }
+
   const page = parseInt(url.searchParams.get('page') || '1', 10);
-  const limit = parseInt(url.searchParams.get('limit') || '10', 10);
+  const limitParam = url.searchParams.get('limit') || url.searchParams.get('per_page') || '10';
+  const limit = parseInt(limitParam, 10);
   const search = url.searchParams.get('search') || undefined;
   const raw = url.searchParams.get('raw') === 'true';
 
   try {
     const data = await fetchMediaContent(source, { page, limit, search, raw });
-    return NextResponse.json({ success: true, data });
+    const headers: Record<string, string> = {};
+    if (data && data.pagination) {
+      if (data.pagination.total !== undefined) headers['X-WP-Total'] = data.pagination.total.toString();
+      if (data.pagination.totalPages !== undefined) headers['X-WP-TotalPages'] = data.pagination.totalPages.toString();
+    }
+    return NextResponse.json({ success: true, data }, { headers });
   } catch (error: any) {
     return NextResponse.json(
       { success: false, error: error.message, source },

@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getCloudflareContext } from '@opennextjs/cloudflare';
 
 function safeCompare(provided: string, expected: string): boolean {
   const cleanProvided = provided.trim();
@@ -14,22 +13,9 @@ function safeCompare(provided: string, expected: string): boolean {
 }
 
 export function getApiKey(): string {
-  // 1. Check process.env (Node.js runtime / Next.js build-time inline)
   if (process.env.API_KEY) {
     return process.env.API_KEY;
   }
-  // 2. Check OpenNext Cloudflare context if running inside Cloudflare Worker runtime
-  try {
-    const ctx = getCloudflareContext();
-    const envKey = (ctx?.env as Record<string, string> | undefined)?.API_KEY;
-    if (envKey) {
-      return envKey;
-    }
-  } catch {
-    // Ignore when not running inside Cloudflare Worker environment
-  }
-  
-  // 3. Absolute fallback so it never fails in your Cloudflare deployment
   return 'bn_88feb5baa3f84955677e8c11453aae352811b9fe6c3398cd';
 }
 

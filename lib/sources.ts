@@ -25,30 +25,28 @@ export interface ApiResponse<T> {
   };
 }
 
-const DATA: SourcesData = sourcesData as SourcesData;
-
 export function getSourcesData(): SourcesData {
-  return DATA;
+  return sourcesData as SourcesData;
 }
 
 export function getAllSources(): Source[] {
-  return DATA.sources;
+  return getSourcesData().sources;
 }
 
 export function getSourceById(id: string): Source | undefined {
-  return DATA.sources.find((s) => s.id === id);
+  return getAllSources().find((s) => s.id === id);
 }
 
 export function getSourcesByCategory(category: string): Source[] {
   const normalized = category.toLowerCase().trim();
-  return DATA.sources.filter(
+  return getAllSources().filter(
     (s) => s.category.toLowerCase() === normalized
   );
 }
 
 export function getCategories(): { category: string; count: number }[] {
   const counts = new Map<string, number>();
-  for (const s of DATA.sources) {
+  for (const s of getAllSources()) {
     counts.set(s.category, (counts.get(s.category) ?? 0) + 1);
   }
   return Array.from(counts.entries())
@@ -58,7 +56,7 @@ export function getCategories(): { category: string; count: number }[] {
 
 export function getTypes(): { type: string; count: number }[] {
   const counts = new Map<string, number>();
-  for (const s of DATA.sources) {
+  for (const s of getAllSources()) {
     counts.set(s.type, (counts.get(s.type) ?? 0) + 1);
   }
   return Array.from(counts.entries())
@@ -67,7 +65,7 @@ export function getTypes(): { type: string; count: number }[] {
 }
 
 export function getStats() {
-  const sources = DATA.sources;
+  const sources = getAllSources();
   const categories = getCategories();
   const types = getTypes();
 

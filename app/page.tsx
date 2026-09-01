@@ -1,12 +1,10 @@
-"use client";
 import { getAllSources, getCategories, getTypes } from '@/lib/sources';
 import { getAllMediaSources } from '@/lib/media';
-import dynamic from 'next/dynamic';
-const SwaggerUIWrapper = dynamic(() => import('@/components/SwaggerUIWrapper'), { ssr: false });
+import SwaggerClient from '@/components/SwaggerClient';
 import Link from 'next/link';
 import { BookOpen } from 'lucide-react';
 
-export default function Home() {
+export default async function Home() {
   const sources = getAllSources();
   const mediaSources = getAllMediaSources();
   const categories = getCategories().map((c) => c.category);
@@ -39,7 +37,7 @@ export default function Home() {
         Source: {
           type: 'object',
           properties: {
-            id: { type: 'string', example: '1' },
+            id: { type: 'string', example: '582319047120384' },
             category: { type: 'string', example: 'Tocantins' },
             site: { type: 'string', example: 'exemplo.com.br' },
             type: { type: 'string', example: 'wp-api', enum: types },
@@ -186,14 +184,14 @@ export default function Home() {
           tags: ['News Content'],
           summary: 'Get live news content',
           description:
-            'Fetches the real news content directly from the selected source ID (1 to 72). Automatically handles both WordPress REST APIs and RSS Feeds, parsing posts, authors, dates, excerpts, and images.',
+            'Fetches the real news content directly from the selected source ID. Automatically handles both WordPress REST APIs and RSS Feeds, parsing posts, authors, dates, excerpts, and images.',
           parameters: [
             {
               name: 'id',
               in: 'path',
-              description: 'Source ID (1 to 72)',
+              description: 'Source ID (15 digits)',
               required: true,
-              schema: { type: 'string', example: '1' },
+              schema: { type: 'string', example: '582319047120384' },
             },
             {
               name: 'page',
@@ -307,16 +305,16 @@ export default function Home() {
       '/images/{id}': {
         get: {
           tags: ['Images Content'],
-          summary: 'Get live media items from source (27 media endpoints available)',
+          summary: 'Get live media items from source',
           description:
-            'Fetches the real media uploads and attachment items directly from the selected WordPress media source ID (28 to 54). Supports pagination, search, and raw upstream payload.',
+            'Fetches the real media uploads and attachment items directly from the selected WordPress media source ID. Supports pagination, search, and raw upstream payload.',
           parameters: [
             {
               name: 'id',
               in: 'path',
-              description: 'Media Source ID (28 to 54)',
+              description: 'Media Source ID (15 digits)',
               required: true,
-              schema: { type: 'string', example: '28' },
+              schema: { type: 'string', example: '582319047120384' },
             },
             {
               name: 'page',
@@ -502,7 +500,7 @@ export default function Home() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
         <div className="rounded-lg border border-slate-200 overflow-hidden shadow-sm">
-          <SwaggerUIWrapper spec={spec} />
+          <SwaggerClient spec={spec} />
         </div>
       </div>
 

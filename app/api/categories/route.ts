@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { getCategories } from '@/lib/sources';
 import { validateApiKey, unauthorizedResponse } from '@/lib/auth';

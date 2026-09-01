@@ -8,12 +8,12 @@ const nextConfig = {
   async rewrites() {
     return [
       {
-        source: '/sources',
-        destination: '/api/sources',
+        source: '/news',
+        destination: '/api/news',
       },
       {
-        source: '/sources/:path*',
-        destination: '/api/sources/:path*',
+        source: '/news/:path*',
+        destination: '/api/news/:path*',
       },
       {
         source: '/categories',
