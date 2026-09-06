@@ -19,7 +19,6 @@ export async function GET(req: NextRequest) {
   const statsOnly = url.searchParams.get('stats') === 'true';
 
   if (statsOnly) {
-    return NextResponse.json({ success: true, data: getStats() });
   }
 
   let sources = getAllSources();
@@ -37,7 +36,9 @@ export async function GET(req: NextRequest) {
     sources = sources.filter((s) => s.active === isActive);
   }
 
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+  const forwardedHost = req.headers.get('x-forwarded-host') || req.headers.get('host');
+  const forwardedProto = req.headers.get('x-forwarded-proto') || 'https';
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || (forwardedHost ? `${forwardedProto}://${forwardedHost}` : req.nextUrl.origin);
 
   const mappedSources = sources.map((s) => ({
     ...s,
@@ -48,11 +49,8 @@ export async function GET(req: NextRequest) {
 
   const result = paginate(mappedSources, page, limit);
 
-  return NextResponse.json({
-    success: true,
-    data: result.items,
-    meta: result.meta,
-  }, {
+  return NextResponse.json(result.items, {
+
     headers: {
       'X-WP-Total': result.meta.total.toString(),
       'X-WP-TotalPages': result.meta.totalPages.toString(),

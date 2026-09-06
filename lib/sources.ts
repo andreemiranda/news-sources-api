@@ -1,7 +1,9 @@
-import sourcesData from '@/data/sources.json';
+import fs from 'fs';
+import path from 'path';
+import crypto from 'crypto';
 
 export interface Source {
-  id: string;
+  id: number;
   category: string;
   site: string;
   type: string;
@@ -25,16 +27,61 @@ export interface ApiResponse<T> {
   };
 }
 
+export function generateValidId(url: string): number {
+  const hash = crypto.createHash('sha256').update(url || Math.random().toString()).digest('hex');
+  let id = '';
+  for (let i = 0; i < hash.length; i++) {
+    const charCode = hash.charCodeAt(i);
+    let num = (charCode % 9) + 1; // 1 to 9
+    id += num.toString();
+    if (id.length === 15) break;
+  }
+  return parseInt(id, 10);
+}
+
+export function isValidId(id: number | string | undefined): boolean {
+  if (!id) return false;
+  const idStr = String(id);
+  if (idStr.length !== 15) return false;
+  if (idStr.includes('0')) return false;
+  if (!/^\d+$/.test(idStr)) return false;
+  return true;
+}
+
 export function getSourcesData(): SourcesData {
-  return sourcesData as SourcesData;
+  try {
+    const filePath = path.join(process.cwd(), 'data', 'sources.json');
+    const fileContent = fs.readFileSync(filePath, 'utf8');
+    const data = JSON.parse(fileContent) as SourcesData;
+    
+    let modified = false;
+    data.sources.forEach(source => {
+      if (!isValidId(source.id)) {
+        source.id = generateValidId(source.url);
+        modified = true;
+      } else if (typeof source.id === 'string') {
+        source.id = parseInt(source.id, 10);
+        modified = true;
+      }
+    });
+
+    if (modified) {
+      fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf8');
+    }
+    return data;
+  } catch (error) {
+    console.error('Error reading sources.json', error);
+    return { sources: [] };
+  }
 }
 
 export function getAllSources(): Source[] {
   return getSourcesData().sources;
 }
 
-export function getSourceById(id: string): Source | undefined {
-  return getAllSources().find((s) => s.id === id);
+export function getSourceById(id: number | string): Source | undefined {
+  const numericId = typeof id === 'string' ? parseInt(id, 10) : id;
+  return getAllSources().find((s) => s.id === numericId);
 }
 
 export function getSourcesByCategory(category: string): Source[] {

@@ -2,7 +2,6 @@
 const nextConfig = {
   poweredByHeader: false,
   compress: true,
-  reactStrictMode: false,
   productionBrowserSourceMaps: false,
   output: 'standalone',
   async rewrites() {

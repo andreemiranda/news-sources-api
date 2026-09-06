@@ -16,7 +16,7 @@ export interface ContentItem {
 
 export interface ContentResponse {
   source: {
-    id: string;
+    id: number;
     category: string;
     site: string;
     type: string;
@@ -152,7 +152,7 @@ export async function fetchSourceContent(
       const response = await fetch(urlObj.toString(), {
         headers,
         signal: controller.signal,
-        next: { revalidate: 300 }, // 5 min cache
+        cache: "no-store", // 5 min cache
       });
 
       clearTimeout(timeoutId);
@@ -200,7 +200,7 @@ export async function fetchSourceContent(
       const response = await fetch(source.url, {
         headers,
         signal: controller.signal,
-        next: { revalidate: 300 },
+        cache: "no-store",
       });
 
       clearTimeout(timeoutId);
@@ -273,7 +273,7 @@ export async function fetchMediaContent(
     const response = await fetch(urlObj.toString(), {
       headers,
       signal: controller.signal,
-      next: { revalidate: 300 },
+      cache: "no-store",
     });
 
     clearTimeout(timeoutId);

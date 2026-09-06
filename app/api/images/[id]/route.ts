@@ -1,4 +1,3 @@
-
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { getMediaSourceById } from '@/lib/media';
@@ -27,7 +26,7 @@ export async function GET(
   const metaOnly = url.searchParams.get('meta') === 'true';
 
   if (metaOnly) {
-    return NextResponse.json({ success: true, data: source });
+    return NextResponse.json(source);
   }
 
   const page = parseInt(url.searchParams.get('page') || '1', 10);
@@ -38,12 +37,14 @@ export async function GET(
 
   try {
     const data = await fetchMediaContent(source, { page, limit, search, raw });
+    
     const headers: Record<string, string> = {};
     if (data && data.pagination) {
       if (data.pagination.total !== undefined) headers['X-WP-Total'] = data.pagination.total.toString();
       if (data.pagination.totalPages !== undefined) headers['X-WP-TotalPages'] = data.pagination.totalPages.toString();
     }
-    return NextResponse.json({ success: true, data }, { headers });
+    
+    return NextResponse.json(data.items, { headers });
   } catch (error: any) {
     return NextResponse.json(
       { success: false, error: error.message, source },

@@ -4,11 +4,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import { validateApiKey, unauthorizedResponse } from '@/lib/auth';
 import { getAllSources, getCategories, getTypes } from '@/lib/sources';
 
-function getBaseUrl(): string {
+function getBaseUrl(req: NextRequest): string {
   if (process.env.NEXT_PUBLIC_BASE_URL) {
     return process.env.NEXT_PUBLIC_BASE_URL;
   }
-  return 'https://news-sources-api.mirandinhacontabilidade.workers.dev';
+  const forwardedHost = req.headers.get('x-forwarded-host') || req.headers.get('host');
+  const forwardedProto = req.headers.get('x-forwarded-proto') || 'https';
+  if (forwardedHost) {
+    return `${forwardedProto}://${forwardedHost}`;
+  }
+  return req.nextUrl.origin;
 }
 
 export async function GET(req: NextRequest) {
@@ -20,7 +25,7 @@ export async function GET(req: NextRequest) {
   const categories = getCategories().map((c) => c.category);
   const types = getTypes().map((t) => t.type);
 
-  const baseUrl = getBaseUrl();
+  const baseUrl = getBaseUrl(req);
 
   const spec = {
     openapi: '3.0.3',
@@ -55,7 +60,7 @@ export async function GET(req: NextRequest) {
         Source: {
           type: 'object',
           properties: {
-            id: { type: 'string', example: '582319047120384' },
+            id: { type: 'number', example: 582319047120384 },
             category: { type: 'string', example: 'Tocantins' },
             site: { type: 'string', example: 'exemplo.com.br' },
             type: { type: 'string', example: 'wp-api', enum: types },
