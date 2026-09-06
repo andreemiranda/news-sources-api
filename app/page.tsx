@@ -3,6 +3,7 @@ import { getAllMediaSources } from '@/lib/media';
 
 import Link from 'next/link';
 import { BookOpen } from 'lucide-react';
+import SwaggerUIWrapper from '@/components/SwaggerUIWrapper';
 
 export default async function Home() {
   const sources = getAllSources();
@@ -452,7 +453,7 @@ export default async function Home() {
                   className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm"
                 >
                   <BookOpen className="w-4 h-4" />
-                  <span>Documentação completa</span>
+                  <span>Documentação da API</span>
                 </Link>
               </div>
             </div>
@@ -498,18 +499,11 @@ export default async function Home() {
         </div>
       </div>
 
+      
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
-        <div className="rounded-lg border border-slate-200 overflow-hidden shadow-sm">
-          <div className="bg-white p-12 text-center">
-            <Link 
-              href="/docs" 
-              className="inline-flex items-center gap-2 bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 transition-colors"
-            >
-              Acessar Documentação da API
-            </Link>
-          </div>
-        </div>
+        <SwaggerUIWrapper spec={spec} />
       </div>
+
 
       <footer className="border-t border-slate-200 bg-slate-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 text-center">
