@@ -2,7 +2,7 @@
 
 Bem-vindo à documentação detalhada da News Sources API. Esta API serve como um proxy e agregador em tempo real, permitindo acessar de forma unificada os dados, notícias e imagens de dezenas de portais brasileiros, padronizando saídas de REST APIs de WordPress e Feeds RSS.
 
-> **Importante:** A autenticação por API Key foi **removida** para uso público dos endpoints.
+> **Importante:** Todos os endpoints exigem autenticação enviando uma API Key (via header `x-api-key`, `Authorization` ou query parameter `api_key`).
 
 ## 1. Paginação e Formato de Resposta (Padrão WordPress)
 
@@ -211,6 +211,7 @@ x-wp-totalpages: 27500
 | Código | Significado | Descrição |
 |---|---|---|
 | `200 OK` | Sucesso | Requisição processada com êxito e dados retornados |
+| `401 Unauthorized` | Não Autorizado | Chave de API ausente, inválida ou não autorizada |
 | `404 Not Found` | Não Encontrado | O ID da fonte não existe |
 | `502 Bad Gateway` | Erro Upstream | Falha temporária ao comunicar com o servidor da fonte externa |
 

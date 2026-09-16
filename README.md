@@ -2,7 +2,16 @@
 
 API REST para acesso a fontes de notícias, endpoints de mídia e conteúdos em tempo real (posts, artigos, imagens e uploads) de portais brasileiros.
 
-> **Importante:** A autenticação via API Key foi **removida** para facilitar o acesso público aos endpoints. O projeto também passou por uma atualização arquitetural, passando a utilizar **IDs puramente numéricos de 15 dígitos**.
+## Autenticação
+
+Todos os endpoints exigem envio da API Key em um dos seguintes formatos:
+1. Header `Authorization: Bearer <sua-chave>`
+2. Header `x-api-key: <sua-chave>`
+3. Query parameter `?api_key=<sua-chave>`
+
+> **Configuração em Produção:** No Cloudflare Workers, Netlify ou Render, cadastre o segredo ou variável de ambiente `API_KEY`.
+
+---
 
 ## Documentação Interativa
 

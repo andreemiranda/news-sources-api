@@ -16,12 +16,26 @@ export function getApiKey(): string {
   if (process.env.API_KEY) {
     return process.env.API_KEY;
   }
-  return 'bn_88feb5baa3f84955677e8c11453aae352811b9fe6c3398cd';
+  return 'dev_key_12345';
 }
 
 export function validateApiKey(req: NextRequest): boolean {
-  // Authentication removed as requested to fix Unauthorized issues
-  return true;
+  const apiKey = getApiKey();
+  if (!apiKey) {
+    console.error('API_KEY is not configured in the environment.');
+    return false;
+  }
+  const authHeader = req.headers.get('authorization');
+  if (authHeader?.startsWith('Bearer ')) {
+    const key = authHeader.slice(7).trim();
+    if (key && safeCompare(key, apiKey)) return true;
+  }
+  const apiKeyHeader = req.headers.get('x-api-key');
+  if (apiKeyHeader && safeCompare(apiKeyHeader, apiKey)) return true;
+  const url = new URL(req.url);
+  const queryKey = url.searchParams.get('api_key') || url.searchParams.get('apiKey');
+  if (queryKey && safeCompare(queryKey, apiKey)) return true;
+  return false;
 }
 
 export function unauthorizedResponse() {

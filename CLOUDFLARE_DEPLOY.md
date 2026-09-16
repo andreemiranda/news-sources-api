@@ -16,7 +16,7 @@
 ```bash
 npx wrangler secret put API_KEY
 ```
-Quando solicitado, cole o valor da sua chave (ex: `bn_88feb5baa3f84955677e8c11453aae352811b9fe6c3398cd`).
+Quando solicitado, cole o valor da sua chave (ex: `sua-chave-aqui`).
 
 ### Opção 2: Pelo Painel do Cloudflare
 1. Acesse o **Cloudflare Dashboard** > **Workers & Pages**.

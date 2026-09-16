@@ -29,7 +29,11 @@ export async function GET(req: NextRequest) {
     },
     servers: [{ url: getBaseUrl(req), description: 'API Server' }],
     components: {
-      securitySchemes: {},
+      securitySchemes: {
+        ApiKeyAuth: { type: 'apiKey', in: 'header', name: 'x-api-key' },
+        BearerAuth: { type: 'http', scheme: 'bearer' },
+      },
+      security: [{ ApiKeyAuth: [] }, { BearerAuth: [] }],
       schemas: {
         Source: {
           type: 'object',

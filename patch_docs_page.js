@@ -1,4 +1,5 @@
-'use client';
+const fs = require('fs');
+const code = `'use client';
 
 import { useState, useRef, useEffect } from 'react';
 import { KeyRound, X, CheckCircle2, AlertCircle, Eye, EyeOff, Lock } from 'lucide-react';
@@ -147,7 +148,7 @@ export default function DocsPage() {
           </div>
         )}
 
-        <div className={`w-full h-full ${status === 'authorized' ? 'block' : 'hidden'}`}>
+        <div className={\`w-full h-full \${status === 'authorized' ? 'block' : 'hidden'}\`}>
           {/* @ts-ignore */}
           <rapi-doc
             id="rapidoc-el"
@@ -282,3 +283,6 @@ export default function DocsPage() {
     </div>
   );
 }
+`;
+
+fs.writeFileSync('app/docs/page.tsx', code);
