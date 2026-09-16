@@ -1,8 +1,7 @@
-
 export const dynamic = 'force-dynamic';
+
 import { NextRequest, NextResponse } from 'next/server';
-import { validateApiKey, unauthorizedResponse } from '@/lib/auth';
-import { getAllSources, getCategories, getTypes } from '@/lib/sources';
+import { getCategories, getTypes } from '@/lib/sources';
 
 function getBaseUrl(req: NextRequest): string {
   if (process.env.NEXT_PUBLIC_BASE_URL) {
@@ -17,50 +16,25 @@ function getBaseUrl(req: NextRequest): string {
 }
 
 export async function GET(req: NextRequest) {
-  if (!validateApiKey(req)) {
-    return unauthorizedResponse();
-  }
-
-  const sources = getAllSources();
   const categories = getCategories().map((c) => c.category);
   const types = getTypes().map((t) => t.type);
-
-  const baseUrl = getBaseUrl(req);
 
   const spec = {
     openapi: '3.0.3',
     info: {
       title: 'News Sources API',
       description:
-        'REST API for accessing news sources data aggregated from various Brazilian news outlets. All endpoints require API key authentication.',
+        'REST API for accessing news sources data and live articles/media aggregated from various Brazilian news outlets.',
       version: '1.0.0',
-      contact: {
-        name: 'API Support',
-      },
     },
-    servers: [
-      { url: '/', description: 'Servidor Atual (Relativo)' },
-      { url: baseUrl, description: 'Servidor de Produção' },
-    ],
+    servers: [{ url: getBaseUrl(req), description: 'API Server' }],
     components: {
-      securitySchemes: {
-        ApiKeyAuth: {
-          type: 'apiKey',
-          in: 'header',
-          name: 'x-api-key',
-          description: 'API key for authentication',
-        },
-        BearerAuth: {
-          type: 'http',
-          scheme: 'bearer',
-          description: 'Bearer token authentication with API key',
-        },
-      },
+      securitySchemes: {},
       schemas: {
         Source: {
           type: 'object',
           properties: {
-            id: { type: 'number', example: 582319047120384 },
+            id: { type: 'string', example: '582319047120384' },
             category: { type: 'string', example: 'Tocantins' },
             site: { type: 'string', example: 'exemplo.com.br' },
             type: { type: 'string', example: 'wp-api', enum: types },
@@ -75,87 +49,36 @@ export async function GET(req: NextRequest) {
         Meta: {
           type: 'object',
           properties: {
-            total: { type: 'integer' },
-            page: { type: 'integer' },
-            limit: { type: 'integer' },
-            totalPages: { type: 'integer' },
+            total: { type: 'integer', example: 72 },
+            page: { type: 'integer', example: 1 },
+            limit: { type: 'integer', example: 100 },
+            totalPages: { type: 'integer', example: 1 },
           },
         },
         ErrorResponse: {
           type: 'object',
           properties: {
             success: { type: 'boolean', example: false },
-            error: { type: 'string' },
-          },
-        },
-        Stats: {
-          type: 'object',
-          properties: {
-            totalSources: { type: 'integer' },
-            totalCategories: { type: 'integer' },
-            totalTypes: { type: 'integer' },
-            activeSources: { type: 'integer' },
-            categories: {
-              type: 'array',
-              items: {
-                type: 'object',
-                properties: {
-                  category: { type: 'string' },
-                  count: { type: 'integer' },
-                },
-              },
-            },
-            types: {
-              type: 'array',
-              items: {
-                type: 'object',
-                properties: {
-                  type: { type: 'string' },
-                  count: { type: 'integer' },
-                },
-              },
-            },
+            error: { type: 'string', example: 'Error message description' },
           },
         },
         ContentItem: {
           type: 'object',
           properties: {
-            id: { type: 'string', example: '101' },
-            title: { type: 'string', example: 'Título da Notícia ou Mídia' },
+            id: { type: 'integer', example: 319687 },
+            title: { type: 'string', example: 'Avanço nos investimentos e novas iniciativas no estado' },
             link: { type: 'string', example: 'https://exemplo.com.br/noticia-exemplo' },
-            description: { type: 'string', example: 'Resumo da publicação jornalística.' },
-            content: { type: 'string', example: '<p>Conteúdo completo da notícia...</p>' },
-            pubDate: { type: 'string', example: '2026-08-21T10:00:00Z' },
+            description: { type: 'string', example: 'Resumo da matéria jornalística...' },
+            content: { type: 'string', example: '<p>Conteúdo integral...</p>' },
+            pubDate: { type: 'string', format: 'date-time', example: '2026-08-21T09:30:00' },
             author: { type: 'string', example: 'Redação' },
-            categories: {
-              type: 'array',
-              items: { type: 'string' },
-              example: ['Geral', 'Economia'],
-            },
             imageUrl: { type: 'string', example: 'https://exemplo.com.br/wp-content/uploads/imagem.jpg' },
             mediaUrl: { type: 'string', example: 'https://exemplo.com.br/wp-content/uploads/arquivo.pdf' },
-          },
-        },
-        ContentResponse: {
-          type: 'object',
-          properties: {
-            success: { type: 'boolean', example: true },
-            data: {
-              type: 'object',
-              properties: {
-                source: { $ref: '#/components/schemas/Source' },
-                pagination: { $ref: '#/components/schemas/Meta' },
-                items: {
-                  type: 'array',
-                  items: { $ref: '#/components/schemas/ContentItem' },
-                },
-              },
-            },
+            raw: { type: 'object', description: 'Raw upstream payload (if raw=true is passed)' },
           },
         },
       },
     },
-    security: [{ ApiKeyAuth: [] }, { BearerAuth: [] }],
     paths: {
       '/news': {
         get: {
@@ -207,27 +130,12 @@ export async function GET(req: NextRequest) {
               content: {
                 'application/json': {
                   schema: {
-                    type: 'object',
-                    properties: {
-                      success: { type: 'boolean', example: true },
-                      data: {
-                        type: 'array',
-                        items: { $ref: '#/components/schemas/Source' },
-                      },
-                      meta: { $ref: '#/components/schemas/Meta' },
-                    },
+                    type: 'array',
+                    items: { $ref: '#/components/schemas/Source' }
                   },
                 },
               },
-            },
-            '401': {
-              description: 'Unauthorized',
-              content: {
-                'application/json': {
-                  schema: { $ref: '#/components/schemas/ErrorResponse' },
-                },
-              },
-            },
+            }
           },
         },
       },
@@ -236,7 +144,7 @@ export async function GET(req: NextRequest) {
           tags: ['News Content'],
           summary: 'Get live news content',
           description:
-            'Fetches the real news content directly from the selected source ID. Automatically handles both WordPress REST APIs and RSS Feeds, parsing posts, authors, dates, excerpts, and images.',
+            'Fetches the real news content directly from the selected source ID.',
           parameters: [
             {
               name: 'id',
@@ -279,15 +187,10 @@ export async function GET(req: NextRequest) {
               description: 'Successful response with live news articles',
               content: {
                 'application/json': {
-                  schema: { $ref: '#/components/schemas/ContentResponse' },
-                },
-              },
-            },
-            '401': {
-              description: 'Unauthorized',
-              content: {
-                'application/json': {
-                  schema: { $ref: '#/components/schemas/ErrorResponse' },
+                  schema: {
+                    type: 'array',
+                    items: { $ref: '#/components/schemas/ContentItem' }
+                  },
                 },
               },
             },
@@ -330,27 +233,12 @@ export async function GET(req: NextRequest) {
               content: {
                 'application/json': {
                   schema: {
-                    type: 'object',
-                    properties: {
-                      success: { type: 'boolean', example: true },
-                      data: {
-                        type: 'array',
-                        items: { $ref: '#/components/schemas/Source' },
-                      },
-                      meta: { $ref: '#/components/schemas/Meta' },
-                    },
+                    type: 'array',
+                    items: { $ref: '#/components/schemas/Source' }
                   },
                 },
               },
-            },
-            '401': {
-              description: 'Unauthorized',
-              content: {
-                'application/json': {
-                  schema: { $ref: '#/components/schemas/ErrorResponse' },
-                },
-              },
-            },
+            }
           },
         },
       },
@@ -359,7 +247,7 @@ export async function GET(req: NextRequest) {
           tags: ['Images Content'],
           summary: 'Get live media items from source',
           description:
-            'Fetches the real media uploads and attachment items directly from the selected WordPress media source ID. Supports pagination, search, and raw upstream payload.',
+            'Fetches the real media uploads and attachment items directly from the selected WordPress media source ID.',
           parameters: [
             {
               name: 'id',
@@ -402,15 +290,10 @@ export async function GET(req: NextRequest) {
               description: 'Successful response with live media uploads',
               content: {
                 'application/json': {
-                  schema: { $ref: '#/components/schemas/ContentResponse' },
-                },
-              },
-            },
-            '401': {
-              description: 'Unauthorized',
-              content: {
-                'application/json': {
-                  schema: { $ref: '#/components/schemas/ErrorResponse' },
+                  schema: {
+                    type: 'array',
+                    items: { $ref: '#/components/schemas/ContentItem' }
+                  },
                 },
               },
             },
