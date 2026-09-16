@@ -460,43 +460,44 @@ export default async function Home() {
         </div>
       </header>
 
+      
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
-          <div className="flex items-start gap-3">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="w-5 h-5 text-amber-600 mt-0.5 shrink-0"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
+        <div className="bg-white border border-slate-200 shadow-sm rounded-xl p-6 mb-2">
+          <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
             </svg>
-            <div className="text-sm">
-              <p className="font-semibold text-amber-900 mb-1">
-                Autenticação necessária
-              </p>
-              <p className="text-amber-800 mb-2">
-                Para testar os endpoints no Swagger UI, clique no botão
-                &quot;Authorize&quot; e insira a sua API Key.
-              </p>
-              <p className="text-amber-700 text-xs mt-2">
-                A chave pode ser enviada via header
-                <code className="mx-1 px-1 bg-amber-100 rounded">Authorization: Bearer &lt;key&gt;</code>,
-                header
-                <code className="mx-1 px-1 bg-amber-100 rounded">x-api-key</code>,
-                ou query parameter
-                <code className="mx-1 px-1 bg-amber-100 rounded">?api_key=&lt;key&gt;</code>
-              </p>
-            </div>
-          </div>
+            Parâmetros de Acesso (Autenticação)
+          </h2>
+          <p className="text-slate-600 text-sm mb-4">
+            Todos os endpoints (exceto o <code className="bg-slate-100 text-pink-600 px-1 py-0.5 rounded">/api/health</code>) requerem autenticação enviando uma API Key (senha). Você pode enviar a chave de 3 formas diferentes:
+          </p>
+          <ul className="space-y-3">
+            <li className="flex items-start gap-3 text-sm">
+              <span className="flex-none flex items-center justify-center w-6 h-6 rounded-full bg-blue-100 text-blue-700 font-bold text-xs">1</span>
+              <div>
+                <span className="font-semibold text-slate-700 block">Header de Autorização Padrão (Recomendado)</span>
+                <code className="text-emerald-600 bg-emerald-50 px-2 py-1 rounded mt-1 inline-block">Authorization: Bearer &lt;sua-chave&gt;</code>
+              </div>
+            </li>
+            <li className="flex items-start gap-3 text-sm">
+              <span className="flex-none flex items-center justify-center w-6 h-6 rounded-full bg-blue-100 text-blue-700 font-bold text-xs">2</span>
+              <div>
+                <span className="font-semibold text-slate-700 block">Header Customizado</span>
+                <code className="text-emerald-600 bg-emerald-50 px-2 py-1 rounded mt-1 inline-block">x-api-key: &lt;sua-chave&gt;</code>
+              </div>
+            </li>
+            <li className="flex items-start gap-3 text-sm">
+              <span className="flex-none flex items-center justify-center w-6 h-6 rounded-full bg-blue-100 text-blue-700 font-bold text-xs">3</span>
+              <div>
+                <span className="font-semibold text-slate-700 block">Query Parameter</span>
+                <code className="text-emerald-600 bg-emerald-50 px-2 py-1 rounded mt-1 inline-block">?api_key=&lt;sua-chave&gt;</code>
+              </div>
+            </li>
+          </ul>
         </div>
       </div>
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
         <SwaggerUIWrapper spec={spec} />
       </div>

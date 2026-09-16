@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getCategories, getTypes } from '@/lib/sources';
+import { validateApiKey, unauthorizedResponse } from '@/lib/auth';
 
 function getBaseUrl(req: NextRequest): string {
   if (process.env.NEXT_PUBLIC_BASE_URL) {
@@ -16,6 +17,9 @@ function getBaseUrl(req: NextRequest): string {
 }
 
 export async function GET(req: NextRequest) {
+  if (!validateApiKey(req)) {
+    return unauthorizedResponse();
+  }
   const categories = getCategories().map((c) => c.category);
   const types = getTypes().map((t) => t.type);
 
