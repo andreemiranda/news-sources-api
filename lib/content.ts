@@ -282,9 +282,13 @@ export async function fetchSourceContent(
       if (primaryError || (response && !response.ok)) {
         const errorMsg = primaryError ? (primaryError.message || primaryError) : `HTTP ${response?.status}`;
         console.warn(`WP-API failed (${errorMsg}) for ${source.site}. Attempting fallback to RSS feed...`);
-        const feedUrl = `https://${source.site}/feed/`;
+        const feedUrl = urlObj.origin + '/feed/';
         try {
-          const feedRes = await resilientFetch(feedUrl, source.site, false, controller.signal);
+          let feedRes = await resilientFetch(feedUrl, source.site, false, controller.signal);
+          if (!feedRes.ok) {
+            // Fallback: simple fetch if resilientFetch is blocked
+            feedRes = await fetch(feedUrl, { signal: controller.signal });
+          }
           if (feedRes.ok) {
             clearTimeout(timeoutId);
             const xmlText = await feedRes.text();
@@ -465,9 +469,13 @@ export async function fetchMediaContent(
     if (primaryError || (response && !response.ok)) {
       const errorMsg = primaryError ? (primaryError.message || primaryError) : `HTTP ${response?.status}`;
       console.warn(`WP-API Media failed (${errorMsg}) for ${mediaSource.site}. Attempting fallback to RSS feed for media...`);
-      const feedUrl = `https://${mediaSource.site}/feed/`;
+      const feedUrl = urlObj.origin + '/feed/';
       try {
-        const feedRes = await resilientFetch(feedUrl, mediaSource.site, false, controller.signal);
+        let feedRes = await resilientFetch(feedUrl, mediaSource.site, false, controller.signal);
+        if (!feedRes.ok) {
+          // Fallback: simple fetch if resilientFetch is blocked
+          feedRes = await fetch(feedUrl, { signal: controller.signal });
+        }
         if (feedRes.ok) {
           clearTimeout(timeoutId);
           const xmlText = await feedRes.text();
