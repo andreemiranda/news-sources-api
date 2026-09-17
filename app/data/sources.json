@@ -531,6 +531,42 @@
       "url": "https://g1.globo.com/dynamo/al/alagoas/rss2.xml",
       "active": true
     },
+        {
+      "id": 528374619283746,
+      "category": "Justiça",
+      "site": "ambitojuridico.com.br",
+      "type": "wp-api",
+      "url": "https://ambitojuridico.com.br/wp-json/wp/v2/posts",
+      "active": true,
+      "mediaUrl": "https://ambitojuridico.com.br/wp-json/wp/v2/media"
+    },
+    {
+      "id": 194728365019283,
+      "category": "Justiça",
+      "site": "justa.org.br",
+      "type": "wp-api",
+      "url": "https://www.justa.org.br/wp-json/wp/v2/posts",
+      "active": true,
+      "mediaUrl": "https://www.justa.org.br/wp-json/wp/v2/media"
+    },
+    {
+      "id": 736482910573649,
+      "category": "Justiça",
+      "site": "odireito.com",
+      "type": "wp-api",
+      "url": "https://odireito.com/wp-json/wp/v2/posts",
+      "active": true,
+      "mediaUrl": "https://odireito.com/wp-json/wp/v2/media"
+    },
+    {
+      "id": 813947265038471,
+      "category": "Justiça",
+      "site": "rotajuridica.com.br",
+      "type": "wp-api",
+      "url": "https://www.rotajuridica.com.br/wp-json/wp/v2/posts",
+      "active": true,
+      "mediaUrl": "https://www.rotajuridica.com.br/wp-json/wp/v2/media"
+    },
     {
       "id": 142414733688861,
       "category": "Acre",
