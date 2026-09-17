@@ -2,7 +2,7 @@
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { validateApiKey, unauthorizedResponse, paginate } from '@/lib/auth';
-import { getAllMediaSources } from '@/lib/media';
+import { getAllMediaSources } from '@/lib/sources';
 
 export async function GET(req: NextRequest) {
   if (!validateApiKey(req)) {

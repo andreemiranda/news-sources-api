@@ -1,55 +1,63 @@
 export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getCategories, getTypes } from '@/lib/sources';
-import { validateApiKey, unauthorizedResponse } from '@/lib/auth';
-
-function getBaseUrl(req: NextRequest): string {
-  if (process.env.NEXT_PUBLIC_BASE_URL) {
-    return process.env.NEXT_PUBLIC_BASE_URL;
-  }
-  const forwardedHost = req.headers.get('x-forwarded-host') || req.headers.get('host');
-  const forwardedProto = req.headers.get('x-forwarded-proto') || 'https';
-  if (forwardedHost) {
-    return `${forwardedProto}://${forwardedHost}`;
-  }
-  return req.nextUrl.origin;
-}
+import { getCategories, getTypes, getAllSources, getAllMediaSources } from '@/lib/sources';
 
 export async function GET(req: NextRequest) {
-  if (!validateApiKey(req)) {
-    return unauthorizedResponse();
-  }
   const categories = getCategories().map((c) => c.category);
   const types = getTypes().map((t) => t.type);
 
   const spec = {
     openapi: '3.0.3',
     info: {
-      title: 'News Sources API',
+      title: 'News & Media Sources API',
       description:
-        'REST API for accessing news sources data and live articles/media aggregated from various Brazilian news outlets.',
+        'REST API for accessing news sources data and live articles/media aggregated from Brazilian news outlets. Endpoints require API Key authentication via header Authorization: Bearer <key>, header x-api-key, or query parameter ?api_key=<key>.',
       version: '1.0.0',
     },
-    servers: [{ url: getBaseUrl(req), description: 'API Server' }],
+    servers: [
+      { url: 'https://example.com/api', description: 'Production Gateway (example.com)' },
+      { url: '/api', description: 'Local / Preview Server' },
+    ],
     components: {
       securitySchemes: {
-        ApiKeyAuth: { type: 'apiKey', in: 'header', name: 'x-api-key' },
-        BearerAuth: { type: 'http', scheme: 'bearer' },
+        ApiKeyAuth: {
+          type: 'apiKey',
+          in: 'header',
+          name: 'x-api-key',
+          description: 'API key in header (x-api-key: <key>)',
+        },
+        BearerAuth: {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'API Key',
+          description: 'Bearer token in Authorization header (Authorization: Bearer <key>)',
+        },
+        QueryApiKey: {
+          type: 'apiKey',
+          in: 'query',
+          name: 'api_key',
+          description: 'API key in query string (?api_key=<key>)',
+        },
       },
-      security: [{ ApiKeyAuth: [] }, { BearerAuth: [] }],
+      security: [{ ApiKeyAuth: [] }, { BearerAuth: [] }, { QueryApiKey: [] }],
       schemas: {
         Source: {
           type: 'object',
           properties: {
-            id: { type: 'string', example: '582319047120384' },
+            id: { type: 'integer', example: 383841537673882 },
             category: { type: 'string', example: 'Tocantins' },
-            site: { type: 'string', example: 'exemplo.com.br' },
+            site: { type: 'string', example: 'clebertoledo.com.br' },
             type: { type: 'string', example: 'wp-api', enum: types },
             url: {
               type: 'string',
               format: 'uri',
-              example: 'https://exemplo.com.br/wp-json/wp/v2/posts',
+              example: 'https://clebertoledo.com.br/wp-json/wp/v2/posts',
+            },
+            mediaUrl: {
+              type: 'string',
+              format: 'uri',
+              example: 'https://clebertoledo.com.br/wp-json/wp/v2/media',
             },
             active: { type: 'boolean', example: true },
           },
@@ -74,14 +82,14 @@ export async function GET(req: NextRequest) {
           type: 'object',
           properties: {
             id: { type: 'integer', example: 319687 },
-            title: { type: 'string', example: 'Avanço nos investimentos e novas iniciativas no estado' },
-            link: { type: 'string', example: 'https://exemplo.com.br/noticia-exemplo' },
+            title: { type: 'string', example: 'Título da notícia ou mídia' },
+            link: { type: 'string', example: 'https://example.com/noticia-exemplo' },
             description: { type: 'string', example: 'Resumo da matéria jornalística...' },
             content: { type: 'string', example: '<p>Conteúdo integral...</p>' },
-            pubDate: { type: 'string', format: 'date-time', example: '2026-08-21T09:30:00' },
+            pubDate: { type: 'string', format: 'date-time', example: '2026-09-16T19:12:25Z' },
             author: { type: 'string', example: 'Redação' },
-            imageUrl: { type: 'string', example: 'https://exemplo.com.br/wp-content/uploads/imagem.jpg' },
-            mediaUrl: { type: 'string', example: 'https://exemplo.com.br/wp-content/uploads/arquivo.pdf' },
+            imageUrl: { type: 'string', example: 'https://example.com/uploads/imagem.jpg' },
+            mediaUrl: { type: 'string', example: 'https://example.com/uploads/arquivo.jpg' },
             raw: { type: 'object', description: 'Raw upstream payload (if raw=true is passed)' },
           },
         },
@@ -90,10 +98,11 @@ export async function GET(req: NextRequest) {
     paths: {
       '/news': {
         get: {
-          tags: ['News'],
-          summary: 'List all sources',
+          tags: ['News Sources'],
+          summary: 'List all news sources',
           description:
             'Returns a paginated list of all news sources. Supports filtering by category, type, and active status.',
+          security: [{ ApiKeyAuth: [] }, { BearerAuth: [] }, { QueryApiKey: [] }],
           parameters: [
             {
               name: 'page',
@@ -125,12 +134,6 @@ export async function GET(req: NextRequest) {
               description: 'Filter by active status (true/false)',
               schema: { type: 'boolean' },
             },
-            {
-              name: 'stats',
-              in: 'query',
-              description: 'Return only statistics summary (stats=true)',
-              schema: { type: 'boolean' },
-            },
           ],
           responses: {
             '200': {
@@ -139,54 +142,59 @@ export async function GET(req: NextRequest) {
                 'application/json': {
                   schema: {
                     type: 'array',
-                    items: { $ref: '#/components/schemas/Source' }
+                    items: { $ref: '#/components/schemas/Source' },
                   },
                 },
               },
-            }
+            },
+            '401': {
+              description: 'Unauthorized. API Key is missing or invalid.',
+              content: {
+                'application/json': {
+                  schema: { $ref: '#/components/schemas/ErrorResponse' },
+                },
+              },
+            },
           },
         },
       },
       '/news/{id}': {
         get: {
-          tags: ['News Content'],
-          summary: 'Get live news content',
+          tags: ['News Articles'],
+          summary: 'Get live news articles by source ID',
           description:
-            'Fetches the real news content directly from the selected source ID.',
+            'Fetches live news content dynamically from the selected news source ID.',
+          security: [{ ApiKeyAuth: [] }, { BearerAuth: [] }, { QueryApiKey: [] }],
           parameters: [
             {
               name: 'id',
               in: 'path',
               description: 'Source ID (15 digits)',
               required: true,
-              schema: { type: 'string', example: '582319047120384' },
+              schema: { type: 'integer', example: 383841537673882 },
             },
             {
               name: 'page',
               in: 'query',
               description: 'Page number (default: 1)',
-              required: false,
               schema: { type: 'integer', default: 1, minimum: 1 },
             },
             {
               name: 'limit',
               in: 'query',
               description: 'Items per page (default: 10, max: 100)',
-              required: false,
               schema: { type: 'integer', default: 10, minimum: 1, maximum: 100 },
             },
             {
               name: 'search',
               in: 'query',
-              description: 'Search keyword to filter news articles',
-              required: false,
+              description: 'Search keyword to filter articles',
               schema: { type: 'string' },
             },
             {
               name: 'raw',
               in: 'query',
               description: 'Return raw upstream JSON payload alongside parsed items',
-              required: false,
               schema: { type: 'boolean', default: false },
             },
           ],
@@ -197,8 +205,133 @@ export async function GET(req: NextRequest) {
                 'application/json': {
                   schema: {
                     type: 'array',
-                    items: { $ref: '#/components/schemas/ContentItem' }
+                    items: { $ref: '#/components/schemas/ContentItem' },
                   },
+                },
+              },
+            },
+            '401': {
+              description: 'Unauthorized. Invalid or missing API key.',
+              content: {
+                'application/json': {
+                  schema: { $ref: '#/components/schemas/ErrorResponse' },
+                },
+              },
+            },
+            '404': {
+              description: 'Source ID not found.',
+              content: {
+                'application/json': {
+                  schema: { $ref: '#/components/schemas/ErrorResponse' },
+                },
+              },
+            },
+            '502': {
+              description: 'Upstream gateway error.',
+              content: {
+                'application/json': {
+                  schema: { $ref: '#/components/schemas/ErrorResponse' },
+                },
+              },
+            },
+          },
+        },
+      },
+      '/images': {
+        get: {
+          tags: ['Images & Media'],
+          summary: 'List all media sources',
+          description:
+            'Returns a list of all media sources. Uses the same IDs as the news endpoints.',
+          security: [{ ApiKeyAuth: [] }, { BearerAuth: [] }, { QueryApiKey: [] }],
+          parameters: [
+            {
+              name: 'active',
+              in: 'query',
+              description: 'Filter by active status (true/false)',
+              schema: { type: 'boolean' },
+            },
+          ],
+          responses: {
+            '200': {
+              description: 'Successful response',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'array',
+                    items: { $ref: '#/components/schemas/Source' },
+                  },
+                },
+              },
+            },
+            '401': {
+              description: 'Unauthorized.',
+              content: {
+                'application/json': {
+                  schema: { $ref: '#/components/schemas/ErrorResponse' },
+                },
+              },
+            },
+          },
+        },
+      },
+      '/images/{id}': {
+        get: {
+          tags: ['Images & Media'],
+          summary: 'Get live images/media by source ID',
+          description:
+            'Fetches media items and image attachments directly using the same source ID as the news endpoints.',
+          security: [{ ApiKeyAuth: [] }, { BearerAuth: [] }, { QueryApiKey: [] }],
+          parameters: [
+            {
+              name: 'id',
+              in: 'path',
+              description: 'Source ID (15 digits)',
+              required: true,
+              schema: { type: 'integer', example: 383841537673882 },
+            },
+            {
+              name: 'page',
+              in: 'query',
+              description: 'Page number (default: 1)',
+              schema: { type: 'integer', default: 1, minimum: 1 },
+            },
+            {
+              name: 'limit',
+              in: 'query',
+              description: 'Items per page (default: 10, max: 100)',
+              schema: { type: 'integer', default: 10, minimum: 1, maximum: 100 },
+            },
+            {
+              name: 'search',
+              in: 'query',
+              description: 'Search keyword to filter media uploads',
+              schema: { type: 'string' },
+            },
+            {
+              name: 'raw',
+              in: 'query',
+              description: 'Return raw upstream JSON payload alongside parsed items',
+              schema: { type: 'boolean', default: false },
+            },
+          ],
+          responses: {
+            '200': {
+              description: 'Successful response with live media uploads',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'array',
+                    items: { $ref: '#/components/schemas/ContentItem' },
+                  },
+                },
+              },
+            },
+            '401': {
+              description: 'Unauthorized.',
+              content: {
+                'application/json': {
+                  schema: { $ref: '#/components/schemas/ErrorResponse' },
                 },
               },
             },
@@ -221,18 +354,131 @@ export async function GET(req: NextRequest) {
           },
         },
       },
-      '/images': {
+      '/categories': {
         get: {
-          tags: ['Images'],
-          summary: 'List all media endpoints',
-          description:
-            'Returns a list of all media sources. Supports filtering by active status.',
+          tags: ['Metadata'],
+          summary: 'List all news categories',
+          description: 'Returns all available news categories with their source counts.',
+          security: [{ ApiKeyAuth: [] }, { BearerAuth: [] }, { QueryApiKey: [] }],
+          responses: {
+            '200': {
+              description: 'List of categories',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'array',
+                    items: {
+                      type: 'object',
+                      properties: {
+                        category: { type: 'string' },
+                        count: { type: 'integer' },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            '401': { description: 'Unauthorized' },
+          },
+        },
+      },
+      '/types': {
+        get: {
+          tags: ['Metadata'],
+          summary: 'List all source types',
+          description: 'Returns available source types (wp-api, rss) with their counts.',
+          security: [{ ApiKeyAuth: [] }, { BearerAuth: [] }, { QueryApiKey: [] }],
+          responses: {
+            '200': {
+              description: 'List of types',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'array',
+                    items: {
+                      type: 'object',
+                      properties: {
+                        type: { type: 'string' },
+                        count: { type: 'integer' },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            '401': { description: 'Unauthorized' },
+          },
+        },
+      },
+      '/stats': {
+        get: {
+          tags: ['Metadata'],
+          summary: 'Get global API statistics',
+          description: 'Returns summary counts of sources, categories, and types.',
+          security: [{ ApiKeyAuth: [] }, { BearerAuth: [] }, { QueryApiKey: [] }],
+          responses: {
+            '200': {
+              description: 'Statistics object',
+            },
+            '401': { description: 'Unauthorized' },
+          },
+        },
+      },
+      '/health': {
+        get: {
+          tags: ['System'],
+          summary: 'Health check endpoint',
+          description: 'Public health check to monitor uptime and service readiness. Does not require authentication.',
+          security: [],
+          responses: {
+            '200': {
+              description: 'Service is healthy',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      status: { type: 'string', example: 'ok' },
+                      timestamp: { type: 'string', example: '2026-09-17T10:00:00.000Z' },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  };
+
+  // Automatically generate individual endpoint definitions for every active source in sources.json
+  const allSources = getAllSources();
+  allSources.forEach((source) => {
+    if (source.active) {
+      (spec.paths as any)[`/news/${source.id}`] = {
+        get: {
+          tags: [`Sources - ${source.category}`],
+          summary: `Get live news from ${source.site}`,
+          description: `Fetches real news articles dynamically from ${source.url} (${source.type}). ID: ${source.id}`,
+          security: [{ ApiKeyAuth: [] }, { BearerAuth: [] }, { QueryApiKey: [] }],
           parameters: [
             {
-              name: 'active',
+              name: 'page',
               in: 'query',
-              description: 'Filter by active status (true/false)',
-              schema: { type: 'boolean' },
+              description: 'Page number (default: 1)',
+              schema: { type: 'integer', default: 1, minimum: 1 },
+            },
+            {
+              name: 'limit',
+              in: 'query',
+              description: 'Items per page (default: 10, max: 100)',
+              schema: { type: 'integer', default: 10, minimum: 1, maximum: 100 },
+            },
+            {
+              name: 'search',
+              in: 'query',
+              description: 'Search keyword',
+              schema: { type: 'string' },
             },
           ],
           responses: {
@@ -242,90 +488,57 @@ export async function GET(req: NextRequest) {
                 'application/json': {
                   schema: {
                     type: 'array',
-                    items: { $ref: '#/components/schemas/Source' }
-                  },
-                },
-              },
-            }
-          },
-        },
-      },
-      '/images/{id}': {
-        get: {
-          tags: ['Images Content'],
-          summary: 'Get live media items from source',
-          description:
-            'Fetches the real media uploads and attachment items directly from the selected WordPress media source ID.',
-          parameters: [
-            {
-              name: 'id',
-              in: 'path',
-              description: 'Media Source ID (15 digits)',
-              required: true,
-              schema: { type: 'string', example: '582319047120384' },
-            },
-            {
-              name: 'page',
-              in: 'query',
-              description: 'Page number (default: 1)',
-              required: false,
-              schema: { type: 'integer', default: 1, minimum: 1 },
-            },
-            {
-              name: 'limit',
-              in: 'query',
-              description: 'Items per page (default: 10, max: 100)',
-              required: false,
-              schema: { type: 'integer', default: 10, minimum: 1, maximum: 100 },
-            },
-            {
-              name: 'search',
-              in: 'query',
-              description: 'Search keyword to filter media uploads',
-              required: false,
-              schema: { type: 'string' },
-            },
-            {
-              name: 'raw',
-              in: 'query',
-              description: 'Return raw upstream JSON payload alongside parsed items',
-              required: false,
-              schema: { type: 'boolean', default: false },
-            },
-          ],
-          responses: {
-            '200': {
-              description: 'Successful response with live media uploads',
-              content: {
-                'application/json': {
-                  schema: {
-                    type: 'array',
-                    items: { $ref: '#/components/schemas/ContentItem' }
+                    items: { $ref: '#/components/schemas/ContentItem' },
                   },
                 },
               },
             },
-            '404': {
-              description: 'Media source not found',
-              content: {
-                'application/json': {
-                  schema: { $ref: '#/components/schemas/ErrorResponse' },
-                },
-              },
-            },
-            '502': {
-              description: 'Bad Gateway / Upstream Source Error',
-              content: {
-                'application/json': {
-                  schema: { $ref: '#/components/schemas/ErrorResponse' },
-                },
-              },
-            },
+            '401': { description: 'Unauthorized' },
           },
         },
+      };
+
+      // Also create matching image/media endpoint with the SAME ID if it has media capability
+      if (source.mediaUrl || source.type === 'wp-api') {
+        (spec.paths as any)[`/images/${source.id}`] = {
+          get: {
+            tags: ['Images & Media Sources'],
+            summary: `Get media uploads from ${source.site}`,
+            description: `Fetches media uploads directly from ${source.site}. Unified ID: ${source.id}`,
+            security: [{ ApiKeyAuth: [] }, { BearerAuth: [] }, { QueryApiKey: [] }],
+            parameters: [
+              {
+                name: 'page',
+                in: 'query',
+                description: 'Page number (default: 1)',
+                schema: { type: 'integer', default: 1, minimum: 1 },
+              },
+              {
+                name: 'limit',
+                in: 'query',
+                description: 'Items per page (default: 10, max: 100)',
+                schema: { type: 'integer', default: 10, minimum: 1, maximum: 100 },
+              },
+            ],
+            responses: {
+              '200': {
+                description: 'Successful response',
+                content: {
+                  'application/json': {
+                    schema: {
+                      type: 'array',
+                      items: { $ref: '#/components/schemas/ContentItem' },
+                    },
+                  },
+                },
+              },
+              '401': { description: 'Unauthorized' },
+            },
+          },
+        };
       }
     }
-  };
+  });
 
   return NextResponse.json(spec);
 }

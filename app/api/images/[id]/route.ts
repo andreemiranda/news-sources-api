@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
-import { getMediaSourceById } from '@/lib/media';
+import { getMediaSourceById } from '@/lib/sources';
 import { fetchMediaContent } from '@/lib/content';
 import { validateApiKey, unauthorizedResponse } from '@/lib/auth';
 

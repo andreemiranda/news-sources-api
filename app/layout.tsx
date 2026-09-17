@@ -5,8 +5,12 @@ import { Inter } from 'next/font/google';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'News Sources API - Documentação',
-  description: 'API REST para acesso a fontes de notícias brasileiras. Documentação interativa via Swagger UI.',
+  title: 'News Sources API',
+  description: 'API REST para acesso a fontes de notícias brasileiras com documentação interativa via Swagger UI e RapiDoc.',
+  openGraph: {
+    title: 'News Sources API',
+    description: 'API REST para acesso a fontes de notícias brasileiras com documentação interativa via Swagger UI e RapiDoc.',
+  },
   robots: { index: true, follow: true },
 };
 

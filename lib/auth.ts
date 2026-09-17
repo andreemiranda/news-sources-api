@@ -13,10 +13,7 @@ function safeCompare(provided: string, expected: string): boolean {
 }
 
 export function getApiKey(): string {
-  if (process.env.API_KEY) {
-    return process.env.API_KEY;
-  }
-  return 'dev_key_12345';
+  return (process.env.API_KEY || '').trim();
 }
 
 export function validateApiKey(req: NextRequest): boolean {

@@ -1,79 +1,95 @@
-# News Sources API
+# News & Media Sources API
 
-API REST para acesso a fontes de notícias, endpoints de mídia e conteúdos em tempo real (posts, artigos, imagens e uploads) de portais brasileiros.
+API REST para acesso centralizado a fontes de notícias brasileiras, conteúdos em tempo real (posts, matérias jornalísticas e artigos) e uploads de mídia (imagens, anexos e fotos), padronizando saídas de REST APIs WordPress (`wp-api`) e feeds XML (`rss`).
+
+---
 
 ## Autenticação
 
-Todos os endpoints exigem envio da API Key em um dos seguintes formatos:
-1. Header `Authorization: Bearer <sua-chave>`
-2. Header `x-api-key: <sua-chave>`
-3. Query parameter `?api_key=<sua-chave>`
+Todos os endpoints (com exceção exclusiva de `/api/health`) exigem autenticação por API Key. A chave pode ser informada de 3 formas:
 
-> **Configuração em Produção:** No Cloudflare Workers, Netlify ou Render, cadastre o segredo ou variável de ambiente `API_KEY`.
+1. **Header de Autorização Bearer (Recomendado):**
+   ```http
+   Authorization: Bearer <sua-chave>
+   ```
+2. **Header Customizado:**
+   ```http
+   x-api-key: <sua-chave>
+   ```
+3. **Query Parameter:**
+   ```http
+   ?api_key=<sua-chave>
+   ```
+
+> **Configuração em Produção no Netlify:**
+> Acesse **Site Configuration > Environment Variables** no painel do Netlify e cadastre a variável `API_KEY`. O sistema lê essa variável estritamente em tempo de execução sem expor credenciais no código-fonte.
+
+---
+
+## Arquitetura Unificada de Dados
+
+Todas as fontes de dados e endpoints de mídia estão centralizados em um único arquivo:
+- `app/data/sources.json`: Contém todas as fontes ativas com URLs de posts (`url`) e URLs de mídia (`mediaUrl`).
+- **IDs Unificados:** Cada portal possui um ID único de 15 dígitos. O mesmo ID é utilizado tanto para ler as matérias (`/api/news/{id}`) quanto para ler as imagens e uploads (`/api/images/{id}`).
+- **Atualização Automática:** Qualquer adição, alteração ou remoção de fontes no arquivo `app/data/sources.json` reflete instantaneamente em toda a API, documentação Swagger UI e RapiDoc.
 
 ---
 
 ## Documentação Interativa
 
-- **Swagger UI**: Disponível na página inicial (`/`).
-- **RapiDoc**: Disponível na rota de documentação (`/docs`).
-- **Especificação OpenAPI 3.0.3**: `/api/openapi.json`.
+- **Swagger UI**: Disponível na página inicial (`https://example.com/`).
+- **RapiDoc**: Disponível na rota dedicada (`https://example.com/docs`).
+- **Especificação OpenAPI 3.0.3 (JSON)**: `https://example.com/api/openapi.json`.
 
 ---
 
-## Sumário de Endpoints Globais
+## Endpoints da API
 
 | Método | Endpoint | Descrição |
 |---|---|---|
-| GET | `/api/news` | Lista paginada das 72 fontes de notícias (filtros: `category`, `type`, `active`, `stats`) |
-| GET | `/api/news/{id}` | **Conteúdo em tempo real** da fonte de notícias {id} — posts, artigos, autores, imagens (WordPress e RSS). Suporta a flag `?meta=true` para obter apenas os metadados. |
-| GET | `/api/news/category/{category}` | Lista de fontes filtradas por categoria |
-| GET | `/api/images` | Lista completa dos 27 endpoints de mídia WordPress (`/wp-json/wp/v2/media`) |
-| GET | `/api/images/{id}` | **Conteúdo de mídia em tempo real** do endpoint {id} — imagens, fotos, anexos e PDFs. Suporta a flag `?meta=true` para obter apenas os metadados. |
-| GET | `/api/categories` | Lista de categorias com contagem de fontes |
-| GET | `/api/types` | Lista de tipos de integração (`wp-api`, `rss`) com contagem de fontes |
-| GET | `/api/stats` | Estatísticas gerais da API |
-| GET | `/api/openapi.json` | Especificação OpenAPI 3.0.3 (JSON) |
+| GET | `https://example.com/api/news` | Lista de fontes de notícias cadastradas (filtros: `category`, `type`, `active`) |
+| GET | `https://example.com/api/news/{id}` | Notícias em tempo real da fonte `{id}` |
+| GET | `https://example.com/api/news/category/{category}` | Fontes filtradas por categoria |
+| GET | `https://example.com/api/images` | Lista de fontes com suporte a mídia e uploads |
+| GET | `https://example.com/api/images/{id}` | Mídias e imagens em tempo real da fonte `{id}` |
+| GET | `https://example.com/api/categories` | Categorias disponíveis com total de fontes |
+| GET | `https://example.com/api/types` | Tipos suportados (`wp-api`, `rss`) com totais |
+| GET | `https://example.com/api/stats` | Estatísticas gerais da API |
+| GET | `https://example.com/api/health` | Verificação de integridade e uptime (Público, sem auth) |
 
 ---
 
-## Documentação Completa e Lista de Endpoints
+## Paginação Padrão WordPress
 
-Para a lista detalhada com os endpoints individuais nominais de cada uma das **72 fontes** e dos **27 endpoints de mídia**, e informações completas sobre o formato de resposta (Paginação Padrão WP REST API), consulte o arquivo [`API_DOCS.md`](./API_DOCS.md) ou acesse a documentação interativa na página inicial.
+Os endpoints de conteúdo retornam uma lista JSON direta com metadados nos cabeçalhos HTTP:
+- `X-WP-Total`: Total de registros disponíveis no servidor de origem.
+- `X-WP-TotalPages`: Total de páginas disponíveis.
 
----
+### Exemplos de Requisição:
 
-## Como Usar os Endpoints de Conteúdo em Tempo Real
-
-A partir da última atualização, os conteúdos retornados pela API não são mais encapsulados em `{ success: true, data: [...] }`. Eles são retornados como um **Array Direto** compatível com o padrão do WordPress e os dados de paginação estão alocados nos Headers da requisição (`X-WP-Total` e `X-WP-TotalPages`).
-
-### 1. Consultar Notícias de uma Fonte Específica (`/api/news/{id}`)
-
-Retorna as matérias e publicações atualizadas diretamente do portal (WordPress REST API ou RSS Feed XML).
-
+**Buscar Notícias:**
 ```bash
-# Exemplo: Obter as últimas 5 notícias (substitua o ID por um ID válido)
-curl -i "https://seu-dominio.com/api/news/383841537673882?limit=5"
+curl -i "https://example.com/api/news/383841537673882?page=1&limit=5" \
+  -H "Authorization: Bearer SUA_API_KEY"
 ```
 
-### 2. Consultar Mídias e Uploads de um Portal (`/api/images/{id}`)
-
-Retorna a lista de imagens, fotos, uploads e anexos diretamente do endpoint de mídia do WordPress.
-
+**Buscar Imagens / Mídias:**
 ```bash
-# Exemplo: Obter as últimas 5 mídias
-curl -i "https://seu-dominio.com/api/images/486786913592927?limit=5"
+curl -i "https://example.com/api/images/383841537673882?page=1&limit=5" \
+  -H "Authorization: Bearer SUA_API_KEY"
 ```
 
 ---
 
-## Desenvolvimento e Deploy
+## Implantação no Netlify (Serverless)
 
-```bash
-npm install
-npm run dev           # Servidor local de desenvolvimento (porta 3000)
-npm run build         # Build do Next.js
-npm run start         # Iniciar servidor em produção
-```
+A aplicação está configurada para deploy contínuo e sem servidor no Netlify:
 
-O projeto foi refatorado para funcionar em modo _Serverless_ (sem dependência de banco de dados ou estado persistente via disco em tempo de execução), permitindo deploy nativo na Vercel, Netlify e outras plataformas.
+1. **Conectar Repositório:** Conecte o repositório Git ao Netlify.
+2. **Configuração de Build Automática:**
+   - **Build Command:** `npm run build`
+   - **Publish Directory:** `.next`
+   - **Plugin:** `@netlify/plugin-nextjs` (configurado em `netlify.toml`)
+3. **Variáveis de Ambiente:**
+   - Cadastre `API_KEY` com a senha desejada para proteger os endpoints.
+   - Opcionalmente cadastre `NEXT_PUBLIC_BASE_URL` caso utilize domínio personalizado.

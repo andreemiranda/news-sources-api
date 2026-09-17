@@ -8,6 +8,7 @@ export interface Source {
   site: string;
   type: string;
   url: string;
+  mediaUrl?: string;
   active: boolean;
 }
 
@@ -50,7 +51,7 @@ export function isValidId(id: number | string | undefined): boolean {
 
 export function getSourcesData(): SourcesData {
   try {
-    const filePath = path.join(process.cwd(), 'data', 'sources.json');
+    const filePath = path.join(process.cwd(), 'app', 'data', 'sources.json');
     const fileContent = fs.readFileSync(filePath, 'utf8');
     const data = JSON.parse(fileContent) as SourcesData;
     
@@ -111,16 +112,30 @@ export function getTypes(): { type: string; count: number }[] {
     .sort((a, b) => a.type.localeCompare(b.type));
 }
 
+export function getAllMediaSources(): Source[] {
+  return getAllSources().filter(
+    (s) => Boolean(s.mediaUrl) || s.type === 'wp-api'
+  );
+}
+
+export function getMediaSourceById(id: number | string): Source | undefined {
+  const numericId = typeof id === 'string' ? parseInt(id, 10) : id;
+  return getAllMediaSources().find((s) => s.id === numericId) || getSourceById(id);
+}
+
 export function getStats() {
   const sources = getAllSources();
+  const mediaSources = getAllMediaSources();
   const categories = getCategories();
   const types = getTypes();
 
   return {
     totalSources: sources.length,
+    totalMediaSources: mediaSources.length,
     totalCategories: categories.length,
     totalTypes: types.length,
     activeSources: sources.filter((s) => s.active).length,
+    activeMediaSources: mediaSources.filter((s) => s.active).length,
     categories,
     types,
   };

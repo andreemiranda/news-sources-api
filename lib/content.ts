@@ -1,3 +1,4 @@
+import he from 'he';
 import { Source } from './sources';
 
 export interface ContentItem {
@@ -21,6 +22,7 @@ export interface ContentResponse {
     site: string;
     type: string;
     url: string;
+    mediaUrl?: string;
     active: boolean;
   };
   feed?: {
@@ -46,17 +48,54 @@ export interface FetchOptions {
   raw?: boolean;
 }
 
+export function cleanText(input: string | undefined | null): string {
+  if (!input) return '';
+  let str = String(input);
+  try {
+    str = he.decode(str);
+  } catch (e) {}
+
+  try {
+    if (/[\u00C2-\u00DF][\u0080-\u00BF]/.test(str)) {
+      const fixed = Buffer.from(str, 'latin1').toString('utf8');
+      if (!fixed.includes('\uFFFD')) {
+        str = fixed;
+      }
+    }
+  } catch (e) {}
+
+  try {
+    if (/&#?\w+;/.test(str)) {
+      str = he.decode(str);
+    }
+  } catch (e) {}
+
+  return str
+    .replace(/[\u0000-\u0008\u000B-\u000C\u000E-\u001F]/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/\u00A0/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function stripHtmlAndClean(html: string | undefined | null): string {
+  if (!html) return '';
+  const textWithoutTags = html.replace(/<[^>]+>/g, ' ');
+  return cleanText(textWithoutTags);
+}
+
 function extractTagValue(xml: string, tagName: string): string {
   const cdataRegex = new RegExp(`<${tagName}[^>]*><!\\[CDATA\\[([\\s\\S]*?)\\]\\]><\\/${tagName}>`, 'i');
   const cdataMatch = xml.match(cdataRegex);
   if (cdataMatch && cdataMatch[1] !== undefined) {
-    return cdataMatch[1].trim();
+    return cleanText(cdataMatch[1]);
   }
 
   const standardRegex = new RegExp(`<${tagName}[^>]*>([\\s\\S]*?)<\\/${tagName}>`, 'i');
   const match = xml.match(standardRegex);
   if (match && match[1] !== undefined) {
-    return match[1].replace(/<!\[CDATA\[([\s\S]*?)\]\]>/gi, '$1').trim();
+    const rawVal = match[1].replace(/<!\[CDATA\[([\s\S]*?)\]\]>/gi, '$1');
+    return cleanText(rawVal);
   }
 
   return '';
@@ -87,13 +126,16 @@ export function parseRssFeed(xml: string): { feed: any; items: ContentItem[] } {
     const author = extractTagValue(block, 'author') || extractTagValue(block, 'dc:creator');
     const guid = extractTagValue(block, 'guid') || String(index + 1);
 
-    // Categories
     const catMatches = block.match(/<category[^>]*>([\s\S]*?)<\/category>/gi) || [];
     const categories = catMatches.map((c) =>
-      c.replace(/<category[^>]*>/i, '').replace(/<\/category>/i, '').replace(/<!\[CDATA\[([\s\S]*?)\]\]>/gi, '$1').trim()
-    );
+      cleanText(
+        c
+          .replace(/<category[^>]*>/i, '')
+          .replace(/<\/category>/i, '')
+          .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/gi, '$1')
+      )
+    ).filter(Boolean);
 
-    // Media / Image
     let imageUrl = extractAttribute(block, 'enclosure', 'url');
     if (!imageUrl) {
       imageUrl = extractAttribute(block, 'media:content', 'url');
@@ -110,18 +152,102 @@ export function parseRssFeed(xml: string): { feed: any; items: ContentItem[] } {
 
     return {
       id: guid,
-      title,
+      title: title || 'Sem título',
       link,
-      description: description.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim(),
+      description: stripHtmlAndClean(description),
       content,
       pubDate,
-      author,
+      author: author || undefined,
       categories: categories.length > 0 ? categories : undefined,
       imageUrl: imageUrl || undefined,
+      mediaUrl: imageUrl || undefined,
     };
   });
 
   return { feed, items };
+}
+
+/**
+ * Resilient HTTP fetcher with multi-tier bypass against 403 Forbidden
+ */
+async function resilientFetch(
+  url: string,
+  site: string,
+  isJson: boolean = true,
+  signal?: AbortSignal
+): Promise<Response> {
+  const refererUrl = site.startsWith('http') ? site : `https://${site}/`;
+
+  // Tier 1: Modern Chrome 131 Desktop headers with legitimate client hints
+  const standardHeaders: Record<string, string> = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+    'Accept': isJson ? 'application/json, text/plain, */*' : 'application/rss+xml, application/xml, text/xml, */*',
+    'Accept-Language': 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7',
+    'Referer': refererUrl,
+    'sec-ch-ua': '"Google Chrome";v="131", "Chromium";v="131", "Not_A Brand";v="24"',
+    'sec-ch-ua-mobile': '?0',
+    'sec-ch-ua-platform': '"Windows"',
+  };
+
+  try {
+    const res = await fetch(url, {
+      headers: standardHeaders,
+      signal,
+      cache: 'no-store',
+    });
+
+    if (res.ok) {
+      return res;
+    }
+
+    // If 403 Forbidden or 401 Unauthorized or 503, proceed to Tier 2
+    if (res.status === 403 || res.status === 401 || res.status === 503) {
+      console.warn(`Upstream returned HTTP ${res.status} for ${url}. Attempting crawler bypass...`);
+    } else {
+      return res;
+    }
+  } catch (err) {
+    console.warn(`Primary fetch failed for ${url}:`, err);
+  }
+
+  // Tier 2: Googlebot News Crawler / Verified Web crawler headers
+  // Almost all WordPress firewalls (Cloudflare, Wordfence, Sucuri, iThemes) whitelist Googlebot
+  const crawlerHeaders: Record<string, string> = {
+    'User-Agent': 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
+    'Accept': isJson ? 'application/json, */*' : 'application/rss+xml, application/xml, text/xml, */*',
+    'Accept-Language': 'pt-BR,pt;q=0.9',
+    'Referer': refererUrl,
+  };
+
+  try {
+    const res2 = await fetch(url, {
+      headers: crawlerHeaders,
+      signal,
+      cache: 'no-store',
+    });
+
+    if (res2.ok) {
+      return res2;
+    }
+
+    // Tier 3: Facebook External Hit / Social preview crawler
+    if (res2.status === 403 || res2.status === 401 || res2.status === 503) {
+      const res3 = await fetch(url, {
+        headers: {
+          'User-Agent': 'facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)',
+          'Accept': isJson ? 'application/json, */*' : '*/*',
+          'Referer': refererUrl,
+        },
+        signal,
+        cache: 'no-store',
+      });
+      return res3;
+    }
+
+    return res2;
+  } catch (err: any) {
+    throw new Error(`Fetch failed after all retry attempts for ${url}: ${err.message || err}`);
+  }
 }
 
 export async function fetchSourceContent(
@@ -133,20 +259,7 @@ export async function fetchSourceContent(
   const search = options.search?.trim();
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 12000);
-
-  const headers = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36',
-    'Accept': source?.type === 'wp-api' ? 'application/json, text/plain, */*' : 'application/xml, text/xml, application/rss+xml, */*',
-    'Accept-Language': 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7',
-    'Connection': 'keep-alive',
-    'Upgrade-Insecure-Requests': '1',
-    'Sec-Fetch-Dest': 'document',
-    'Sec-Fetch-Mode': 'navigate',
-    'Sec-Fetch-Site': 'none',
-    'Sec-Fetch-User': '?1',
-    'Cache-Control': 'max-age=0'
-  };
+  const timeoutId = setTimeout(() => controller.abort(), 14000);
 
   try {
     if (source.type === 'wp-api') {
@@ -157,17 +270,50 @@ export async function fetchSourceContent(
         urlObj.searchParams.set('search', search);
       }
 
-      const response = await fetch(urlObj.toString(), {
-        headers,
-        signal: controller.signal,
-        cache: "no-store", // 5 min cache
-      });
+      let response: Response;
+      try {
+        response = await resilientFetch(urlObj.toString(), source.site, true, controller.signal);
+      } catch (e: any) {
+        throw e;
+      }
 
-      clearTimeout(timeoutId);
-
+      // If WP-API returns 403/404 after all attempts, try falling back to RSS feed
       if (!response.ok) {
+        if (response.status === 403 || response.status === 404 || response.status === 502) {
+          console.warn(`WP-API failed with HTTP ${response.status} for ${source.site}. Attempting fallback to RSS feed...`);
+          const feedUrl = `https://${source.site}/feed/`;
+          try {
+            const feedRes = await resilientFetch(feedUrl, source.site, false, controller.signal);
+            if (feedRes.ok) {
+              clearTimeout(timeoutId);
+              const xmlText = await feedRes.text();
+              const { feed, items: allItems } = parseRssFeed(xmlText);
+              let filtered = allItems;
+              if (search) {
+                const lower = search.toLowerCase();
+                filtered = allItems.filter(
+                  (i) => i.title.toLowerCase().includes(lower) || (i.description && i.description.toLowerCase().includes(lower))
+                );
+              }
+              const total = filtered.length;
+              const totalPages = Math.ceil(total / limit) || 1;
+              const startIndex = (page - 1) * limit;
+              return {
+                source,
+                feed,
+                pagination: { total, page, limit, totalPages },
+                items: filtered.slice(startIndex, startIndex + limit),
+              };
+            }
+          } catch (feedErr) {
+            // ignore feed fallback error, continue to throw original status
+          }
+        }
+        clearTimeout(timeoutId);
         throw new Error(`Upstream returned HTTP ${response.status}: ${response.statusText}`);
       }
+
+      clearTimeout(timeoutId);
 
       const rawPosts = await response.json();
       const totalHeader = response.headers.get('x-wp-total');
@@ -181,13 +327,14 @@ export async function fetchSourceContent(
             const featuredMedia = post._embedded?.['wp:featuredmedia']?.[0]?.source_url;
             return {
               id: post.id,
-              title: post.title?.rendered || post.title || 'Sem título',
+              title: cleanText(post.title?.rendered || post.title || 'Sem título'),
               link: post.link || '',
-              description: post.excerpt?.rendered ? post.excerpt.rendered.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim() : '',
+              description: stripHtmlAndClean(post.excerpt?.rendered),
               content: post.content?.rendered || '',
               pubDate: post.date || post.date_gmt,
               author: post.author ? String(post.author) : undefined,
               imageUrl: post.jetpack_featured_media_url || featuredMedia || undefined,
+              mediaUrl: post.jetpack_featured_media_url || featuredMedia || undefined,
               raw: options.raw ? post : undefined,
             };
           })
@@ -204,13 +351,8 @@ export async function fetchSourceContent(
         items,
       };
     } else {
-      // RSS Feed
-      const response = await fetch(source.url, {
-        headers,
-        signal: controller.signal,
-        cache: "no-store",
-      });
-
+      // RSS Feed source
+      const response = await resilientFetch(source.url, source.site, false, controller.signal);
       clearTimeout(timeoutId);
 
       if (!response.ok) {
@@ -220,7 +362,6 @@ export async function fetchSourceContent(
       const xmlText = await response.text();
       const { feed, items: allItems } = parseRssFeed(xmlText);
 
-      // Search filter if provided
       let filteredItems = allItems;
       if (search) {
         const lowerSearch = search.toLowerCase();
@@ -263,35 +404,50 @@ export async function fetchMediaContent(
   const search = options.search?.trim();
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 12000);
-
-  const headers = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36',
-    'Accept': 'application/json, text/plain, */*',
-    'Accept-Language': 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7',
-    'Connection': 'keep-alive',
-    'Upgrade-Insecure-Requests': '1',
-    'Sec-Fetch-Dest': 'document',
-    'Sec-Fetch-Mode': 'navigate',
-    'Sec-Fetch-Site': 'none',
-    'Sec-Fetch-User': '?1',
-    'Cache-Control': 'max-age=0'
-  };
+  const timeoutId = setTimeout(() => controller.abort(), 14000);
 
   try {
-    const urlObj = new URL(mediaSource.url);
+    // If it's an RSS feed, we can fetch items and return items with media/images
+    if (mediaSource.type === 'rss') {
+      const feedData = await fetchSourceContent(mediaSource, { page: 1, limit: 100, search, raw: options.raw });
+      clearTimeout(timeoutId);
+      const mediaItems: ContentItem[] = feedData.items
+        .filter((item) => Boolean(item.imageUrl))
+        .map((item) => ({
+          id: item.id,
+          title: item.title,
+          link: item.link,
+          description: item.description,
+          pubDate: item.pubDate,
+          imageUrl: item.imageUrl,
+          mediaUrl: item.imageUrl,
+          raw: item.raw,
+        }));
+      const total = mediaItems.length;
+      const totalPages = Math.ceil(total / limit) || 1;
+      const startIndex = (page - 1) * limit;
+      return {
+        source: mediaSource,
+        pagination: {
+          total,
+          page,
+          limit,
+          totalPages,
+        },
+        items: mediaItems.slice(startIndex, startIndex + limit),
+      };
+    }
+
+    // WordPress Media API
+    const targetUrl = mediaSource.mediaUrl || mediaSource.url.replace(/\/posts\/?$/, '/media');
+    const urlObj = new URL(targetUrl);
     urlObj.searchParams.set('page', String(page));
     urlObj.searchParams.set('per_page', String(limit));
     if (search) {
       urlObj.searchParams.set('search', search);
     }
 
-    const response = await fetch(urlObj.toString(), {
-      headers,
-      signal: controller.signal,
-      cache: "no-store",
-    });
-
+    const response = await resilientFetch(urlObj.toString(), mediaSource.site, true, controller.signal);
     clearTimeout(timeoutId);
 
     if (!response.ok) {
@@ -309,9 +465,9 @@ export async function fetchMediaContent(
       ? rawMedia.map((m: any) => {
           return {
             id: m.id,
-            title: m.title?.rendered || m.title || m.slug || 'Mídia',
+            title: cleanText(m.title?.rendered || m.title || m.slug || 'Mídia'),
             link: m.link || m.source_url || '',
-            description: m.caption?.rendered ? m.caption.rendered.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim() : m.alt_text || '',
+            description: m.caption?.rendered ? stripHtmlAndClean(m.caption.rendered) : cleanText(m.alt_text || ''),
             pubDate: m.date || m.date_gmt,
             imageUrl: m.source_url || m.guid?.rendered || undefined,
             mediaUrl: m.source_url || m.guid?.rendered || undefined,
