@@ -270,54 +270,61 @@ export async function fetchSourceContent(
         urlObj.searchParams.set('search', search);
       }
 
-      let response: Response;
+      let response: Response | undefined;
+      let primaryError: any;
       try {
         response = await resilientFetch(urlObj.toString(), source.site, true, controller.signal);
       } catch (e: any) {
-        throw e;
+        primaryError = e;
       }
 
-      // If WP-API returns 403/404 after all attempts, try falling back to RSS feed
-      if (!response.ok) {
-        if (response.status === 403 || response.status === 404 || response.status === 502) {
-          console.warn(`WP-API failed with HTTP ${response.status} for ${source.site}. Attempting fallback to RSS feed...`);
-          const feedUrl = `https://${source.site}/feed/`;
-          try {
-            const feedRes = await resilientFetch(feedUrl, source.site, false, controller.signal);
-            if (feedRes.ok) {
-              clearTimeout(timeoutId);
-              const xmlText = await feedRes.text();
-              const { feed, items: allItems } = parseRssFeed(xmlText);
-              let filtered = allItems;
-              if (search) {
-                const lower = search.toLowerCase();
-                filtered = allItems.filter(
-                  (i) => i.title.toLowerCase().includes(lower) || (i.description && i.description.toLowerCase().includes(lower))
-                );
-              }
-              const total = filtered.length;
-              const totalPages = Math.ceil(total / limit) || 1;
-              const startIndex = (page - 1) * limit;
-              return {
-                source,
-                feed,
-                pagination: { total, page, limit, totalPages },
-                items: filtered.slice(startIndex, startIndex + limit),
-              };
+      // If WP-API failed or threw an error, attempt fallback to RSS feed
+      if (primaryError || (response && !response.ok)) {
+        const errorMsg = primaryError ? (primaryError.message || primaryError) : `HTTP ${response?.status}`;
+        console.warn(`WP-API failed (${errorMsg}) for ${source.site}. Attempting fallback to RSS feed...`);
+        const feedUrl = `https://${source.site}/feed/`;
+        try {
+          const feedRes = await resilientFetch(feedUrl, source.site, false, controller.signal);
+          if (feedRes.ok) {
+            clearTimeout(timeoutId);
+            const xmlText = await feedRes.text();
+            const { feed, items: allItems } = parseRssFeed(xmlText);
+            let filtered = allItems;
+            if (search) {
+              const lower = search.toLowerCase();
+              filtered = allItems.filter(
+                (i) => i.title.toLowerCase().includes(lower) || (i.description && i.description.toLowerCase().includes(lower))
+              );
             }
-          } catch (feedErr) {
-            // ignore feed fallback error, continue to throw original status
+            const total = filtered.length;
+            const totalPages = Math.ceil(total / limit) || 1;
+            const startIndex = (page - 1) * limit;
+            return {
+              source,
+              feed,
+              pagination: { total, page, limit, totalPages },
+              items: filtered.slice(startIndex, startIndex + limit),
+            };
           }
+        } catch (feedErr) {
+          // ignore feed fallback error, continue to throw original status
         }
+        
         clearTimeout(timeoutId);
-        throw new Error(`Upstream returned HTTP ${response.status}: ${response.statusText}`);
+        if (primaryError) {
+          throw primaryError;
+        } else if (response) {
+          throw new Error(`Upstream returned HTTP ${response.status}: ${response.statusText}`);
+        }
       }
 
+      // If we reach here, we have a successful WP-API response
       clearTimeout(timeoutId);
 
-      const rawPosts = await response.json();
-      const totalHeader = response.headers.get('x-wp-total');
-      const totalPagesHeader = response.headers.get('x-wp-totalpages');
+      // We assert response is defined because we handled !response.ok above
+      const rawPosts = await response!.json();
+      const totalHeader = response!.headers.get('x-wp-total');
+      const totalPagesHeader = response!.headers.get('x-wp-totalpages');
 
       const total = totalHeader ? parseInt(totalHeader, 10) : Array.isArray(rawPosts) ? rawPosts.length : 0;
       const totalPages = totalPagesHeader ? parseInt(totalPagesHeader, 10) : Math.ceil(total / limit) || 1;
@@ -447,16 +454,68 @@ export async function fetchMediaContent(
       urlObj.searchParams.set('search', search);
     }
 
-    const response = await resilientFetch(urlObj.toString(), mediaSource.site, true, controller.signal);
-    clearTimeout(timeoutId);
-
-    if (!response.ok) {
-      throw new Error(`Upstream returned HTTP ${response.status}: ${response.statusText}`);
+    let response: Response | undefined;
+    let primaryError: any;
+    try {
+      response = await resilientFetch(urlObj.toString(), mediaSource.site, true, controller.signal);
+    } catch (e: any) {
+      primaryError = e;
     }
 
-    const rawMedia = await response.json();
-    const totalHeader = response.headers.get('x-wp-total');
-    const totalPagesHeader = response.headers.get('x-wp-totalpages');
+    if (primaryError || (response && !response.ok)) {
+      const errorMsg = primaryError ? (primaryError.message || primaryError) : `HTTP ${response?.status}`;
+      console.warn(`WP-API Media failed (${errorMsg}) for ${mediaSource.site}. Attempting fallback to RSS feed for media...`);
+      const feedUrl = `https://${mediaSource.site}/feed/`;
+      try {
+        const feedRes = await resilientFetch(feedUrl, mediaSource.site, false, controller.signal);
+        if (feedRes.ok) {
+          clearTimeout(timeoutId);
+          const xmlText = await feedRes.text();
+          const { items: allItems } = parseRssFeed(xmlText);
+          let mediaItems: ContentItem[] = allItems
+            .filter((item) => Boolean(item.imageUrl))
+            .map((item) => ({
+              id: item.id,
+              title: item.title,
+              link: item.link,
+              description: item.description,
+              pubDate: item.pubDate,
+              imageUrl: item.imageUrl,
+              mediaUrl: item.imageUrl,
+              raw: item.raw,
+            }));
+          if (search) {
+            const lowerSearch = search.toLowerCase();
+            mediaItems = mediaItems.filter(
+              (item) => item.title.toLowerCase().includes(lowerSearch) || (item.description && item.description.toLowerCase().includes(lowerSearch))
+            );
+          }
+          const total = mediaItems.length;
+          const totalPages = Math.ceil(total / limit) || 1;
+          const startIndex = (page - 1) * limit;
+          return {
+            source: mediaSource,
+            pagination: { total, page, limit, totalPages },
+            items: mediaItems.slice(startIndex, startIndex + limit),
+          };
+        }
+      } catch (feedErr) {
+        // ignore feed fallback error, continue to throw original error
+      }
+      
+      clearTimeout(timeoutId);
+      if (primaryError) {
+        throw primaryError;
+      } else if (response) {
+        throw new Error(`Upstream returned HTTP ${response.status}: ${response.statusText}`);
+      }
+    }
+
+    clearTimeout(timeoutId);
+
+    const rawMedia = await response!.json();
+    const totalHeader = response!.headers.get('x-wp-total');
+    const totalPagesHeader = response!.headers.get('x-wp-totalpages');
 
     const total = totalHeader ? parseInt(totalHeader, 10) : Array.isArray(rawMedia) ? rawMedia.length : 0;
     const totalPages = totalPagesHeader ? parseInt(totalPagesHeader, 10) : Math.ceil(total / limit) || 1;
