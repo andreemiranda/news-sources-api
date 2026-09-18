@@ -13,6 +13,20 @@ export default function DocsPage() {
   const [isMounted, setIsMounted] = useState(false);
   const rapidocRef = useRef<HTMLElement | null>(null);
 
+  const envBaseUrl = process.env.NEXT_PUBLIC_BASE_URL;
+  const [baseDomain, setBaseDomain] = useState(() => {
+    if (envBaseUrl && envBaseUrl.trim()) {
+      return envBaseUrl.trim().replace(/^https?:\/\//, '').replace(/\/.*$/, '');
+    }
+    return 'ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app';
+  });
+
+  useEffect(() => {
+    if (!envBaseUrl && typeof window !== 'undefined' && window.location.host) {
+      setBaseDomain(window.location.host);
+    }
+  }, [envBaseUrl]);
+
   useEffect(() => {
     setIsMounted(true);
     const savedKey = localStorage.getItem('news_api_key');
@@ -112,7 +126,7 @@ export default function DocsPage() {
                 News & Media Sources API
               </h1>
               <p className="text-[10px] text-blue-400 font-medium tracking-wider mt-0.5">
-                RapiDoc Documentation &middot; example.com
+                RapiDoc Documentation &middot; {baseDomain}
               </p>
             </div>
           </div>

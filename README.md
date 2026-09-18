@@ -2,6 +2,9 @@
 
 API REST para acesso centralizado a fontes de notícias brasileiras, conteúdos em tempo real (posts, matérias jornalísticas e artigos) e uploads de mídia (imagens, anexos e fotos), padronizando saídas de REST APIs WordPress (`wp-api`) e feeds XML (`rss`).
 
+> **Domínio Base Atual (`NEXT_PUBLIC_BASE_URL`):**
+> `https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app`
+
 ---
 
 ## Autenticação
@@ -37,9 +40,9 @@ Todas as fontes de dados e endpoints de mídia estão centralizados em um único
 
 ## Documentação Interativa
 
-- **Swagger UI**: Disponível na página inicial (`https://example.com/`).
-- **RapiDoc**: Disponível na rota dedicada (`https://example.com/docs`).
-- **Especificação OpenAPI 3.0.3 (JSON)**: `https://example.com/api/openapi.json`.
+- **Swagger UI**: Disponível na página inicial (`https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/`).
+- **RapiDoc**: Disponível na rota dedicada (`https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/docs`).
+- **Especificação OpenAPI 3.0.3 (JSON)**: `https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/openapi.json`.
 
 ---
 
@@ -47,15 +50,15 @@ Todas as fontes de dados e endpoints de mídia estão centralizados em um único
 
 | Método | Endpoint | Descrição |
 |---|---|---|
-| GET | `https://example.com/api/news` | Lista de fontes de notícias cadastradas (filtros: `category`, `type`, `active`) |
-| GET | `https://example.com/api/news/{id}` | Notícias em tempo real da fonte `{id}` |
-| GET | `https://example.com/api/news/category/{category}` | Fontes filtradas por categoria |
-| GET | `https://example.com/api/images` | Lista de fontes com suporte a mídia e uploads |
-| GET | `https://example.com/api/images/{id}` | Mídias e imagens em tempo real da fonte `{id}` |
-| GET | `https://example.com/api/categories` | Categorias disponíveis com total de fontes |
-| GET | `https://example.com/api/types` | Tipos suportados (`wp-api`, `rss`) com totais |
-| GET | `https://example.com/api/stats` | Estatísticas gerais da API |
-| GET | `https://example.com/api/health` | Verificação de integridade e uptime (Público, sem auth) |
+| GET | `https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/news` | Lista de fontes de notícias cadastradas (filtros: `category`, `type`, `active`) |
+| GET | `https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/news/{id}` | Notícias em tempo real da fonte `{id}` |
+| GET | `https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/news/category/{category}` | Fontes filtradas por categoria |
+| GET | `https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/images` | Lista de fontes com suporte a mídia e uploads |
+| GET | `https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/images/{id}` | Mídias e imagens em tempo real da fonte `{id}` |
+| GET | `https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/categories` | Categorias disponíveis com total de fontes |
+| GET | `https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/types` | Tipos suportados (`wp-api`, `rss`) com totais |
+| GET | `https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/stats` | Estatísticas gerais da API |
+| GET | `https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/health` | Verificação de integridade e uptime (Público, sem auth) |
 
 ---
 
@@ -69,13 +72,13 @@ Os endpoints de conteúdo retornam uma lista JSON direta com metadados nos cabe�
 
 **Buscar Notícias:**
 ```bash
-curl -i "https://example.com/api/news/383841537673882?page=1&limit=5" \
+curl -i "https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/news/383841537673882?page=1&limit=5" \
   -H "Authorization: Bearer SUA_API_KEY"
 ```
 
 **Buscar Imagens / Mídias:**
 ```bash
-curl -i "https://example.com/api/images/383841537673882?page=1&limit=5" \
+curl -i "https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/images/383841537673882?page=1&limit=5" \
   -H "Authorization: Bearer SUA_API_KEY"
 ```
 

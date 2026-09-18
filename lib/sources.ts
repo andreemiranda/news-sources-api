@@ -137,3 +137,33 @@ export function getStats() {
     types,
   };
 }
+
+export function getBaseUrl(req?: Request): string {
+  const envUrl = process.env.NEXT_PUBLIC_BASE_URL;
+  if (envUrl && envUrl.trim()) {
+    let clean = envUrl.trim().replace(/\/+$/, '');
+    if (!clean.startsWith('http://') && !clean.startsWith('https://')) {
+      clean = `https://${clean}`;
+    }
+    return clean;
+  }
+  if (req) {
+    const forwardedHost = req.headers.get('x-forwarded-host');
+    const forwardedProto = req.headers.get('x-forwarded-proto') || 'https';
+    if (forwardedHost) {
+      return `${forwardedProto}://${forwardedHost}`;
+    }
+    try {
+      const parsed = new URL(req.url);
+      return parsed.origin;
+    } catch {
+      // fallback
+    }
+  }
+  return 'https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app';
+}
+
+export function getBaseDomain(req?: Request): string {
+  const url = getBaseUrl(req);
+  return url.replace(/^https?:\/\//, '').replace(/\/.*$/, '');
+}

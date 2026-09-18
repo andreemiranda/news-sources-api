@@ -1,11 +1,13 @@
 export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getCategories, getTypes, getAllSources, getAllMediaSources } from '@/lib/sources';
+import { getCategories, getTypes, getAllSources, getAllMediaSources, getBaseUrl, getBaseDomain } from '@/lib/sources';
 
 export async function GET(req: NextRequest) {
   const categories = getCategories().map((c) => c.category);
   const types = getTypes().map((t) => t.type);
+  const baseUrl = getBaseUrl(req);
+  const baseDomain = getBaseDomain(req);
 
   const spec = {
     openapi: '3.0.3',
@@ -16,8 +18,8 @@ export async function GET(req: NextRequest) {
       version: '1.0.0',
     },
     servers: [
-      { url: 'https://example.com/api', description: 'Production Gateway (example.com)' },
-      { url: '/api', description: 'Local / Preview Server' },
+      { url: `${baseUrl}/api`, description: `Production Gateway (${baseDomain})` },
+      { url: '/api', description: 'Current Environment / Relative Gateway' },
     ],
     components: {
       securitySchemes: {
@@ -83,13 +85,13 @@ export async function GET(req: NextRequest) {
           properties: {
             id: { type: 'integer', example: 319687 },
             title: { type: 'string', example: 'Título da notícia ou mídia' },
-            link: { type: 'string', example: 'https://example.com/noticia-exemplo' },
+            link: { type: 'string', example: `${baseUrl}/noticia-exemplo` },
             description: { type: 'string', example: 'Resumo da matéria jornalística...' },
             content: { type: 'string', example: '<p>Conteúdo integral...</p>' },
             pubDate: { type: 'string', format: 'date-time', example: '2026-09-16T19:12:25Z' },
             author: { type: 'string', example: 'Redação' },
-            imageUrl: { type: 'string', example: 'https://example.com/uploads/imagem.jpg' },
-            mediaUrl: { type: 'string', example: 'https://example.com/uploads/arquivo.jpg' },
+            imageUrl: { type: 'string', example: `${baseUrl}/uploads/imagem.jpg` },
+            mediaUrl: { type: 'string', example: `${baseUrl}/uploads/arquivo.jpg` },
             raw: { type: 'object', description: 'Raw upstream payload (if raw=true is passed)' },
           },
         },
