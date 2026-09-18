@@ -1,9 +1,10 @@
 import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
+import rawSourcesData from '@/app/data/sources.json';
 
 export interface Source {
-  id: number;
+  id: number | string;
   category: string;
   site: string;
   type: string;
@@ -40,62 +41,52 @@ export function generateValidId(url: string): number {
   return parseInt(id, 10);
 }
 
-export function isValidId(id: number | string | undefined): boolean {
-  if (!id) return false;
-  const idStr = String(id);
-  if (idStr.length !== 15) return false;
-  if (idStr.includes('0')) return false;
-  if (!/^\d+$/.test(idStr)) return false;
-  return true;
+export function isValidId(id: number | string | undefined | null): boolean {
+  if (id === undefined || id === null) return false;
+  const idStr = String(id).trim();
+  return idStr.length > 0;
 }
 
 export function getSourcesData(): SourcesData {
   try {
     const filePath = path.join(process.cwd(), 'app', 'data', 'sources.json');
-    const fileContent = fs.readFileSync(filePath, 'utf8');
-    const data = JSON.parse(fileContent) as SourcesData;
-    
-    let modified = false;
-    data.sources.forEach(source => {
-      if (!isValidId(source.id)) {
-        source.id = generateValidId(source.url);
-        modified = true;
-      } else if (typeof source.id === 'string') {
-        source.id = parseInt(source.id, 10);
-        modified = true;
+    if (fs.existsSync(filePath)) {
+      const fileContent = fs.readFileSync(filePath, 'utf8');
+      const data = JSON.parse(fileContent) as SourcesData;
+      if (data && Array.isArray(data.sources)) {
+        return data;
       }
-    });
-
-    if (modified) {
-      fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf8');
     }
-    return data;
   } catch (error) {
-    console.error('Error reading sources.json', error);
-    return { sources: [] };
+    // In production/serverless environments, fallback to bundled data
   }
+  return (rawSourcesData as unknown as SourcesData) || { sources: [] };
 }
 
 export function getAllSources(): Source[] {
   return getSourcesData().sources;
 }
 
-export function getSourceById(id: number | string): Source | undefined {
-  const numericId = typeof id === 'string' ? parseInt(id, 10) : id;
-  return getAllSources().find((s) => s.id === numericId);
+export function getSourceById(id: number | string | undefined | null): Source | undefined {
+  if (id === undefined || id === null) return undefined;
+  const targetIdStr = String(id).trim();
+  return getAllSources().find((s) => String(s.id).trim() === targetIdStr);
 }
 
 export function getSourcesByCategory(category: string): Source[] {
+  if (!category) return [];
   const normalized = category.toLowerCase().trim();
   return getAllSources().filter(
-    (s) => s.category.toLowerCase() === normalized
+    (s) => (s.category || '').toLowerCase().trim() === normalized
   );
 }
 
 export function getCategories(): { category: string; count: number }[] {
   const counts = new Map<string, number>();
   for (const s of getAllSources()) {
-    counts.set(s.category, (counts.get(s.category) ?? 0) + 1);
+    if (s.category) {
+      counts.set(s.category, (counts.get(s.category) ?? 0) + 1);
+    }
   }
   return Array.from(counts.entries())
     .map(([category, count]) => ({ category, count }))
@@ -105,7 +96,9 @@ export function getCategories(): { category: string; count: number }[] {
 export function getTypes(): { type: string; count: number }[] {
   const counts = new Map<string, number>();
   for (const s of getAllSources()) {
-    counts.set(s.type, (counts.get(s.type) ?? 0) + 1);
+    if (s.type) {
+      counts.set(s.type, (counts.get(s.type) ?? 0) + 1);
+    }
   }
   return Array.from(counts.entries())
     .map(([type, count]) => ({ type, count }))
@@ -118,9 +111,13 @@ export function getAllMediaSources(): Source[] {
   );
 }
 
-export function getMediaSourceById(id: number | string): Source | undefined {
-  const numericId = typeof id === 'string' ? parseInt(id, 10) : id;
-  return getAllMediaSources().find((s) => s.id === numericId) || getSourceById(id);
+export function getMediaSourceById(id: number | string | undefined | null): Source | undefined {
+  if (id === undefined || id === null) return undefined;
+  const targetIdStr = String(id).trim();
+  return (
+    getAllMediaSources().find((s) => String(s.id).trim() === targetIdStr) ||
+    getSourceById(id)
+  );
 }
 
 export function getStats() {

@@ -16,15 +16,7 @@ export interface ContentItem {
 }
 
 export interface ContentResponse {
-  source: {
-    id: number;
-    category: string;
-    site: string;
-    type: string;
-    url: string;
-    mediaUrl?: string;
-    active: boolean;
-  };
+  source: Source;
   feed?: {
     title?: string;
     description?: string;
