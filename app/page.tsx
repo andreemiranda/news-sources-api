@@ -64,6 +64,8 @@ export default async function Home() {
               example: 'https://clebertoledo.com.br/wp-json/wp/v2/media',
             },
             active: { type: 'boolean', example: true },
+            slug: { type: 'string', example: 'clebertoledo-com-br' },
+            alt: { type: 'string', example: 'Mídias e imagens - clebertoledo.com.br' },
           },
         },
         Meta: {
@@ -86,7 +88,9 @@ export default async function Home() {
           type: 'object',
           properties: {
             id: { type: 'integer', example: 319687 },
-            title: { type: 'string', example: 'Título da notícia ou mídia' },
+            title: { type: 'string', example: 'Título da matéria jornalística' },
+            slug: { type: 'string', example: 'titulo-da-materia-jornalistica' },
+            alt: { type: 'string', example: 'Título da matéria jornalística' },
             link: { type: 'string', example: `${baseUrl}/noticia-exemplo` },
             description: { type: 'string', example: 'Resumo da matéria jornalística...' },
             content: { type: 'string', example: '<p>Conteúdo integral...</p>' },

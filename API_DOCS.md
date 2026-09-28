@@ -90,6 +90,31 @@ Os endpoints de conteúdo em tempo real retornam uma lista direta de itens (`[ .
   ```http
   GET https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/images/{id}?page=1&limit=10
   ```
+  *Também suporta passagem direta via query param:* `GET /api/images?id={id}&limit=10`
+
+#### Estrutura do JSON de Resposta (Mídias e Imagens):
+
+Cada item retornado inclui as tags **`slug`** e **`alt`** (preenchida com o título da matéria jornalística), garantindo perfeita indexação e associação semântica de **imagem / título / notícia** ao integrar com outros aplicativos (WordPress, CMS, robôs de redes sociais, geradores de cards e agregadores móveis):
+
+```json
+[
+  {
+    "id": 481920,
+    "title": "Decisão do STF estabelece novas regras para o processo legislativo",
+    "slug": "decisao-do-stf-estabelece-novas-regras-para-o-processo-legislativo",
+    "alt": "Decisão do STF estabelece novas regras para o processo legislativo",
+    "link": "https://site-origem.com.br/artigo-decisao-stf",
+    "description": "Legenda da fotografia ou resumo visual da publicação",
+    "pubDate": "2026-09-28T10:15:00.000Z",
+    "imageUrl": "https://site-origem.com.br/wp-content/uploads/2026/09/foto-plenario-stf.jpg",
+    "mediaUrl": "https://site-origem.com.br/wp-content/uploads/2026/09/foto-plenario-stf.jpg"
+  }
+]
+```
+
+- **`slug`**: Identificador amigável em formato URL derivado da matéria ou mídia.
+- **`alt`**: Texto alternativo preenchido com o título da matéria jornalística para acessibilidade e associação direta de imagem/título/notícia em integrações externas.
+- **`imageUrl` / `mediaUrl`**: Link direto da fotografia em alta resolução.
 
 ### 4.3. Metadados e Uptime
 

@@ -11,6 +11,8 @@ export interface Source {
   url: string;
   mediaUrl?: string;
   active: boolean;
+  slug?: string;
+  alt?: string;
 }
 
 export interface SourcesData {

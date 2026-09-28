@@ -4,6 +4,8 @@ import { Source } from './sources';
 export interface ContentItem {
   id?: string | number;
   title: string;
+  slug?: string;
+  alt?: string;
   link: string;
   description?: string;
   content?: string;
@@ -68,6 +70,58 @@ export function cleanText(input: string | undefined | null): string {
     .replace(/\u00A0/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
+}
+
+export function slugify(text: string | undefined | null): string {
+  if (!text) return '';
+  return text
+    .toString()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-');
+}
+
+export function isGenericMediaTitle(title: string | undefined | null): boolean {
+  if (!title) return true;
+  const clean = title.trim();
+  if (clean.length < 3) return true;
+  if (/^(m[ií]dia|imagem|foto|sem t[ií]tulo|image|photo)$/i.test(clean)) return true;
+  if (/^[0-9A-Za-z_-]{4,20}$/.test(clean) && (/\d/.test(clean) || /^[A-Z0-9_]+$/.test(clean))) return true;
+  if (/^(img|dsc|whatsapp|screenshot|foto|imagem|banner|capa)[-_0-9]/i.test(clean)) return true;
+  if (/\.(jpg|jpeg|png|webp|gif|svg)$/i.test(clean)) return true;
+  return false;
+}
+
+export function extractPostContextFromLink(link: string | undefined): { postSlug?: string; postTitle?: string } {
+  if (!link) return {};
+  try {
+    const url = new URL(link);
+    const pathname = url.pathname.replace(/\/+$/, '');
+    const attachMatch = pathname.match(/(?:^|\/)([^/]+)\/attachment(?:\/|$)/i);
+    let rawSlug = attachMatch ? attachMatch[1] : '';
+
+    if (!rawSlug && !pathname.includes('/wp-content/') && !pathname.includes('/attachment/')) {
+      const parts = pathname.split('/').filter(Boolean);
+      if (parts.length > 0) {
+        rawSlug = parts[parts.length - 1];
+      }
+    }
+
+    if (rawSlug && rawSlug.length > 3 && rawSlug.includes('-')) {
+      const words = rawSlug.split('-').filter(Boolean);
+      if (words.length >= 2) {
+        const postTitle = words
+          .map((w, idx) => (idx === 0 ? w.charAt(0).toUpperCase() + w.slice(1) : w))
+          .join(' ');
+        return { postSlug: rawSlug, postTitle };
+      }
+    }
+  } catch (e) {}
+  return {};
 }
 
 function stripHtmlAndClean(html: string | undefined | null): string {
@@ -142,9 +196,14 @@ export function parseRssFeed(xml: string): { feed: any; items: ContentItem[] } {
       }
     }
 
+    const itemTitle = title || 'Sem título';
+    const itemSlug = slugify(itemTitle);
+
     return {
       id: guid,
-      title: title || 'Sem título',
+      title: itemTitle,
+      slug: itemSlug,
+      alt: itemTitle,
       link,
       description: stripHtmlAndClean(description),
       content,
@@ -328,9 +387,13 @@ export async function fetchSourceContent(
       const items: ContentItem[] = Array.isArray(rawPosts)
         ? rawPosts.map((post: any) => {
             const featuredMedia = post._embedded?.['wp:featuredmedia']?.[0]?.source_url;
+            const title = cleanText(post.title?.rendered || post.title || 'Sem título');
+            const slug = post.slug ? String(post.slug).trim() : slugify(title);
             return {
               id: post.id,
-              title: cleanText(post.title?.rendered || post.title || 'Sem título'),
+              title,
+              slug,
+              alt: title,
               link: post.link || '',
               description: stripHtmlAndClean(post.excerpt?.rendered),
               content: post.content?.rendered || '',
@@ -419,6 +482,8 @@ export async function fetchMediaContent(
         .map((item) => ({
           id: item.id,
           title: item.title,
+          slug: item.slug || slugify(item.title),
+          alt: item.title,
           link: item.link,
           description: item.description,
           pubDate: item.pubDate,
@@ -477,6 +542,8 @@ export async function fetchMediaContent(
             .map((item) => ({
               id: item.id,
               title: item.title,
+              slug: item.slug || slugify(item.title),
+              alt: item.title,
               link: item.link,
               description: item.description,
               pubDate: item.pubDate,
@@ -522,10 +589,31 @@ export async function fetchMediaContent(
 
     const items: ContentItem[] = Array.isArray(rawMedia)
       ? rawMedia.map((m: any) => {
+          const rawTitle = cleanText(m.title?.rendered || m.title || '');
+          const link = m.link || m.source_url || '';
+          const { postSlug, postTitle } = extractPostContextFromLink(link);
+
+          let finalTitle = rawTitle;
+          if (isGenericMediaTitle(rawTitle) && postTitle) {
+            finalTitle = postTitle;
+          } else if (!finalTitle) {
+            finalTitle = postTitle || cleanText(m.slug || 'Mídia');
+          }
+
+          const rawSlug = m.slug ? String(m.slug).trim() : '';
+          const slug = (postSlug && (!rawSlug || isGenericMediaTitle(rawSlug)))
+            ? postSlug
+            : (rawSlug || postSlug || slugify(finalTitle));
+
+          // tag alt com o título da matéria/notícia para associação imagem/título/notícia
+          const alt = finalTitle;
+
           return {
             id: m.id,
-            title: cleanText(m.title?.rendered || m.title || m.slug || 'Mídia'),
-            link: m.link || m.source_url || '',
+            title: finalTitle,
+            slug,
+            alt,
+            link,
             description: m.caption?.rendered ? stripHtmlAndClean(m.caption.rendered) : cleanText(m.alt_text || ''),
             pubDate: m.date || m.date_gmt,
             imageUrl: m.source_url || m.guid?.rendered || undefined,
