@@ -94,27 +94,27 @@ Os endpoints de conteúdo em tempo real retornam uma lista direta de itens (`[ .
 
 #### Estrutura do JSON de Resposta (Mídias e Imagens):
 
-Cada item retornado inclui as tags **`slug`** e **`alt`** (preenchida com o título da matéria jornalística), garantindo perfeita indexação e associação semântica de **imagem / título / notícia** ao integrar com outros aplicativos (WordPress, CMS, robôs de redes sociais, geradores de cards e agregadores móveis):
+Cada item retornado inclui as tags **`slug`** (contendo o slug exato da notícia) e **`alt`** (preenchida com o título integral da notícia), garantindo perfeita indexação e associação semântica de **título / imagem / notícia** ao integrar com outros aplicativos (WordPress, CMS, robôs de redes sociais, geradores de cards e agregadores móveis):
 
 ```json
 [
   {
-    "id": 481920,
-    "title": "Decisão do STF estabelece novas regras para o processo legislativo",
-    "slug": "decisao-do-stf-estabelece-novas-regras-para-o-processo-legislativo",
-    "alt": "Decisão do STF estabelece novas regras para o processo legislativo",
-    "link": "https://site-origem.com.br/artigo-decisao-stf",
-    "description": "Legenda da fotografia ou resumo visual da publicação",
-    "pubDate": "2026-09-28T10:15:00.000Z",
-    "imageUrl": "https://site-origem.com.br/wp-content/uploads/2026/09/foto-plenario-stf.jpg",
-    "mediaUrl": "https://site-origem.com.br/wp-content/uploads/2026/09/foto-plenario-stf.jpg"
+    "id": 3865522,
+    "title": "Quais os clubes mais prejudicados com a mudança da regra de estrangeiros no Brasileirão",
+    "slug": "quais-os-clubes-mais-prejudicados-com-a-mudanca-da-regra-de-estrangeiros-no-brasileirao",
+    "alt": "Quais os clubes mais prejudicados com a mudança da regra de estrangeiros no Brasileirão",
+    "link": "https://www.gazetaesportiva.com/times/quais-os-clubes-mais-prejudicados-com-a-mudanca-da-regra-de-estrangeiros-no-brasileirao/",
+    "description": "Análise sobre o impacto da nova quantidade permitida de jogadores estrangeiros nos elencos da Série A...",
+    "pubDate": "2026-10-02T19:30:00.000Z",
+    "imageUrl": "https://static.gazetaesportiva.com/uploads/2026/10/foto-elencos-brasileirao.webp",
+    "mediaUrl": "https://static.gazetaesportiva.com/uploads/2026/10/foto-elencos-brasileirao.webp"
   }
 ]
 ```
 
-- **`slug`**: Identificador amigável em formato URL derivado da matéria ou mídia.
-- **`alt`**: Texto alternativo preenchido com o título da matéria jornalística para acessibilidade e associação direta de imagem/título/notícia em integrações externas.
-- **`imageUrl` / `mediaUrl`**: Link direto da fotografia em alta resolução.
+- **`slug`**: O slug oficial da notícia no portal (ex.: `quais-os-clubes-mais-prejudicados-com-a-mudanca-da-regra-de-estrangeiros-no-brasileirao`), nunca o slug técnico do arquivo de imagem.
+- **`alt`**: O título integral da matéria jornalística (ex.: `Quais os clubes mais prejudicados com a mudança da regra de estrangeiros no Brasileirão`) para facilitar a associação automática de título/imagem em integrações com outros apps.
+- **`imageUrl` / `mediaUrl`**: Link direto da fotografia destacada em alta resolução associada à notícia.
 
 ### 4.3. Metadados e Uptime
 

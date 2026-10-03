@@ -16,6 +16,14 @@ const nextConfig = {
         destination: '/api/news/:path*',
       },
       {
+        source: '/images',
+        destination: '/api/images',
+      },
+      {
+        source: '/images/:path*',
+        destination: '/api/images/:path*',
+      },
+      {
         source: '/categories',
         destination: '/api/categories',
       },

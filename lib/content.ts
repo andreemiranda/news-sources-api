@@ -506,11 +506,16 @@ export async function fetchMediaContent(
       };
     }
 
-    // WordPress Media API
-    const targetUrl = mediaSource.mediaUrl || mediaSource.url.replace(/\/posts\/?$/, '/media');
+    // For WordPress sources, fetch posts with embedded featured media so that:
+    // - slug is the slug of the news article (ex: 'quais-os-clubes-mais-prejudicados-com-a-mudanca-da-regra-de-estrangeiros-no-brasileirao')
+    // - alt is the title of the news article (ex: 'Quais os clubes mais prejudicados com a mudança da regra de estrangeiros no Brasileirão')
+    // - title is the title of the news article
+    // - imageUrl is the featured image of that news article
+    const targetUrl = mediaSource.url.replace(/\/media\/?$/, '/posts');
     const urlObj = new URL(targetUrl);
     urlObj.searchParams.set('page', String(page));
     urlObj.searchParams.set('per_page', String(limit));
+    urlObj.searchParams.set('_embed', 'wp:featuredmedia');
     if (search) {
       urlObj.searchParams.set('search', search);
     }
@@ -525,7 +530,7 @@ export async function fetchMediaContent(
 
     if (primaryError || (response && !response.ok)) {
       const errorMsg = primaryError ? (primaryError.message || primaryError) : `HTTP ${response?.status}`;
-      console.warn(`WP-API Media failed (${errorMsg}) for ${mediaSource.site}. Attempting fallback to RSS feed for media...`);
+      console.warn(`WP-API Posts for media failed (${errorMsg}) for ${mediaSource.site}. Attempting fallback to RSS feed for media...`);
       const feedUrl = urlObj.origin + '/feed/';
       try {
         let feedRes = await resilientFetch(feedUrl, mediaSource.site, false, controller.signal);
@@ -543,7 +548,7 @@ export async function fetchMediaContent(
               id: item.id,
               title: item.title,
               slug: item.slug || slugify(item.title),
-              alt: item.title,
+              alt: item.title, // alt com o título da notícia
               link: item.link,
               description: item.description,
               pubDate: item.pubDate,
@@ -580,57 +585,48 @@ export async function fetchMediaContent(
 
     clearTimeout(timeoutId);
 
-    const rawMedia = await response!.json();
+    const rawPosts = await response!.json();
     const totalHeader = response!.headers.get('x-wp-total');
     const totalPagesHeader = response!.headers.get('x-wp-totalpages');
 
-    const total = totalHeader ? parseInt(totalHeader, 10) : Array.isArray(rawMedia) ? rawMedia.length : 0;
+    const total = totalHeader ? parseInt(totalHeader, 10) : Array.isArray(rawPosts) ? rawPosts.length : 0;
     const totalPages = totalPagesHeader ? parseInt(totalPagesHeader, 10) : Math.ceil(total / limit) || 1;
 
-    const items: ContentItem[] = Array.isArray(rawMedia)
-      ? rawMedia.map((m: any) => {
-          const rawTitle = cleanText(m.title?.rendered || m.title || '');
-          const link = m.link || m.source_url || '';
-          const { postSlug, postTitle } = extractPostContextFromLink(link);
+    const items: ContentItem[] = Array.isArray(rawPosts)
+      ? rawPosts
+          .map((post: any) => {
+            const newsTitle = cleanText(post.title?.rendered || post.title || 'Sem título');
+            const newsSlug = post.slug ? String(post.slug).trim() : slugify(newsTitle);
+            const featuredMedia = post._embedded?.['wp:featuredmedia']?.[0];
+            let imageUrl = featuredMedia?.source_url || post.jetpack_featured_media_url || post.featured_media_src_url;
 
-          let finalTitle = rawTitle;
-          if (isGenericMediaTitle(rawTitle) && postTitle) {
-            finalTitle = postTitle;
-          } else if (!finalTitle) {
-            finalTitle = postTitle || cleanText(m.slug || 'Mídia');
-          }
+            if (!imageUrl && post.content?.rendered) {
+              const match = post.content.rendered.match(/<img[^>]+src=["']([^"']+)["']/i);
+              if (match) imageUrl = match[1];
+            }
+            if (!imageUrl && post.excerpt?.rendered) {
+              const match = post.excerpt.rendered.match(/<img[^>]+src=["']([^"']+)["']/i);
+              if (match) imageUrl = match[1];
+            }
 
-          const rawSlug = m.slug ? String(m.slug).trim() : '';
-          const slug = (postSlug && (!rawSlug || isGenericMediaTitle(rawSlug)))
-            ? postSlug
-            : (rawSlug || postSlug || slugify(finalTitle));
-
-          // tag alt com o título da matéria/notícia para associação imagem/título/notícia
-          const alt = finalTitle;
-
-          return {
-            id: m.id,
-            title: finalTitle,
-            slug,
-            alt,
-            link,
-            description: m.caption?.rendered ? stripHtmlAndClean(m.caption.rendered) : cleanText(m.alt_text || ''),
-            pubDate: m.date || m.date_gmt,
-            imageUrl: m.source_url || m.guid?.rendered || undefined,
-            mediaUrl: m.source_url || m.guid?.rendered || undefined,
-            raw: options.raw ? m : {
-              mime_type: m.mime_type,
-              media_type: m.media_type,
-              alt_text: m.alt_text,
-              media_details: m.media_details ? {
-                width: m.media_details.width,
-                height: m.media_details.height,
-                file: m.media_details.file,
-                sizes: m.media_details.sizes,
-              } : undefined,
-            },
-          };
-        })
+            return {
+              id: post.id,
+              title: newsTitle,
+              slug: newsSlug, // slug da notícia
+              alt: newsTitle, // alt com o título da notícia
+              link: post.link || '',
+              description: stripHtmlAndClean(post.excerpt?.rendered || featuredMedia?.caption?.rendered || ''),
+              pubDate: post.date || post.date_gmt,
+              imageUrl: imageUrl || undefined,
+              mediaUrl: imageUrl || undefined,
+              raw: options.raw ? post : (featuredMedia ? {
+                media_details: featuredMedia.media_details,
+                mime_type: featuredMedia.mime_type,
+                alt_text: featuredMedia.alt_text,
+              } : undefined),
+            };
+          })
+          .filter((item) => Boolean(item.imageUrl))
       : [];
 
     return {
