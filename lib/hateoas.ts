@@ -51,7 +51,6 @@ export interface CleanSourceDto {
   category: string;
   type: string;
   active: boolean;
-  alt: string;
   _links: {
     self: IHateoasLink;
     news: IHateoasLink;
@@ -61,14 +60,12 @@ export interface CleanSourceDto {
 
 export function toCleanSource(source: Source, baseUrl: string): CleanSourceDto {
   const numericId = typeof source.id === 'number' ? source.id : parseInt(String(source.id), 10);
-  const alt = source.alt || `Conteúdo e imagens - ${source.site}`;
 
   return {
     id: numericId,
     category: source.category || '',
     type: source.type || 'wp-api',
     active: Boolean(source.active),
-    alt,
     _links: {
       self: { href: `${baseUrl}/api/news/${numericId}` },
       news: { href: `${baseUrl}/api/news/${numericId}` },

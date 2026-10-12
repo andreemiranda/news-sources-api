@@ -20,6 +20,8 @@ Todas as fontes e endpoints de conteúdo estão centralizados exclusivamente no 
   - Imagens: `GET https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/images/6571187291942`
 - **Isolamento de Backend e Limpeza de Tags:**
   - As tags internas de backend (`site`, `url`, `mediaUrl`, `link`) são restritas ao backend e não são expostas nos endpoints públicos.
+  - As tags `slug` e `alt` não são incluídas nos endpoints iniciais de listagem de fontes (`/api/images` e `/api/news`), mantendo a estrutura inicial limpa e sem tags redundantes.
+  - As tags `slug` e `alt` estão presentes exclusivamente onde são de fato necessárias: nos endpoints onde consta cada notícia ou imagem (`/api/news/{id}` e `/api/images/{id}`), identificando com exatidão o slug da matéria e o alt text da fotografia/ilustração destacada.
   - Os endpoints expõem apenas a notícia com conteúdo limpo e a URL direta da imagem (`imageUrl`) para incorporação imediata.
 - **Deduplicação de Imagens:**
   - Cada notícia possui sua própria imagem única advinda da API; repetições da mesma imagem no mesmo endpoint são automaticamente eliminadas.

@@ -51,7 +51,6 @@ export async function GET(req: NextRequest) {
             category: { type: 'string', example: 'Tocantins' },
             type: { type: 'string', example: 'wp-api', enum: types },
             active: { type: 'boolean', example: true },
-            alt: { type: 'string', example: 'Conteúdo e imagens - clebertoledo.com.br' },
             _links: {
               type: 'object',
               properties: {

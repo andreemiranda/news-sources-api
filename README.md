@@ -60,6 +60,8 @@ Todas as fontes de dados e endpoints de mídia estão centralizados em um único
 | GET | `https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/stats` | Estatísticas gerais da API |
 | GET | `https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/health` | Verificação de integridade e uptime (Público, sem auth) |
 
+> **Nota sobre campos `alt` e `slug`:** As tags `alt` e `slug` foram removidas das listagens iniciais de fontes (`/api/images` e `/api/news`) e estão presentes apenas nos endpoints onde consta cada notícia ou mídia (`/api/news/{id}` e `/api/images/{id}`), identificando o texto alternativo e slug diretamente associados a cada notícia/imagem.
+
 ---
 
 ## Paginação e Formulação de URLs

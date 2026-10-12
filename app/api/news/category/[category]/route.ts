@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { getSourcesByCategory } from '@/lib/sources';
 import { validateApiKey, unauthorizedResponse, paginate } from '@/lib/auth';
+import { toCleanSource } from '@/lib/hateoas';
 
 export async function GET(
   req: NextRequest,
@@ -25,12 +26,7 @@ export async function GET(
   const forwardedProto = req.headers.get('x-forwarded-proto') || 'https';
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || (forwardedHost ? `${forwardedProto}://${forwardedHost}` : req.nextUrl.origin);
 
-  const mappedSources = sources.map((s) => ({
-    ...s,
-    _links: {
-      self: { href: `${baseUrl}/api/news/${s.id}` }
-    }
-  }));
+  const mappedSources = sources.map((s) => toCleanSource(s, baseUrl));
 
   const result = paginate(mappedSources, page, limit);
 
