@@ -13,10 +13,21 @@ Esta documentação técnica descreve a arquitetura unificada, os endpoints, mod
 Todas as fontes e endpoints de conteúdo estão centralizados exclusivamente no arquivo `app/data/sources.json`. O arquivo anterior `media.json` foi eliminado, eliminando duplicações e unificando os identificadores.
 
 ### Características da Arquitetura:
-- **Identificador Único (ID de 15 dígitos):** O mesmo ID de fonte identifica tanto o endpoint de notícias quanto o endpoint de imagens/mídias.
-  - Exemplo: Portal `clebertoledo.com.br` possui o ID unificado `383841537673882`.
-  - Notícias: `GET https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/news/383841537673882`
-  - Imagens: `GET https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/images/383841537673882`
+- **Identificador Único (ID de 13 dígitos sem o número 0):** O mesmo ID de fonte identifica tanto o endpoint de notícias quanto o endpoint de imagens/mídias.
+  - Formato estrito: exatamente 13 dígitos numéricos contendo apenas números de 1 a 9 (sem o zero).
+  - Exemplo: Portal `clebertoledo.com.br` possui o ID unificado `6571187291942`.
+  - Notícias: `GET https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/news/6571187291942`
+  - Imagens: `GET https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/images/6571187291942`
+- **Isolamento de Backend e Limpeza de Tags:**
+  - As tags internas de backend (`site`, `url`, `mediaUrl`, `link`) são restritas ao backend e não são expostas nos endpoints públicos.
+  - Os endpoints expõem apenas a notícia com conteúdo limpo e a URL direta da imagem (`imageUrl`) para incorporação imediata.
+- **Deduplicação de Imagens:**
+  - Cada notícia possui sua própria imagem única advinda da API; repetições da mesma imagem no mesmo endpoint são automaticamente eliminadas.
+- **HATEOAS & Paginação Avançada:**
+  - Respostas formatadas de acordo com as especificações do Spring HATEOAS (`_links`, `_embedded`, `page`) e `nestjs-typeorm-paginate` (`items`, `meta`, `links`).
+  - Cabeçalhos de compatibilidade `X-WP-Total` e `X-WP-TotalPages` mantidos.
+- **Revisão e Limpeza com IA (Pollinations):**
+  - Notícias oriundas de feeds RSS/XML passam por sanitização prévia e revisão via IA Pollinations (ou endpoint privado configurado), eliminando emojis, selos de verificação, pedidos de WhatsApp e frases curtas isoladas.
 - **Atualização Automática:** Ao adicionar, modificar ou desativar qualquer fonte no arquivo `app/data/sources.json`, toda a API, documentação Swagger UI e RapiDoc (`/docs`) atualizam seus endpoints dinamicamente sem necessidade de recodificação.
 
 ---
@@ -60,6 +71,37 @@ Os endpoints de conteúdo em tempo real retornam uma lista direta de itens (`[ .
 | `search` | string | - | Termo de busca para filtrar notícias ou fotos |
 | `raw` | boolean | `false` | Se `true`, inclui o payload bruto original do portal no campo `raw` |
 | `meta` | boolean | `false` | Se `true`, retorna apenas o registro cadastral da fonte (sem consultar a rede) |
+
+### 3.1. Como Formular as URLs de Paginação
+
+A URL correta deve utilizar o caractere `&` para separar os parâmetros da query string (em vez de um segundo `?`):
+
+```text
+https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/images/1216294345584?page=1&api_key=<key>
+```
+
+**Exemplo com chave preenchida:**
+```text
+https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/images/1216294345584?page=1&api_key=bn_88feb5baa3f84955677e8c11453aae352811b9fe6c3398cd
+```
+
+#### Alternativas recomendadas via Headers (URL limpa):
+Para maior segurança e evitar expor a chave de API no histórico do navegador ou em logs de requisição, você pode manter a URL sem o parâmetro e enviar a chave no cabeçalho:
+
+**URL:**
+```text
+https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/images/1216294345584?page=1
+```
+
+**Header (Opção 1 - Bearer):**
+```http
+Authorization: Bearer <key>
+```
+
+**Header (Opção 2 - Customizado):**
+```http
+x-api-key: <key>
+```
 
 ---
 

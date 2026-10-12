@@ -1,20 +1,19 @@
 import he from 'he';
-import { Source } from './sources';
+import { Source, generate6DigitId } from './sources';
+import { processarEConfigurarNoticia, preCleanText } from './ai-cleaner';
 
 export interface ContentItem {
-  id?: string | number;
+  id: number;
   title: string;
-  slug?: string;
-  alt?: string;
-  link: string;
+  slug: string;
+  alt: string;
   description?: string;
   content?: string;
   pubDate?: string;
   author?: string;
   categories?: string[];
   imageUrl?: string;
-  mediaUrl?: string;
-  raw?: any;
+  _links?: Record<string, { href: string | null }>;
 }
 
 export interface ContentResponse {
@@ -22,7 +21,6 @@ export interface ContentResponse {
   feed?: {
     title?: string;
     description?: string;
-    link?: string;
     language?: string;
     lastBuildDate?: string;
   };
@@ -124,6 +122,23 @@ export function extractPostContextFromLink(link: string | undefined): { postSlug
   return {};
 }
 
+export function stripHtmlToParagraphs(html: string | undefined | null): string {
+  if (!html) return '';
+  let clean = html.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
+  clean = clean.replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '');
+  clean = clean.replace(/<\/(p|div|h[1-6]|li|blockquote|tr|article|section)>/gi, '\n\n');
+  clean = clean.replace(/<br\s*\/?>/gi, '\n');
+  clean = clean.replace(/<[^>]+>/g, ' ');
+  try {
+    clean = he.decode(clean);
+  } catch (e) {}
+  const paragraphs = clean
+    .split(/\n+/)
+    .map((p) => cleanText(p))
+    .filter((p) => p.length > 0);
+  return paragraphs.join('\n\n');
+}
+
 function stripHtmlAndClean(html: string | undefined | null): string {
   if (!html) return '';
   const textWithoutTags = html.replace(/<[^>]+>/g, ' ');
@@ -153,11 +168,36 @@ function extractAttribute(xml: string, tagName: string, attrName: string): strin
   return match ? match[1] : '';
 }
 
+/**
+ * Deduplica URLs de imagens entre as notícias do lote para garantir que cada notícia
+ * possua sua imagem única proveniente da API, eliminando repetições.
+ */
+export function deduplicateImages(items: ContentItem[]): ContentItem[] {
+  const seenImages = new Set<string>();
+  return items.map((item) => {
+    if (!item.imageUrl) return item;
+    const normalizedUrl = item.imageUrl.trim().toLowerCase();
+    if (seenImages.has(normalizedUrl)) {
+      // Já utilizada por outra matéria neste mesmo endpoint: remove repetição
+      return {
+        ...item,
+        imageUrl: undefined,
+      };
+    }
+    seenImages.add(normalizedUrl);
+    return item;
+  });
+}
+
 export function parseRssFeed(xml: string): { feed: any; items: ContentItem[] } {
+  let feedTitle = extractTagValue(xml, 'title');
+  if (feedTitle && feedTitle.trim().toLowerCase() === 'g1') {
+    feedTitle = '';
+  }
+
   const feed: any = {
-    title: extractTagValue(xml, 'title'),
+    title: feedTitle,
     description: extractTagValue(xml, 'description'),
-    link: extractTagValue(xml, 'link'),
     language: extractTagValue(xml, 'language'),
     lastBuildDate: extractTagValue(xml, 'lastBuildDate') || extractTagValue(xml, 'pubDate'),
   };
@@ -169,18 +209,23 @@ export function parseRssFeed(xml: string): { feed: any; items: ContentItem[] } {
     const description = extractTagValue(block, 'description');
     const content = extractTagValue(block, 'content:encoded') || description;
     const pubDate = extractTagValue(block, 'pubDate');
-    const author = extractTagValue(block, 'author') || extractTagValue(block, 'dc:creator');
+    let author = extractTagValue(block, 'author') || extractTagValue(block, 'dc:creator');
+    if (author && /^(por\s+)?g1$/i.test(author.trim())) {
+      author = '';
+    }
     const guid = extractTagValue(block, 'guid') || String(index + 1);
 
     const catMatches = block.match(/<category[^>]*>([\s\S]*?)<\/category>/gi) || [];
-    const categories = catMatches.map((c) =>
-      cleanText(
-        c
-          .replace(/<category[^>]*>/i, '')
-          .replace(/<\/category>/i, '')
-          .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/gi, '$1')
+    const categories = catMatches
+      .map((c) =>
+        cleanText(
+          c
+            .replace(/<category[^>]*>/i, '')
+            .replace(/<\/category>/i, '')
+            .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/gi, '$1')
+        )
       )
-    ).filter(Boolean);
+      .filter((c) => Boolean(c) && c.trim().toLowerCase() !== 'g1');
 
     let imageUrl = extractAttribute(block, 'enclosure', 'url');
     if (!imageUrl) {
@@ -199,19 +244,24 @@ export function parseRssFeed(xml: string): { feed: any; items: ContentItem[] } {
     const itemTitle = title || 'Sem título';
     const itemSlug = slugify(itemTitle);
 
+    // ID numérico de 6 dígitos sem 0 conforme especificação
+    const numericId = generate6DigitId(guid || link || itemTitle || String(index + 1));
+
+    const cleanDesc = stripHtmlToParagraphs(description);
+    const cleanContent = stripHtmlToParagraphs(content);
+    const completeText = cleanContent && cleanContent.length > cleanDesc.length ? cleanContent : (cleanDesc || cleanContent || '');
+
     return {
-      id: guid,
+      id: numericId,
       title: itemTitle,
       slug: itemSlug,
       alt: itemTitle,
-      link,
-      description: stripHtmlAndClean(description),
-      content,
+      description: completeText,
+      content: completeText,
       pubDate,
       author: author || undefined,
       categories: categories.length > 0 ? categories : undefined,
       imageUrl: imageUrl || undefined,
-      mediaUrl: imageUrl || undefined,
     };
   });
 
@@ -229,9 +279,9 @@ async function resilientFetch(
 ): Promise<Response> {
   const refererUrl = site.startsWith('http') ? site : `https://${site}/`;
 
-  // Tier 1: Modern Chrome 131 Desktop headers with legitimate client hints
   const standardHeaders: Record<string, string> = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+    'User-Agent':
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
     'Accept': isJson ? 'application/json, text/plain, */*' : 'application/rss+xml, application/xml, text/xml, */*',
     'Accept-Language': 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7',
     'Referer': refererUrl,
@@ -251,7 +301,6 @@ async function resilientFetch(
       return res;
     }
 
-    // If 403 Forbidden or 401 Unauthorized or 503, proceed to Tier 2
     if (res.status === 403 || res.status === 401 || res.status === 503) {
       console.warn(`Upstream returned HTTP ${res.status} for ${url}. Attempting crawler bypass...`);
     } else {
@@ -261,8 +310,7 @@ async function resilientFetch(
     console.warn(`Primary fetch failed for ${url}:`, err);
   }
 
-  // Tier 2: Googlebot News Crawler / Verified Web crawler headers
-  // Almost all WordPress firewalls (Cloudflare, Wordfence, Sucuri, iThemes) whitelist Googlebot
+  // Tier 2: Googlebot News Crawler
   const crawlerHeaders: Record<string, string> = {
     'User-Agent': 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
     'Accept': isJson ? 'application/json, */*' : 'application/rss+xml, application/xml, text/xml, */*',
@@ -281,7 +329,7 @@ async function resilientFetch(
       return res2;
     }
 
-    // Tier 3: Facebook External Hit / Social preview crawler
+    // Tier 3: Facebook External Hit
     if (res2.status === 403 || res2.status === 401 || res2.status === 503) {
       const res3 = await fetch(url, {
         headers: {
@@ -317,6 +365,7 @@ export async function fetchSourceContent(
       const urlObj = new URL(source.url);
       urlObj.searchParams.set('page', String(page));
       urlObj.searchParams.set('per_page', String(limit));
+      urlObj.searchParams.set('_embed', 'wp:featuredmedia');
       if (search) {
         urlObj.searchParams.set('search', search);
       }
@@ -337,7 +386,6 @@ export async function fetchSourceContent(
         try {
           let feedRes = await resilientFetch(feedUrl, source.site, false, controller.signal);
           if (!feedRes.ok) {
-            // Fallback: simple fetch if resilientFetch is blocked
             feedRes = await fetch(feedUrl, { signal: controller.signal });
           }
           if (feedRes.ok) {
@@ -354,17 +402,38 @@ export async function fetchSourceContent(
             const total = filtered.length;
             const totalPages = Math.ceil(total / limit) || 1;
             const startIndex = (page - 1) * limit;
+            const rawSlice = filtered.slice(startIndex, startIndex + limit);
+
+            // Limpeza com IA para itens de feed RSS
+            const cleanedSlice = await Promise.all(
+              rawSlice.map(async (item) => {
+                let cleanContent = item.content || item.description || '';
+                try {
+                  cleanContent = await processarEConfigurarNoticia(cleanContent);
+                } catch {
+                  cleanContent = preCleanText(cleanContent);
+                }
+                return {
+                  ...item,
+                  description: preCleanText(item.description || ''),
+                  content: cleanContent,
+                };
+              })
+            );
+
+            const dedupedItems = deduplicateImages(cleanedSlice);
+
             return {
               source,
               feed,
               pagination: { total, page, limit, totalPages },
-              items: filtered.slice(startIndex, startIndex + limit),
+              items: dedupedItems,
             };
           }
         } catch (feedErr) {
           // ignore feed fallback error, continue to throw original status
         }
-        
+
         clearTimeout(timeoutId);
         if (primaryError) {
           throw primaryError;
@@ -373,10 +442,8 @@ export async function fetchSourceContent(
         }
       }
 
-      // If we reach here, we have a successful WP-API response
       clearTimeout(timeoutId);
 
-      // We assert response is defined because we handled !response.ok above
       const rawPosts = await response!.json();
       const totalHeader = response!.headers.get('x-wp-total');
       const totalPagesHeader = response!.headers.get('x-wp-totalpages');
@@ -389,22 +456,41 @@ export async function fetchSourceContent(
             const featuredMedia = post._embedded?.['wp:featuredmedia']?.[0]?.source_url;
             const title = cleanText(post.title?.rendered || post.title || 'Sem título');
             const slug = post.slug ? String(post.slug).trim() : slugify(title);
+
+            let img = post.jetpack_featured_media_url || featuredMedia;
+            if (!img && post.content?.rendered) {
+              const m = post.content.rendered.match(/<img[^>]+src=["']([^"']+)["']/i);
+              if (m) img = m[1];
+            }
+            if (!img && post.excerpt?.rendered) {
+              const m = post.excerpt.rendered.match(/<img[^>]+src=["']([^"']+)["']/i);
+              if (m) img = m[1];
+            }
+
+            const rawId = typeof post.id === 'number' ? post.id : parseInt(String(post.id), 10);
+            const numericId = !isNaN(rawId) && rawId > 0 ? rawId : generate6DigitId(slug || title);
+
+            const fullContentText = stripHtmlToParagraphs(post.content?.rendered);
+            const excerptText = stripHtmlToParagraphs(post.excerpt?.rendered);
+            const completeText = fullContentText && fullContentText.length > 50
+              ? fullContentText
+              : (excerptText || fullContentText || '');
+
             return {
-              id: post.id,
+              id: numericId,
               title,
               slug,
               alt: title,
-              link: post.link || '',
-              description: stripHtmlAndClean(post.excerpt?.rendered),
-              content: post.content?.rendered || '',
+              description: completeText,
+              content: completeText,
               pubDate: post.date || post.date_gmt,
               author: post.author ? String(post.author) : undefined,
-              imageUrl: post.jetpack_featured_media_url || featuredMedia || undefined,
-              mediaUrl: post.jetpack_featured_media_url || featuredMedia || undefined,
-              raw: options.raw ? post : undefined,
+              imageUrl: img || undefined,
             };
           })
         : [];
+
+      const dedupedItems = deduplicateImages(items);
 
       return {
         source,
@@ -414,7 +500,7 @@ export async function fetchSourceContent(
           limit,
           totalPages,
         },
-        items,
+        items: dedupedItems,
       };
     } else {
       // RSS Feed source
@@ -443,6 +529,25 @@ export async function fetchSourceContent(
       const startIndex = (page - 1) * limit;
       const paginatedItems = filteredItems.slice(startIndex, startIndex + limit);
 
+      // Processar e limpar notícias de feed RSS com a IA (Pollinations / privada)
+      const itemsWithAiClean = await Promise.all(
+        paginatedItems.map(async (item) => {
+          let cleanContent = item.content || item.description || '';
+          try {
+            cleanContent = await processarEConfigurarNoticia(cleanContent);
+          } catch {
+            cleanContent = preCleanText(cleanContent);
+          }
+          return {
+            ...item,
+            description: preCleanText(item.description || ''),
+            content: cleanContent,
+          };
+        })
+      );
+
+      const dedupedItems = deduplicateImages(itemsWithAiClean);
+
       return {
         source,
         feed,
@@ -452,7 +557,7 @@ export async function fetchSourceContent(
           limit,
           totalPages,
         },
-        items: paginatedItems,
+        items: dedupedItems,
       };
     }
   } catch (err: any) {
@@ -473,27 +578,36 @@ export async function fetchMediaContent(
   const timeoutId = setTimeout(() => controller.abort(), 14000);
 
   try {
-    // If it's an RSS feed, we can fetch items and return items with media/images
     if (mediaSource.type === 'rss') {
-      const feedData = await fetchSourceContent(mediaSource, { page: 1, limit: 100, search, raw: options.raw });
+      const feedData = await fetchSourceContent(mediaSource, { page: 1, limit: 100, search });
       clearTimeout(timeoutId);
-      const mediaItems: ContentItem[] = feedData.items
-        .filter((item) => Boolean(item.imageUrl))
-        .map((item) => ({
-          id: item.id,
-          title: item.title,
-          slug: item.slug || slugify(item.title),
-          alt: item.title,
-          link: item.link,
-          description: item.description,
-          pubDate: item.pubDate,
-          imageUrl: item.imageUrl,
-          mediaUrl: item.imageUrl,
-          raw: item.raw,
-        }));
-      const total = mediaItems.length;
+
+      const uniqueRssMediaItems: ContentItem[] = [];
+      const seenRssImages = new Set<string>();
+
+      for (const item of feedData.items) {
+        if (item.imageUrl) {
+          const norm = item.imageUrl.trim().toLowerCase();
+          if (!seenRssImages.has(norm)) {
+            seenRssImages.add(norm);
+            uniqueRssMediaItems.push({
+              id: item.id,
+              title: item.title,
+              slug: item.slug || slugify(item.title),
+              alt: item.title,
+              description: item.description,
+              content: item.content || item.description,
+              pubDate: item.pubDate,
+              imageUrl: item.imageUrl,
+            });
+          }
+        }
+      }
+
+      const total = uniqueRssMediaItems.length;
       const totalPages = Math.ceil(total / limit) || 1;
       const startIndex = (page - 1) * limit;
+
       return {
         source: mediaSource,
         pagination: {
@@ -502,15 +616,11 @@ export async function fetchMediaContent(
           limit,
           totalPages,
         },
-        items: mediaItems.slice(startIndex, startIndex + limit),
+        items: uniqueRssMediaItems.slice(startIndex, startIndex + limit),
       };
     }
 
-    // For WordPress sources, fetch posts with embedded featured media so that:
-    // - slug is the slug of the news article (ex: 'quais-os-clubes-mais-prejudicados-com-a-mudanca-da-regra-de-estrangeiros-no-brasileirao')
-    // - alt is the title of the news article (ex: 'Quais os clubes mais prejudicados com a mudança da regra de estrangeiros no Brasileirão')
-    // - title is the title of the news article
-    // - imageUrl is the featured image of that news article
+    // WordPress sources
     const targetUrl = mediaSource.url.replace(/\/media\/?$/, '/posts');
     const urlObj = new URL(targetUrl);
     urlObj.searchParams.set('page', String(page));
@@ -535,27 +645,36 @@ export async function fetchMediaContent(
       try {
         let feedRes = await resilientFetch(feedUrl, mediaSource.site, false, controller.signal);
         if (!feedRes.ok) {
-          // Fallback: simple fetch if resilientFetch is blocked
           feedRes = await fetch(feedUrl, { signal: controller.signal });
         }
         if (feedRes.ok) {
           clearTimeout(timeoutId);
           const xmlText = await feedRes.text();
           const { items: allItems } = parseRssFeed(xmlText);
-          let mediaItems: ContentItem[] = allItems
-            .filter((item) => Boolean(item.imageUrl))
-            .map((item) => ({
-              id: item.id,
-              title: item.title,
-              slug: item.slug || slugify(item.title),
-              alt: item.title, // alt com o título da notícia
-              link: item.link,
-              description: item.description,
-              pubDate: item.pubDate,
-              imageUrl: item.imageUrl,
-              mediaUrl: item.imageUrl,
-              raw: item.raw,
-            }));
+
+          const uniqueFallbackItems: ContentItem[] = [];
+          const seenFallbackImages = new Set<string>();
+
+          for (const item of allItems) {
+            if (item.imageUrl) {
+              const norm = item.imageUrl.trim().toLowerCase();
+              if (!seenFallbackImages.has(norm)) {
+                seenFallbackImages.add(norm);
+                uniqueFallbackItems.push({
+                  id: item.id,
+                  title: item.title,
+                  slug: item.slug || slugify(item.title),
+                  alt: item.title,
+                  description: item.description,
+                  content: item.content || item.description,
+                  pubDate: item.pubDate,
+                  imageUrl: item.imageUrl,
+                });
+              }
+            }
+          }
+
+          let mediaItems = uniqueFallbackItems;
           if (search) {
             const lowerSearch = search.toLowerCase();
             mediaItems = mediaItems.filter(
@@ -572,9 +691,9 @@ export async function fetchMediaContent(
           };
         }
       } catch (feedErr) {
-        // ignore feed fallback error, continue to throw original error
+        // ignore feed fallback error
       }
-      
+
       clearTimeout(timeoutId);
       if (primaryError) {
         throw primaryError;
@@ -609,25 +728,42 @@ export async function fetchMediaContent(
               if (match) imageUrl = match[1];
             }
 
+            const rawId = typeof post.id === 'number' ? post.id : parseInt(String(post.id), 10);
+            const numericId = !isNaN(rawId) && rawId > 0 ? rawId : generate6DigitId(newsSlug || newsTitle);
+
+            const fullContentText = stripHtmlToParagraphs(post.content?.rendered);
+            const excerptText = stripHtmlToParagraphs(post.excerpt?.rendered || featuredMedia?.caption?.rendered || '');
+            const completeText = fullContentText && fullContentText.length > 50
+              ? fullContentText
+              : (excerptText || fullContentText || '');
+
             return {
-              id: post.id,
+              id: numericId,
               title: newsTitle,
-              slug: newsSlug, // slug da notícia
-              alt: newsTitle, // alt com o título da notícia
-              link: post.link || '',
-              description: stripHtmlAndClean(post.excerpt?.rendered || featuredMedia?.caption?.rendered || ''),
+              slug: newsSlug, // slug da matéria
+              alt: newsTitle, // alt com o título da matéria
+              description: completeText,
+              content: completeText,
               pubDate: post.date || post.date_gmt,
               imageUrl: imageUrl || undefined,
-              mediaUrl: imageUrl || undefined,
-              raw: options.raw ? post : (featuredMedia ? {
-                media_details: featuredMedia.media_details,
-                mime_type: featuredMedia.mime_type,
-                alt_text: featuredMedia.alt_text,
-              } : undefined),
             };
           })
           .filter((item) => Boolean(item.imageUrl))
       : [];
+
+    // Eliminar repetições de imagens no mesmo endpoint para garantir imagem única por notícia
+    const uniqueMediaItems: ContentItem[] = [];
+    const seenImages = new Set<string>();
+
+    for (const item of items) {
+      if (item.imageUrl) {
+        const norm = item.imageUrl.trim().toLowerCase();
+        if (!seenImages.has(norm)) {
+          seenImages.add(norm);
+          uniqueMediaItems.push(item);
+        }
+      }
+    }
 
     return {
       source: mediaSource,
@@ -637,7 +773,7 @@ export async function fetchMediaContent(
         limit,
         totalPages,
       },
-      items,
+      items: uniqueMediaItems,
     };
   } catch (err: any) {
     clearTimeout(timeoutId);

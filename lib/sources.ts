@@ -36,9 +36,21 @@ export function generateValidId(url: string): number {
   let id = '';
   for (let i = 0; i < hash.length; i++) {
     const charCode = hash.charCodeAt(i);
-    let num = (charCode % 9) + 1; // 1 to 9
+    let num = (charCode % 9) + 1; // 1 to 9 (no 0)
     id += num.toString();
-    if (id.length === 15) break;
+    if (id.length === 13) break;
+  }
+  return parseInt(id, 10);
+}
+
+export function generate6DigitId(input: string): number {
+  const hash = crypto.createHash('sha256').update(input || Math.random().toString()).digest('hex');
+  let id = '';
+  for (let i = 0; i < hash.length; i++) {
+    const charCode = hash.charCodeAt(i);
+    let num = (charCode % 9) + 1; // 1 to 9 (no 0)
+    id += num.toString();
+    if (id.length === 6) break;
   }
   return parseInt(id, 10);
 }
@@ -46,7 +58,7 @@ export function generateValidId(url: string): number {
 export function isValidId(id: number | string | undefined | null): boolean {
   if (id === undefined || id === null) return false;
   const idStr = String(id).trim();
-  return idStr.length > 0;
+  return /^\d{1,15}$/.test(idStr);
 }
 
 export function getSourcesData(): SourcesData {

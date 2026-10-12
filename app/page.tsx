@@ -49,32 +49,29 @@ export default async function Home() {
         Source: {
           type: 'object',
           properties: {
-            id: { type: 'integer', example: 383841537673882 },
+            id: { type: 'integer', example: 6571187291942, description: 'ID numérico de 13 dígitos sem o número 0' },
             category: { type: 'string', example: 'Tocantins' },
-            site: { type: 'string', example: 'clebertoledo.com.br' },
             type: { type: 'string', example: 'wp-api', enum: types },
-            url: {
-              type: 'string',
-              format: 'uri',
-              example: 'https://clebertoledo.com.br/wp-json/wp/v2/posts',
-            },
-            mediaUrl: {
-              type: 'string',
-              format: 'uri',
-              example: 'https://clebertoledo.com.br/wp-json/wp/v2/media',
-            },
             active: { type: 'boolean', example: true },
-            slug: { type: 'string', example: 'clebertoledo-com-br' },
-            alt: { type: 'string', example: 'Mídias e imagens - clebertoledo.com.br' },
+            alt: { type: 'string', example: 'Conteúdo e imagens - clebertoledo.com.br' },
+            _links: {
+              type: 'object',
+              properties: {
+                self: { type: 'object', properties: { href: { type: 'string' } } },
+                news: { type: 'object', properties: { href: { type: 'string' } } },
+                images: { type: 'object', properties: { href: { type: 'string' } } },
+              },
+            },
           },
         },
         Meta: {
           type: 'object',
           properties: {
-            total: { type: 'integer', example: 72 },
-            page: { type: 'integer', example: 1 },
-            limit: { type: 'integer', example: 100 },
-            totalPages: { type: 'integer', example: 1 },
+            itemCount: { type: 'integer', example: 10 },
+            totalItems: { type: 'integer', example: 76 },
+            itemsPerPage: { type: 'integer', example: 10 },
+            totalPages: { type: 'integer', example: 8 },
+            currentPage: { type: 'integer', example: 1 },
           },
         },
         ErrorResponse: {
@@ -87,18 +84,48 @@ export default async function Home() {
         ContentItem: {
           type: 'object',
           properties: {
-            id: { type: 'integer', example: 319687 },
+            id: { type: 'integer', example: 489123, description: 'ID numérico de 6 dígitos sem 0' },
             title: { type: 'string', example: 'Título da matéria jornalística' },
             slug: { type: 'string', example: 'titulo-da-materia-jornalistica' },
             alt: { type: 'string', example: 'Título da matéria jornalística' },
-            link: { type: 'string', example: `${baseUrl}/noticia-exemplo` },
-            description: { type: 'string', example: 'Resumo da matéria jornalística...' },
-            content: { type: 'string', example: '<p>Conteúdo integral...</p>' },
+            description: { type: 'string', example: 'Resumo da matéria jornalística limpo...' },
+            content: { type: 'string', example: 'Parágrafos jornalísticos completos revisados e limpos por IA.' },
             pubDate: { type: 'string', format: 'date-time', example: '2026-09-16T19:12:25Z' },
             author: { type: 'string', example: 'Redação' },
-            imageUrl: { type: 'string', example: `${baseUrl}/uploads/imagem.jpg` },
-            mediaUrl: { type: 'string', example: `${baseUrl}/uploads/arquivo.jpg` },
-            raw: { type: 'object', description: 'Raw upstream payload' },
+            imageUrl: { type: 'string', example: 'https://site.com/uploads/imagem.jpg', description: 'URL direta única para incorporação' },
+            _links: {
+              type: 'object',
+              properties: {
+                self: { type: 'object', properties: { href: { type: 'string' } } },
+              },
+            },
+          },
+        },
+        PaginatedResponse: {
+          type: 'object',
+          properties: {
+            items: { type: 'array', items: { $ref: '#/components/schemas/ContentItem' } },
+            _embedded: { type: 'object', properties: { items: { type: 'array', items: { $ref: '#/components/schemas/ContentItem' } } } },
+            meta: { $ref: '#/components/schemas/Meta' },
+            links: {
+              type: 'object',
+              properties: {
+                first: { type: 'string' },
+                previous: { type: 'string' },
+                next: { type: 'string' },
+                last: { type: 'string' },
+              },
+            },
+            _links: {
+              type: 'object',
+              properties: {
+                self: { type: 'object', properties: { href: { type: 'string' } } },
+                first: { type: 'object', properties: { href: { type: 'string' } } },
+                prev: { type: 'object', properties: { href: { type: 'string', nullable: true } } },
+                next: { type: 'object', properties: { href: { type: 'string', nullable: true } } },
+                last: { type: 'object', properties: { href: { type: 'string' } } },
+              },
+            },
           },
         },
       },
@@ -177,9 +204,9 @@ export default async function Home() {
             {
               name: 'id',
               in: 'path',
-              description: 'Source ID (15 digits)',
+              description: 'Source ID (13 dígitos numéricos sem 0)',
               required: true,
-              schema: { type: 'integer', example: 383841537673882 },
+              schema: { type: 'integer', example: 6571187291942 },
             },
             {
               name: 'page',
@@ -198,12 +225,6 @@ export default async function Home() {
               in: 'query',
               description: 'Search keyword to filter articles',
               schema: { type: 'string' },
-            },
-            {
-              name: 'raw',
-              in: 'query',
-              description: 'Return raw upstream JSON payload alongside parsed items',
-              schema: { type: 'boolean', default: false },
             },
           ],
           responses: {

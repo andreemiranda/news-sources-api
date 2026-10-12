@@ -1,8 +1,8 @@
-
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
-import { getAllSources, getStats, getSourcesByCategory } from '@/lib/sources';
-import { validateApiKey, unauthorizedResponse, paginate } from '@/lib/auth';
+import { getAllSources, getSourcesByCategory, getBaseUrl } from '@/lib/sources';
+import { validateApiKey, unauthorizedResponse } from '@/lib/auth';
+import { toCleanSource, paginateWithHateoas } from '@/lib/hateoas';
 
 export async function GET(req: NextRequest) {
   if (!validateApiKey(req)) {
@@ -16,10 +16,7 @@ export async function GET(req: NextRequest) {
   const category = url.searchParams.get('category');
   const active = url.searchParams.get('active');
   const type = url.searchParams.get('type');
-  const statsOnly = url.searchParams.get('stats') === 'true';
-
-  if (statsOnly) {
-  }
+  const format = url.searchParams.get('format');
 
   let sources = getAllSources();
 
@@ -31,29 +28,50 @@ export async function GET(req: NextRequest) {
     sources = sources.filter((s) => s.type === type);
   }
 
-  if (active !== null && active !== undefined) {
+  if (active !== null && active !== undefined && active !== '') {
     const isActive = active === 'true';
     sources = sources.filter((s) => s.active === isActive);
   }
 
-  const forwardedHost = req.headers.get('x-forwarded-host') || req.headers.get('host');
-  const forwardedProto = req.headers.get('x-forwarded-proto') || 'https';
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || (forwardedHost ? `${forwardedProto}://${forwardedHost}` : req.nextUrl.origin);
+  const baseUrl = getBaseUrl(req);
 
-  const mappedSources = sources.map((s) => ({
-    ...s,
-    _links: {
-      self: { href: `${baseUrl}/api/news/${s.id}` }
+  // Mapear fontes limpando estritamente tags de backend (site, url, mediaUrl, link)
+  // e gerando conexões HATEOAS oficiais para cada recurso
+  const cleanSources = sources.map((s) => toCleanSource(s, baseUrl));
+
+  // Paginação no padrão nestjs-typeorm-paginate e Spring HATEOAS
+  const total = cleanSources.length;
+  const safePage = Math.max(1, page || 1);
+  const safeLimit = Math.max(1, limit || 100);
+  const startIndex = (safePage - 1) * safeLimit;
+  const pagedItems = cleanSources.slice(startIndex, startIndex + safeLimit);
+
+  const hateoasResult = paginateWithHateoas(
+    pagedItems,
+    total,
+    safePage,
+    safeLimit,
+    `${baseUrl}/api/news`,
+    {
+      category: category || undefined,
+      type: type || undefined,
+      active: active || undefined,
+    },
+    {
+      categories: { href: `${baseUrl}/api/categories` },
+      images: { href: `${baseUrl}/api/images` },
+      stats: { href: `${baseUrl}/api/stats` },
     }
-  }));
+  );
 
-  const result = paginate(mappedSources, page, limit);
+  const headers = {
+    'X-WP-Total': hateoasResult.meta.totalItems.toString(),
+    'X-WP-TotalPages': hateoasResult.meta.totalPages.toString(),
+  };
 
-  return NextResponse.json(result.items, {
+  if (format === 'array') {
+    return NextResponse.json(hateoasResult.items, { headers });
+  }
 
-    headers: {
-      'X-WP-Total': result.meta.total.toString(),
-      'X-WP-TotalPages': result.meta.totalPages.toString(),
-    }
-  });
+  return NextResponse.json(hateoasResult, { headers });
 }

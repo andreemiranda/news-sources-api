@@ -1,0 +1,192 @@
+import sanitizeHtml from 'sanitize-html';
+import crypto from 'crypto';
+
+// In-memory cache to prevent overloading free Pollinations API and keep responses fast
+const textCleanCache = new Map<string, string>();
+const MAX_CACHE_SIZE = 1000;
+
+/**
+ * Pré-limpeza local com biblioteca e expressões regulares para:
+ * 1. Sanitizar HTML
+ * 2. Remover emojis, figurinhas e selos
+ * 3. Remover chamadas de WhatsApp (grupos, canais, links)
+ * 4. Eliminar frases curtas e isoladas sem conteúdo jornalístico
+ */
+export function preCleanText(rawText: string): string {
+  if (!rawText) return '';
+
+  // 1. Sanitização com biblioteca sanitize-html
+  const sanitized = sanitizeHtml(rawText, {
+    allowedTags: ['p', 'br'],
+    allowedAttributes: {},
+    textFilter: (text) => text.replace(/&nbsp;/g, ' '),
+  });
+
+  // Converter quebras e tags em quebras de linha normais
+  let text = sanitized
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/p>/gi, '\n\n')
+    .replace(/<[^>]+>/g, ' ');
+
+  // 2. Remover Emojis e símbolos gráficos (compatível com todos os targets TS)
+  const emojiRegex = /[\uD83C-\uD83E][\uDC00-\uDFFF]|[\u2600-\u27BF]|[\uFE00-\uFE0F]/g;
+  text = text.replace(emojiRegex, '');
+
+  // 3. Remover marcas de verificação e selos
+  text = text
+    .replace(/\[\s*(?:NOTÍCIA VERIFICADA|VERIFICADO|EXCLUSIVO|CONFIRA|URGENTE|ATENÇÃO)\s*\]/gi, '')
+    .replace(/(?:NOTÍCIA VERIFICADA|NOTICIA VERIFICADA|FATO VERIFICADO)\b/gi, '')
+    .replace(/[✅✔☑️✓]/g, '');
+
+  // 4. Remover pedidos de WhatsApp, grupos, canais e redes
+  text = text
+    .replace(/(?:👉|🔗|📱|📲)?\s*(?:entre\s+no|acesse\s+o|participe\s+do|siga\s+o)\s+(?:nosso\s+)?(?:grupo|canal|comunidade)\s+(?:do\s+)?whatsapp[^\n.]*(?:\.|$)?/gi, '')
+    .replace(/(?:link|acesse|clique\s+aqui)[\s:]+(?:https?:\/\/)?(?:chat\.)?whatsapp\.com\S*/gi, '')
+    .replace(/https?:\/\/(?:chat\.)?whatsapp\.com\S*/gi, '')
+    .replace(/para\s+não\s+perder\s+nada[^\n.]*(?:\.|$)?/gi, '')
+    .replace(/dê\s+um\s+joinha[^\n.]*(?:\.|$)?/gi, '')
+    .replace(/compartilhe\s+com\s+(?:amigos|familiares|todos)[^\n.]*(?:\.|$)?/gi, '');
+
+  // 5. Quebrar em parágrafos e remover frases isoladas de pouco conteúdo (frases de interferência)
+  const paragraphs = text
+    .split(/\n+/)
+    .map((p) => p.replace(/\s+/g, ' ').trim())
+    .filter((p) => {
+      if (p.length < 25) {
+        // Frase muito curta isolada
+        return false;
+      }
+      if (/^(veja mais|leia também|saiba mais|clique aqui|confira|compartilhe)/i.test(p)) {
+        return false;
+      }
+      return true;
+    });
+
+  return paragraphs.join('\n\n').trim();
+}
+
+/**
+ * Corrige o texto de uma notícia de feed RSS/XML eliminando emojis, marcas de verificação,
+ * links/pedidos de WhatsApp e mantendo apenas os parágrafos completos do conteúdo.
+ * 
+ * Se houver AI_ENDPOINT e AI_API_KEY nas variáveis de ambiente, utiliza o endpoint privado.
+ * Caso contrário, utiliza a IA Pollinations gratuita (sem chave).
+ * 
+ * @param {string} textoNoticia - O texto bruto extraído do feed RSS
+ * @returns {Promise<string>} O texto limpo e corrigido
+ */
+export async function processarEConfigurarNoticia(textoNoticia: string): Promise<string> {
+  if (!textoNoticia || !textoNoticia.trim()) {
+    return '';
+  }
+
+  // 0. Pré-limpeza local com biblioteca e filtros para não sobrecarregar a IA
+  const textoPreLimpo = preCleanText(textoNoticia);
+  if (!textoPreLimpo) {
+    return '';
+  }
+
+  // Se o texto for muito curto, retornar diretamente o texto pré-limpo
+  if (textoPreLimpo.length < 60) {
+    return textoPreLimpo;
+  }
+
+  // Cache lookup para evitar chamadas redundantes e acelerar endpoints
+  const cacheKey = crypto.createHash('md5').update(textoPreLimpo).digest('hex');
+  if (textCleanCache.has(cacheKey)) {
+    return textCleanCache.get(cacheKey)!;
+  }
+
+  // 1. Definição das variáveis de ambiente
+  const API_KEY = typeof process !== 'undefined' ? process.env.AI_API_KEY || '' : '';
+  const ENDPOINT = typeof process !== 'undefined' ? process.env.AI_ENDPOINT || '' : '';
+  const MODELO = typeof process !== 'undefined' ? process.env.AI_MODEL || '' : '';
+
+  // Instrução do sistema especializada em limpar o texto conforme as regras
+  const systemPrompt =
+    'Você é um revisor jornalístico profissional. Seu único objetivo é limpar o texto da notícia oriunda de um feed RSS, seguindo estritamente estas regras: 1. Elimine completamente emojis, figurinhas e marcas de verificação (como [VERIFICADO], selos, etc.). 2. Remova chamadas, links ou pedidos de acesso a grupos de WhatsApp, canais ou contatos da fonte. 3. Ignore frases isoladas de pouco conteúdo ou poucas letras (frases de interferência). 4. Mantenha apenas os parágrafos completos e originais que contêm o conteúdo real da notícia. 5. Nunca adicione saudações, introduções, conclusões ou formatações como Markdown extras (não use ** ou #). Retorne apenas o texto jornalístico limpo.';
+
+  // 2. Verificação de Fluxo: Se houver Endpoint e Chave configurados, usa a API privada
+  if (ENDPOINT && API_KEY) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 6000);
+
+      const response = await fetch(ENDPOINT, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: MODELO || 'gpt-4o-mini',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: textoPreLimpo },
+          ],
+        }),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        throw new Error(`Erro no Endpoint Privado: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      const textoLimpo = data.choices?.[0]?.message?.content || data.text || '';
+      const finalResult = (textoLimpo || textoPreLimpo).trim();
+
+      if (textCleanCache.size >= MAX_CACHE_SIZE) textCleanCache.clear();
+      textCleanCache.set(cacheKey, finalResult);
+      return finalResult;
+    } catch (error) {
+      console.warn('Falha no endpoint privado. Tentando redundância com Pollinations.AI...', error);
+    }
+  }
+
+  // 3. Fallback: Uso da IA Pollinations gratuita (Sem API Key)
+  const urlPollinations = 'https://text.pollinations.ai/';
+  const payloadPollinations = {
+    messages: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: textoPreLimpo },
+    ],
+    model: 'openai',
+    jsonMode: false,
+  };
+
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 2500);
+
+    const response = await fetch(urlPollinations, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payloadPollinations),
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    if (response.ok) {
+      const textoLimpo = await response.text();
+      if (textoLimpo && textoLimpo.trim().length > 20 && !textoLimpo.startsWith('{')) {
+        const cleanOutput = textoLimpo.trim();
+        if (textCleanCache.size >= MAX_CACHE_SIZE) textCleanCache.clear();
+        textCleanCache.set(cacheKey, cleanOutput);
+        return cleanOutput;
+      }
+    }
+  } catch {
+    // Falha de rede ou timeout silencioso na IA externa; fallback gracioso para a pré-limpeza
+  }
+
+  // Se a IA externa falhar, demorar ou retornar erro de pagamento/quota, retorna a pré-limpeza sanitizada
+  if (textCleanCache.size >= MAX_CACHE_SIZE) textCleanCache.clear();
+  textCleanCache.set(cacheKey, textoPreLimpo);
+  return textoPreLimpo;
+}

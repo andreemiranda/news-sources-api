@@ -62,23 +62,54 @@ Todas as fontes de dados e endpoints de mídia estão centralizados em um único
 
 ---
 
-## Paginação Padrão WordPress
+## Paginação e Formulação de URLs
 
-Os endpoints de conteúdo retornam uma lista JSON direta com metadados nos cabeçalhos HTTP:
+Os endpoints de conteúdo retornam os dados paginados com suporte a HATEOAS, `nestjs-typeorm-paginate` e metadados nos cabeçalhos HTTP:
 - `X-WP-Total`: Total de registros disponíveis no servidor de origem.
 - `X-WP-TotalPages`: Total de páginas disponíveis.
 
-### Exemplos de Requisição:
+### Como Formular as URLs de Paginação
+
+A URL correta deve utilizar o caractere `&` para separar os parâmetros da query string (em vez de um segundo `?`):
+
+```text
+https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/images/1216294345584?page=1&api_key=<key>
+```
+
+**Exemplo com chave preenchida:**
+```text
+https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/images/1216294345584?page=1&api_key=bn_88feb5baa3f84955677e8c11453aae352811b9fe6c3398cd
+```
+
+#### Alternativas recomendadas via Headers (URL limpa):
+Para maior segurança e evitar expor a chave de API no histórico do navegador ou em logs de requisição, você pode manter a URL sem o parâmetro e enviar a chave no cabeçalho:
+
+**URL:**
+```text
+https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/images/1216294345584?page=1
+```
+
+**Header (Opção 1 - Bearer):**
+```http
+Authorization: Bearer <key>
+```
+
+**Header (Opção 2 - Customizado):**
+```http
+x-api-key: <key>
+```
+
+### Exemplos de Requisição cURL:
 
 **Buscar Notícias:**
 ```bash
-curl -i "https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/news/383841537673882?page=1&limit=5" \
+curl -i "https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/news/6571187291942?page=1&limit=5" \
   -H "Authorization: Bearer SUA_API_KEY"
 ```
 
 **Buscar Imagens / Mídias:**
 ```bash
-curl -i "https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/images/383841537673882?page=1&limit=5" \
+curl -i "https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/images/6571187291942?page=1&limit=5" \
   -H "Authorization: Bearer SUA_API_KEY"
 ```
 
