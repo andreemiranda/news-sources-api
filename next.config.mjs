@@ -5,6 +5,9 @@ const nextConfig = {
   compress: true,
   productionBrowserSourceMaps: false,
   output: 'standalone',
+  experimental: {
+    esmExternals: 'loose',
+  },
   async rewrites() {
     return [
       {
