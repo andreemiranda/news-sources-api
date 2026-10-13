@@ -49,6 +49,7 @@ export interface PaginatedHateoasResponse<T> {
 export interface CleanSourceDto {
   id: number;
   category: string;
+  slug?: string;
   type: string;
   active: boolean;
   _links: {
@@ -58,10 +59,10 @@ export interface CleanSourceDto {
   };
 }
 
-export function toCleanSource(source: Source, baseUrl: string): CleanSourceDto {
+export function toCleanSource(source: Source, baseUrl: string, includeSlug: boolean = false): CleanSourceDto {
   const numericId = typeof source.id === 'number' ? source.id : parseInt(String(source.id), 10);
 
-  return {
+  const dto: CleanSourceDto = {
     id: numericId,
     category: source.category || '',
     type: source.type || 'wp-api',
@@ -72,6 +73,21 @@ export function toCleanSource(source: Source, baseUrl: string): CleanSourceDto {
       images: { href: `${baseUrl}/api/images/${numericId}` },
     },
   };
+
+  if (includeSlug) {
+    const rawCategory = source.category || '';
+    dto.slug = rawCategory
+      .toString()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-');
+  }
+
+  return dto;
 }
 
 export function buildPaginationLinks(

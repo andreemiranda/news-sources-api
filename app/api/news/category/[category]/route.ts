@@ -26,7 +26,7 @@ export async function GET(
   const forwardedProto = req.headers.get('x-forwarded-proto') || 'https';
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || (forwardedHost ? `${forwardedProto}://${forwardedHost}` : req.nextUrl.origin);
 
-  const mappedSources = sources.map((s) => toCleanSource(s, baseUrl));
+  const mappedSources = sources.map((s) => toCleanSource(s, baseUrl, true));
 
   const result = paginate(mappedSources, page, limit);
 

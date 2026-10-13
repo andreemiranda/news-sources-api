@@ -87,15 +87,37 @@ export function getSourceById(id: number | string | undefined | null): Source | 
   return getAllSources().find((s) => String(s.id).trim() === targetIdStr);
 }
 
-export function getSourcesByCategory(category: string): Source[] {
-  if (!category) return [];
-  const normalized = category.toLowerCase().trim();
-  return getAllSources().filter(
-    (s) => (s.category || '').toLowerCase().trim() === normalized
-  );
+export interface CategoryItem {
+  category: string;
+  slug: string;
+  count: number;
 }
 
-export function getCategories(): { category: string; count: number }[] {
+export function slugifyCategory(text: string | undefined | null): string {
+  if (!text) return '';
+  return text
+    .toString()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-');
+}
+
+export function getSourcesByCategory(categoryOrSlug: string): Source[] {
+  if (!categoryOrSlug) return [];
+  const normalizedInput = categoryOrSlug.toLowerCase().trim();
+  const slugInput = slugifyCategory(categoryOrSlug);
+  return getAllSources().filter((s) => {
+    const cat = (s.category || '').toLowerCase().trim();
+    const slug = slugifyCategory(s.category);
+    return cat === normalizedInput || slug === slugInput || slug === normalizedInput;
+  });
+}
+
+export function getCategories(): CategoryItem[] {
   const counts = new Map<string, number>();
   for (const s of getAllSources()) {
     if (s.category) {
@@ -103,7 +125,11 @@ export function getCategories(): { category: string; count: number }[] {
     }
   }
   return Array.from(counts.entries())
-    .map(([category, count]) => ({ category, count }))
+    .map(([category, count]) => ({
+      category,
+      slug: slugifyCategory(category),
+      count,
+    }))
     .sort((a, b) => a.category.localeCompare(b.category));
 }
 

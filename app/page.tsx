@@ -337,10 +337,31 @@ export default async function Home() {
         get: {
           tags: ['Metadata'],
           summary: 'List all categories',
-          description: 'Returns all news categories with source counts.',
+          description: 'Returns all news categories with slug and source counts.',
           security: [{ ApiKeyAuth: [] }, { BearerAuth: [] }, { QueryApiKey: [] }],
           responses: {
-            '200': { description: 'List of categories' },
+            '200': { description: 'List of categories with slug' },
+            '401': { description: 'Unauthorized' },
+          },
+        },
+      },
+      '/news/category/{categoria}': {
+        get: {
+          tags: ['News Sources'],
+          summary: 'List news sources by category or slug',
+          description: 'Returns news sources filtered by category name or slug.',
+          security: [{ ApiKeyAuth: [] }, { BearerAuth: [] }, { QueryApiKey: [] }],
+          parameters: [
+            {
+              name: 'categoria',
+              in: 'path',
+              required: true,
+              description: 'Category name or slug (ex.: "tocantins", "noticias-gerais")',
+              schema: { type: 'string', example: 'tocantins' },
+            },
+          ],
+          responses: {
+            '200': { description: 'List of sources in the category' },
             '401': { description: 'Unauthorized' },
           },
         },

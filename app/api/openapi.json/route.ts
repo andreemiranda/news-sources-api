@@ -384,11 +384,73 @@ export async function GET(req: NextRequest) {
         get: {
           tags: ['Metadata'],
           summary: 'List all news categories',
-          description: 'Returns all available news categories with their source counts.',
+          description: 'Returns all available news categories with their slug and source counts.',
           security: [{ ApiKeyAuth: [] }, { BearerAuth: [] }, { QueryApiKey: [] }],
           responses: {
             '200': {
-              description: 'List of categories',
+              description: 'List of categories with slug',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      success: { type: 'boolean', example: true },
+                      data: {
+                        type: 'array',
+                        items: {
+                          type: 'object',
+                          properties: {
+                            category: { type: 'string', example: 'Tocantins' },
+                            slug: { type: 'string', example: 'tocantins' },
+                            count: { type: 'integer', example: 5 },
+                          },
+                        },
+                      },
+                      meta: {
+                        type: 'object',
+                        properties: {
+                          total: { type: 'integer', example: 12 },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            '401': { description: 'Unauthorized' },
+          },
+        },
+      },
+      '/news/category/{categoria}': {
+        get: {
+          tags: ['News Sources'],
+          summary: 'List news sources by category or slug',
+          description: 'Returns news sources filtered by category name or category slug with the slug tag included.',
+          security: [{ ApiKeyAuth: [] }, { BearerAuth: [] }, { QueryApiKey: [] }],
+          parameters: [
+            {
+              name: 'categoria',
+              in: 'path',
+              required: true,
+              description: 'Category name or slug (ex.: "tocantins", "noticias-gerais")',
+              schema: { type: 'string', example: 'tocantins' },
+            },
+            {
+              name: 'page',
+              in: 'query',
+              description: 'Page number (default: 1)',
+              schema: { type: 'integer', default: 1, minimum: 1 },
+            },
+            {
+              name: 'limit',
+              in: 'query',
+              description: 'Items per page (default: 100)',
+              schema: { type: 'integer', default: 100, minimum: 1, maximum: 1000 },
+            },
+          ],
+          responses: {
+            '200': {
+              description: 'List of sources in the category',
               content: {
                 'application/json': {
                   schema: {
@@ -396,8 +458,12 @@ export async function GET(req: NextRequest) {
                     items: {
                       type: 'object',
                       properties: {
-                        category: { type: 'string' },
-                        count: { type: 'integer' },
+                        id: { type: 'integer', example: 6571187291942 },
+                        category: { type: 'string', example: 'Tocantins' },
+                        slug: { type: 'string', example: 'tocantins' },
+                        type: { type: 'string', example: 'wp-api' },
+                        active: { type: 'boolean', example: true },
+                        _links: { type: 'object' },
                       },
                     },
                   },
