@@ -1,0 +1,6 @@
+{
+  "summary": "Plano de implementação para remoção de frases contendo o termo G1 em todos os campos de texto de notícias de feeds XML/RSS utilizando as ferramentas instaladas de limpeza (ai-cleaner e content parser).",
+  "updatedAt": "2026-10-19T01:54:07.025298586Z",
+  "requestFeedback": true,
+  "userFacing": true
+}

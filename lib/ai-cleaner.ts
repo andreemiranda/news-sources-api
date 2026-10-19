@@ -6,11 +6,53 @@ const textCleanCache = new Map<string, string>();
 const MAX_CACHE_SIZE = 1000;
 
 /**
+ * Remove qualquer frase que contenha a menção ao termo G1 (ex.: "no G1", "segundo o G1", "leia mais no G1")
+ * Mantendo o texto fluido, sem pontuações ou espaços soltos.
+ */
+export function removeG1Sentences(text: string): string {
+  if (!text) return '';
+
+  // 1. Limpeza rápida de sufixos/prefixos comuns de títulos ou chamadas curtas
+  let cleaned = text
+    .replace(/\s*[-–—|•·]\s*(?:G1|Portal G1|Globo G1|G1 Notícias)\s*$/i, '')
+    .replace(/^(?:G1|Portal G1|Globo G1|G1 Notícias)\s*[-–—|•·:]\s*/i, '')
+    .replace(/\s*\(Foto:\s*[^)]*G1[^)]*\)/gi, '')
+    .replace(/\s*\(Vídeo:\s*[^)]*G1[^)]*\)/gi, '');
+
+  // 2. Divisão e filtragem por parágrafos
+  const paragraphs = cleaned.split(/\n+/);
+  const cleanedParagraphs = paragraphs
+    .map((paragraph) => {
+      // Se não contém G1, mantém o parágrafo intacto
+      if (!/\bG1\b/i.test(paragraph)) {
+        return paragraph.trim();
+      }
+
+      // Se contém G1, divide em frases/sentenças por pontuação (. ! ? e quebras)
+      const sentences = paragraph.match(/[^.!?]+(?:[.!?]+|$)/g) || [paragraph];
+      const keptSentences = sentences
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0 && !/\bG1\b/i.test(s));
+
+      // Se todas as frases tinham G1 ou não sobrou conteúdo substancial
+      if (keptSentences.length === 0) {
+        return '';
+      }
+
+      return keptSentences.join(' ').replace(/\s+/g, ' ').trim();
+    })
+    .filter((p) => p.length > 0);
+
+  return cleanedParagraphs.join('\n\n').trim();
+}
+
+/**
  * Pré-limpeza local com biblioteca e expressões regulares para:
  * 1. Sanitizar HTML
  * 2. Remover emojis, figurinhas e selos
  * 3. Remover chamadas de WhatsApp (grupos, canais, links)
- * 4. Eliminar frases curtas e isoladas sem conteúdo jornalístico
+ * 4. Remover qualquer frase ou parágrafo que mencione o termo G1
+ * 5. Eliminar frases curtas e isoladas sem conteúdo jornalístico
  */
 export function preCleanText(rawText: string): string {
   if (!rawText) return '';
@@ -47,7 +89,10 @@ export function preCleanText(rawText: string): string {
     .replace(/dê\s+um\s+joinha[^\n.]*(?:\.|$)?/gi, '')
     .replace(/compartilhe\s+com\s+(?:amigos|familiares|todos)[^\n.]*(?:\.|$)?/gi, '');
 
-  // 5. Quebrar em parágrafos e remover frases isoladas de pouco conteúdo (frases de interferência)
+  // 5. Remover frases e menções com o termo G1
+  text = removeG1Sentences(text);
+
+  // 6. Quebrar em parágrafos e remover frases isoladas de pouco conteúdo (frases de interferência)
   const paragraphs = text
     .split(/\n+/)
     .map((p) => p.replace(/\s+/g, ' ').trim())
@@ -67,7 +112,7 @@ export function preCleanText(rawText: string): string {
 
 /**
  * Corrige o texto de uma notícia de feed RSS/XML eliminando emojis, marcas de verificação,
- * links/pedidos de WhatsApp e mantendo apenas os parágrafos completos do conteúdo.
+ * links/pedidos de WhatsApp, frases com menção ao termo G1 e mantendo apenas os parágrafos completos do conteúdo.
  * 
  * Se houver AI_ENDPOINT e AI_API_KEY nas variáveis de ambiente, utiliza o endpoint privado.
  * Caso contrário, utiliza a IA Pollinations gratuita (sem chave).
@@ -104,7 +149,7 @@ export async function processarEConfigurarNoticia(textoNoticia: string): Promise
 
   // Instrução do sistema especializada em limpar o texto conforme as regras
   const systemPrompt =
-    'Você é um revisor jornalístico profissional. Seu único objetivo é limpar o texto da notícia oriunda de um feed RSS, seguindo estritamente estas regras: 1. Elimine completamente emojis, figurinhas e marcas de verificação (como [VERIFICADO], selos, etc.). 2. Remova chamadas, links ou pedidos de acesso a grupos de WhatsApp, canais ou contatos da fonte. 3. Ignore frases isoladas de pouco conteúdo ou poucas letras (frases de interferência). 4. Mantenha apenas os parágrafos completos e originais que contêm o conteúdo real da notícia. 5. Nunca adicione saudações, introduções, conclusões ou formatações como Markdown extras (não use ** ou #). Retorne apenas o texto jornalístico limpo.';
+    'Você é um revisor jornalístico profissional. Seu único objetivo é limpar o texto da notícia oriunda de um feed RSS, seguindo estritamente estas regras: 1. Elimine completamente emojis, figurinhas e marcas de verificação (como [VERIFICADO], selos, etc.). 2. Remova chamadas, links ou pedidos de acesso a grupos de WhatsApp, canais ou contatos da fonte. 3. Elimine totalmente qualquer frase que mencione a palavra ou marca G1 (como "no G1", "segundo o G1", "o G1 apurou", etc.). 4. Ignore frases isoladas de pouco conteúdo ou poucas letras (frases de interferência). 5. Mantenha apenas os parágrafos completos e originais que contêm o conteúdo real da notícia. 6. Nunca adicione saudações, introduções, conclusões ou formatações como Markdown extras (não use ** ou #). Retorne apenas o texto jornalístico limpo.';
 
   // 2. Verificação de Fluxo: Se houver Endpoint e Chave configurados, usa a API privada
   if (ENDPOINT && API_KEY) {

@@ -1,6 +1,6 @@
 import he from 'he';
 import { Source, generate6DigitId } from './sources';
-import { processarEConfigurarNoticia, preCleanText } from './ai-cleaner';
+import { processarEConfigurarNoticia, preCleanText, removeG1Sentences } from './ai-cleaner';
 
 export interface ContentItem {
   id: number;
@@ -204,13 +204,14 @@ export function parseRssFeed(xml: string): { feed: any; items: ContentItem[] } {
 
   const itemBlocks = xml.match(/<item[\s\S]*?<\/item>/gi) || [];
   const items: ContentItem[] = itemBlocks.map((block, index) => {
-    const title = extractTagValue(block, 'title');
+    const rawTitle = extractTagValue(block, 'title');
+    const title = cleanText(removeG1Sentences(rawTitle || ''));
     const link = extractTagValue(block, 'link') || extractTagValue(block, 'guid');
     const description = extractTagValue(block, 'description');
     const content = extractTagValue(block, 'content:encoded') || description;
     const pubDate = extractTagValue(block, 'pubDate');
     let author = extractTagValue(block, 'author') || extractTagValue(block, 'dc:creator');
-    if (author && /^(por\s+)?g1$/i.test(author.trim())) {
+    if (author && (/\bg1\b/i.test(author.trim()) || /^(por\s+)?g1$/i.test(author.trim()))) {
       author = '';
     }
     const guid = extractTagValue(block, 'guid') || String(index + 1);
@@ -225,7 +226,7 @@ export function parseRssFeed(xml: string): { feed: any; items: ContentItem[] } {
             .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/gi, '$1')
         )
       )
-      .filter((c) => Boolean(c) && c.trim().toLowerCase() !== 'g1');
+      .filter((c) => Boolean(c) && !/\bg1\b/i.test(c.trim()));
 
     let imageUrl = extractAttribute(block, 'enclosure', 'url');
     if (!imageUrl) {
