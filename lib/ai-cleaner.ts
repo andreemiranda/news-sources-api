@@ -6,8 +6,73 @@ const textCleanCache = new Map<string, string>();
 const MAX_CACHE_SIZE = 1000;
 
 /**
- * Remove qualquer frase que contenha a menção ao termo G1 (ex.: "no G1", "segundo o G1", "leia mais no G1")
- * Mantendo o texto fluido, sem pontuações ou espaços soltos.
+ * Mapa configurável de proprietários/marcas de fontes para substituição em parágrafos longos
+ * configurável via variáveis de ambiente (ex.: SOURCE_OWNER_REPLACEMENTS='{"G1":"Portal Notícias","CNN":"Portal de Notícias"}')
+ * ou SOURCE_OWNER_REPLACEMENT / G1_REPLACEMENT
+ */
+export function getSourceOwnerReplacement(name: string): string | null {
+  const normalized = name.trim().toUpperCase();
+
+  // 1. Variável de mapeamento JSON customizada
+  try {
+    const rawMap = process.env.SOURCE_OWNER_REPLACEMENTS || process.env.SOURCE_NAME_REPLACEMENTS;
+    if (rawMap) {
+      const parsed = JSON.parse(rawMap);
+      for (const [k, v] of Object.entries(parsed)) {
+        if (k.trim().toUpperCase() === normalized && typeof v === 'string') {
+          return v;
+        }
+      }
+    }
+  } catch (e) {}
+
+  // 2. Variável de ambiente direta (ex.: G1_REPLACEMENT, CNN_REPLACEMENT)
+  const envDirect = process.env[`${normalized}_REPLACEMENT`];
+  if (envDirect && envDirect.trim()) {
+    return envDirect.trim();
+  }
+
+  // 3. Variável de ambiente geral padrão para substituição de proprietário da fonte
+  const envDefault = process.env.SOURCE_OWNER_REPLACEMENT;
+  if (envDefault && envDefault.trim()) {
+    return envDefault.trim();
+  }
+
+  return null;
+}
+
+/**
+ * Em caso de citação do nome do direto proprietário da fonte dentro de parágrafos longos,
+ * substitui o nome por outro para adequação à integração externa caso haja variável configurada,
+ * preservando a continuidade e o entendimento da notícia sem quebrar o parágrafo longo.
+ */
+export function replaceSourceOwnerInLongParagraphs(text: string): string {
+  if (!text) return '';
+
+  const knownOwners = [
+    { target: 'G1', regex: /\bG1\b/g },
+    { target: 'CNN Brasil', regex: /\bCNN\s+Brasil\b/gi },
+    { target: 'CNN', regex: /\bCNN\b/g },
+    { target: 'Gazeta Esportiva', regex: /\bGazeta\s+Esportiva\b/gi },
+    { target: 'Exame', regex: /\bExame\b/gi },
+    { target: 'Abril', regex: /\bEditora\s+Abril\b|\bAbril\b/gi },
+  ];
+
+  let result = text;
+  for (const { target, regex } of knownOwners) {
+    const replacement = getSourceOwnerReplacement(target);
+    if (replacement) {
+      result = result.replace(regex, replacement);
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Remove qualquer frase isolada que contenha a menção ao termo G1 ou marcas de fontes.
+ * Em parágrafos longos e conectados, caso haja uma variável de substituição configurada,
+ * substitui o termo para não quebrar o entendimento da notícia.
  */
 export function removeG1Sentences(text: string): string {
   if (!text) return '';
@@ -19,6 +84,8 @@ export function removeG1Sentences(text: string): string {
     .replace(/\s*\(Foto:\s*[^)]*G1[^)]*\)/gi, '')
     .replace(/\s*\(Vídeo:\s*[^)]*G1[^)]*\)/gi, '');
 
+  const g1Replacement = getSourceOwnerReplacement('G1');
+
   // 2. Divisão e filtragem por parágrafos
   const paragraphs = cleaned.split(/\n+/);
   const cleanedParagraphs = paragraphs
@@ -28,7 +95,13 @@ export function removeG1Sentences(text: string): string {
         return paragraph.trim();
       }
 
-      // Se contém G1, divide em frases/sentenças por pontuação (. ! ? e quebras)
+      // Parágrafo longo (mais de 140 caracteres) e existe variável de substituição:
+      // Mantém a coesão substituindo o termo pelo valor da variável configurada
+      if (g1Replacement && paragraph.length >= 140) {
+        return paragraph.replace(/\bG1\b/g, g1Replacement).trim();
+      }
+
+      // Caso contrário, divide em frases/sentenças por pontuação (. ! ? e quebras) e elimina as sentenças que citam G1
       const sentences = paragraph.match(/[^.!?]+(?:[.!?]+|$)/g) || [paragraph];
       const keptSentences = sentences
         .map((s) => s.trim())
@@ -50,8 +123,8 @@ export function removeG1Sentences(text: string): string {
  * Pré-limpeza local com biblioteca e expressões regulares para:
  * 1. Sanitizar HTML
  * 2. Remover emojis, figurinhas e selos
- * 3. Remover chamadas de WhatsApp (grupos, canais, links)
- * 4. Remover qualquer frase ou parágrafo que mencione o termo G1
+ * 3. Remover chamadas e links para grupos de WhatsApp, canais de Telegram, perfis e redes sociais
+ * 4. Remover qualquer frase ou parágrafo que mencione o termo G1 (ou substituir em parágrafos longos se houver variável)
  * 5. Eliminar frases curtas e isoladas sem conteúdo jornalístico
  */
 export function preCleanText(rawText: string): string {
@@ -80,19 +153,35 @@ export function preCleanText(rawText: string): string {
     .replace(/(?:NOTÍCIA VERIFICADA|NOTICIA VERIFICADA|FATO VERIFICADO)\b/gi, '')
     .replace(/[✅✔☑️✓]/g, '');
 
-  // 4. Remover pedidos de WhatsApp, grupos, canais e redes
+  // 4. Remover pedidos de WhatsApp, grupos de Telegram, canais e perfis de redes sociais
   text = text
-    .replace(/(?:👉|🔗|📱|📲)?\s*(?:entre\s+no|acesse\s+o|participe\s+do|siga\s+o)\s+(?:nosso\s+)?(?:grupo|canal|comunidade)\s+(?:do\s+)?whatsapp[^\n.]*(?:\.|$)?/gi, '')
+    // WhatsApp (grupos, canais, links diretos)
+    .replace(/(?:👉|🔗|📱|📲)?\s*(?:entre\s+no|acesse\s+o|participe\s+do|siga\s+o|clique\s+para\s+entrar\s+no)\s+(?:nosso\s+)?(?:grupo|canal|comunidade)\s+(?:do\s+)?whatsapp[^\n.]*(?:\.|$)?/gi, '')
     .replace(/(?:link|acesse|clique\s+aqui)[\s:]+(?:https?:\/\/)?(?:chat\.)?whatsapp\.com\S*/gi, '')
     .replace(/https?:\/\/(?:chat\.)?whatsapp\.com\S*/gi, '')
+    // Telegram (grupos, canais, links diretos t.me)
+    .replace(/(?:👉|🔗|📱|📲)?\s*(?:entre\s+no|acesse\s+o|participe\s+do|siga\s+o)\s+(?:nosso\s+)?(?:grupo|canal|comunidade)\s+(?:do\s+)?telegram[^\n.]*(?:\.|$)?/gi, '')
+    .replace(/(?:link|acesse|clique\s+aqui)[\s:]+(?:https?:\/\/)?(?:t\.me|telegram\.me)\S*/gi, '')
+    .replace(/https?:\/\/(?:t\.me|telegram\.me)\S*/gi, '')
+    // Redes sociais em geral (Instagram, Facebook, X/Twitter, TikTok, YouTube, Threads)
+    .replace(/(?:👉|🔗|📱|📲)?\s*(?:siga|acesse|acompanhe|inscreva-se\s+em|curta)\s+(?:a|o|nosso|nossa|as)?\s*(?:redes?\s+socia(?:l|is)|p[aá]gina|perfil|canal)\s+(?:no\s+)?(?:instagram|facebook|twitter|tiktok|youtube|threads|linkedin)[^\n.]*(?:\.|$)?/gi, '')
+    .replace(/(?:siga|acompanhe)\s+no\s+(?:instagram|facebook|twitter|tiktok|youtube|threads)[^\n.]*(?:\.|$)?/gi, '')
+    .replace(/(?:siga|acompanhe)\s+nossas?\s+redes\s+sociais[^\n.]*(?:\.|$)?/gi, '')
+    .replace(/inscreva-se\s+no\s+(?:nosso\s+)?canal[^\n.]*(?:\.|$)?/gi, '')
+    // Links de redes sociais
+    .replace(/https?:\/\/(?:www\.)?(?:instagram\.com|facebook\.com|twitter\.com|x\.com|tiktok\.com|youtube\.com|threads\.net)\/[^\s<>"']+/gi, '')
+    // Chamadas genéricas de engajamento
     .replace(/para\s+não\s+perder\s+nada[^\n.]*(?:\.|$)?/gi, '')
     .replace(/dê\s+um\s+joinha[^\n.]*(?:\.|$)?/gi, '')
     .replace(/compartilhe\s+com\s+(?:amigos|familiares|todos)[^\n.]*(?:\.|$)?/gi, '');
 
-  // 5. Remover frases e menções com o termo G1
+  // 5. Substituição de proprietários de fontes em parágrafos longos caso haja variável configurada
+  text = replaceSourceOwnerInLongParagraphs(text);
+
+  // 6. Remover frases e menções com o termo G1 (e aplicar substituição em parágrafos longos se houver variável)
   text = removeG1Sentences(text);
 
-  // 6. Quebrar em parágrafos e remover frases isoladas de pouco conteúdo (frases de interferência)
+  // 7. Quebrar em parágrafos e remover frases isoladas de pouco conteúdo (frases de interferência)
   const paragraphs = text
     .split(/\n+/)
     .map((p) => p.replace(/\s+/g, ' ').trim())
@@ -101,7 +190,7 @@ export function preCleanText(rawText: string): string {
         // Frase muito curta isolada
         return false;
       }
-      if (/^(veja mais|leia também|saiba mais|clique aqui|confira|compartilhe)/i.test(p)) {
+      if (/^(veja mais|leia também|saiba mais|clique aqui|confira|compartilhe|siga|inscreva-se|faça parte)/i.test(p)) {
         return false;
       }
       return true;

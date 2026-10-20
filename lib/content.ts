@@ -455,7 +455,8 @@ export async function fetchSourceContent(
       const items: ContentItem[] = Array.isArray(rawPosts)
         ? rawPosts.map((post: any) => {
             const featuredMedia = post._embedded?.['wp:featuredmedia']?.[0]?.source_url;
-            const title = cleanText(post.title?.rendered || post.title || 'Sem título');
+            const rawTitle = cleanText(post.title?.rendered || post.title || 'Sem título');
+            const title = removeG1Sentences(rawTitle);
             const slug = post.slug ? String(post.slug).trim() : slugify(title);
 
             let img = post.jetpack_featured_media_url || featuredMedia;
@@ -477,13 +478,16 @@ export async function fetchSourceContent(
               ? fullContentText
               : (excerptText || fullContentText || '');
 
+            const cleanedDescription = preCleanText(excerptText || completeText || '');
+            const cleanedContent = preCleanText(completeText || '');
+
             return {
               id: numericId,
               title,
               slug,
               alt: title,
-              description: completeText,
-              content: completeText,
+              description: cleanedDescription,
+              content: cleanedContent,
               pubDate: post.date || post.date_gmt,
               author: post.author ? String(post.author) : undefined,
               imageUrl: img || undefined,
