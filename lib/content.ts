@@ -94,6 +94,68 @@ export function isGenericMediaTitle(title: string | undefined | null): boolean {
   return false;
 }
 
+/**
+ * Analisa se a notícia é uma chamada de vídeo / telejornal / transmissão ao vivo
+ * que veio sem conteúdo substancial (devido a incorporação falha ou post apenas com player de vídeo).
+ * Se tiver conteúdo jornalístico longo e real, ela é preservada; caso contrário, é removida da API.
+ */
+export function isVideoBroadcastWithoutContent(
+  title: string | undefined | null,
+  content: string | undefined | null,
+  description: string | undefined | null
+): boolean {
+  const rawTitle = (title || '').trim();
+  const rawContent = (content || '').trim();
+  const rawDesc = (description || '').trim();
+
+  // Calcular o comprimento real do texto explicativo/jornalístico além do título
+  const textBody = rawContent.length > rawDesc.length ? rawContent : rawDesc;
+  // Subtrair o título do texto de forma segura sem falha de regex
+  let cleanBodyWithoutTitle = textBody;
+  if (rawTitle) {
+    cleanBodyWithoutTitle = cleanBodyWithoutTitle.split(rawTitle).join('').trim();
+  }
+
+  // Se o conteúdo textual for longo e consistente (mais de 180 caracteres reais), mantém na API
+  if (cleanBodyWithoutTitle.length >= 180) {
+    return false;
+  }
+
+  // 1. Padrões característicos no título que indicam compilados de vídeos, telejornais ou íntegras/ao vivo
+  const videoTitlePatterns = [
+    /^\s*V[ÍI]DEOS?\s*:/i,
+    /^\s*ASSISTA\s*:/i,
+    /^\s*AO\s+VIVO\s*:/i,
+    /\b(?:assista\s+(?:aos?|à|ao|as)?\s*(?:v[íi]deos|telejornais|programas?|transmiss[ãa]o|programa[çc][ãa]o))\b/i,
+    /\b(?:assista\s+ao\s+vivo|acompanhe\s+ao\s+vivo|veja\s+ao\s+vivo)\b/i,
+    /\b(?:veja\s+os\s+v[íi]deos|confira\s+os\s+v[íi]deos)\b/i,
+    /\b(?:jornal\s+anhanguera|jornal\s+do\s+almo[çc]o|bom\s+dia\s+[a-zà-ú\s]+|jl[12]|bdp|nsc\s+not[íi]cias|jornal\s+nacional|jornal\s+hoje|fant[áa]stico|globo\s+rural|jornal\s+da\s+globo|globo\s+esporte)\b.*(?:de\s+\w+-feira|de\s+\d+\s+de)/i,
+    /\b(?:[12]ª\s+edi[çc][ãa]o|edi[çc][ãa]o\s+das\s+\d+h)\b.*(?:de\s+\w+-feira|de\s+\d+\s+de)/i,
+    /\b(?:íntegra|integra)\s+do\s+(?:telejornal|programa)\b/i,
+    /\b(?:ao\s+vivo:\s*assista|ao\s+vivo\s*-\s*assista)\b/i,
+    /\b(?:tv\s+[a-zà-ú\s]+\s+ao\s+vivo:\s*assista)\b/i,
+  ];
+
+  const hasVideoTitle = videoTitlePatterns.some((pattern) => pattern.test(rawTitle));
+
+  // 2. Padrões no corpo que indicam chamadas vazias de vídeo / transmissão
+  const hasVideoBodyOnly =
+    cleanBodyWithoutTitle.length < 120 &&
+    /(?:assista|vídeo|veja|confira|íntegra|reprodução|g1|ao vivo)/i.test(cleanBodyWithoutTitle);
+
+  if (hasVideoTitle) {
+    // É uma notícia com título de vídeo/telejornal e sem corpo jornalístico longo
+    return true;
+  }
+
+  // Notícia com título genérico e corpo que é apenas pedido de "assista ao vídeo" ou quase vazio
+  if (cleanBodyWithoutTitle.length < 60 && /(?:assista|vídeo|play|ao vivo|telejornal)/i.test(rawTitle + ' ' + cleanBodyWithoutTitle)) {
+    return true;
+  }
+
+  return false;
+}
+
 export function extractPostContextFromLink(link: string | undefined): { postSlug?: string; postTitle?: string } {
   if (!link) return {};
   try {
@@ -124,11 +186,14 @@ export function extractPostContextFromLink(link: string | undefined): { postSlug
 
 export function stripHtmlToParagraphs(html: string | undefined | null): string {
   if (!html) return '';
-  let clean = html.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
+  let clean = html
+    .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/gi, '$1')
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
   clean = clean.replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '');
   clean = clean.replace(/<\/(p|div|h[1-6]|li|blockquote|tr|article|section)>/gi, '\n\n');
   clean = clean.replace(/<br\s*\/?>/gi, '\n');
   clean = clean.replace(/<[^>]+>/g, ' ');
+  clean = clean.replace(/<!\[CDATA\[|\]\]>/g, '');
   try {
     clean = he.decode(clean);
   } catch (e) {}
@@ -264,7 +329,8 @@ export function parseRssFeed(xml: string): { feed: any; items: ContentItem[] } {
       categories: categories.length > 0 ? categories : undefined,
       imageUrl: imageUrl || undefined,
     };
-  });
+  })
+  .filter((item) => !isVideoBroadcastWithoutContent(item.title, item.content, item.description));
 
   return { feed, items };
 }
@@ -493,6 +559,7 @@ export async function fetchSourceContent(
               imageUrl: img || undefined,
             };
           })
+          .filter((item) => !isVideoBroadcastWithoutContent(item.title, item.content, item.description))
         : [];
 
       const dedupedItems = deduplicateImages(items);
@@ -551,7 +618,11 @@ export async function fetchSourceContent(
         })
       );
 
-      const dedupedItems = deduplicateImages(itemsWithAiClean);
+      const validAiItems = itemsWithAiClean.filter(
+        (item) => !isVideoBroadcastWithoutContent(item.title, item.content, item.description)
+      );
+
+      const dedupedItems = deduplicateImages(validAiItems);
 
       return {
         source,
@@ -753,7 +824,7 @@ export async function fetchMediaContent(
               imageUrl: imageUrl || undefined,
             };
           })
-          .filter((item) => Boolean(item.imageUrl))
+          .filter((item) => Boolean(item.imageUrl) && !isVideoBroadcastWithoutContent(item.title, item.content, item.description))
       : [];
 
     // Eliminar repetições de imagens no mesmo endpoint para garantir imagem única por notícia
