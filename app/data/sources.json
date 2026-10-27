@@ -18,6 +18,15 @@
       "active": true,
       "mediaUrl": "https://infoeducacao.com.br/wp-json/wp/v2/media"
     },
+     {
+      "id": 5183624795316,
+      "category": "Esporte",
+      "site": "exame.com",
+      "type": "wp-api",
+      "url": "https://classic.exame.com/wp-json/wp/v2/posts?categories=10889",
+      "active": true,
+      "mediaUrl": "https://classic.exame.com/wp-json/wp/v2/media?categories=10889"
+    },
     {
       "id": 9482399189391,
       "category": "Justiça",
@@ -102,7 +111,7 @@
     {
       "id": 6389841444633,
       "category": "Palmeiras",
-      "site": "palmeiras.com.br",
+      "site": "cnnbrasil.com.b",
       "type": "wp-api",
       "url": "https://admin.cnnbrasil.com.br/wp-json/wp/v2/posts?categories=56112",
       "active": true,
