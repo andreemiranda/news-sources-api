@@ -104,9 +104,9 @@
       "category": "Palmeiras",
       "site": "palmeiras.com.br",
       "type": "wp-api",
-      "url": "https://www.palmeiras.com.br/wp-json/wp/v2/posts",
+      "url": "https://admin.cnnbrasil.com.br/wp-json/wp/v2/posts?categories=56112",
       "active": true,
-      "mediaUrl": "https://www.palmeiras.com.br/wp-json/wp/v2/media"
+      "mediaUrl": "https://admin.cnnbrasil.com.br/wp-json/wp/v2/media?categories=56112"
     },
     {
       "id": 8346116142997,
