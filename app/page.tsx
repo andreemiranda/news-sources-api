@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { getAllSources, getAllMediaSources, getCategories, getTypes, getBaseUrl, getBaseDomain } from '@/lib/sources';
 import Link from 'next/link';
 import { BookOpen, KeyRound, ShieldAlert, CheckCircle2 } from 'lucide-react';

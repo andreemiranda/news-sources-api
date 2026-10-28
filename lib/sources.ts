@@ -62,18 +62,28 @@ export function isValidId(id: number | string | undefined | null): boolean {
 }
 
 export function getSourcesData(): SourcesData {
-  try {
-    const filePath = path.join(process.cwd(), 'app', 'data', 'sources.json');
-    if (fs.existsSync(filePath)) {
-      const fileContent = fs.readFileSync(filePath, 'utf8');
-      const data = JSON.parse(fileContent) as SourcesData;
-      if (data && Array.isArray(data.sources)) {
-        return data;
+  const possiblePaths = [
+    path.join(process.cwd(), 'app', 'data', 'sources.json'),
+    path.join(process.cwd(), '.next', 'server', 'app', 'data', 'sources.json'),
+    path.join(__dirname, '..', 'app', 'data', 'sources.json'),
+    path.join(__dirname, '..', 'data', 'sources.json'),
+  ];
+
+  for (const filePath of possiblePaths) {
+    try {
+      if (fs.existsSync(filePath)) {
+        const fileContent = fs.readFileSync(filePath, 'utf8');
+        const data = JSON.parse(fileContent) as SourcesData;
+        if (data && Array.isArray(data.sources) && data.sources.length > 0) {
+          return data;
+        }
       }
+    } catch (e) {
+      // Continue to next path or bundled data
     }
-  } catch (error) {
-    // In production/serverless environments, fallback to bundled data
   }
+
+  // Fallback direct to bundled rawSourcesData imported at build time
   return (rawSourcesData as unknown as SourcesData) || { sources: [] };
 }
 
