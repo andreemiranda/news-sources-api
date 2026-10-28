@@ -1,5 +1,6 @@
 import sanitizeHtml from 'sanitize-html';
 import crypto from 'crypto';
+import { getEnv } from '@/src/config/env';
 
 // In-memory cache to prevent overloading free Pollinations API and keep responses fast
 const textCleanCache = new Map<string, string>();
@@ -12,30 +13,29 @@ const MAX_CACHE_SIZE = 1000;
  */
 export function getSourceOwnerReplacement(name: string): string | null {
   const normalized = name.trim().toUpperCase();
+  const config = getEnv();
 
   // 1. Variável de mapeamento JSON customizada
-  try {
-    const rawMap = process.env.SOURCE_OWNER_REPLACEMENTS || process.env.SOURCE_NAME_REPLACEMENTS;
-    if (rawMap) {
-      const parsed = JSON.parse(rawMap);
-      for (const [k, v] of Object.entries(parsed)) {
-        if (k.trim().toUpperCase() === normalized && typeof v === 'string') {
-          return v;
-        }
+  if (config.SOURCE_OWNER_REPLACEMENTS) {
+    for (const [k, v] of Object.entries(config.SOURCE_OWNER_REPLACEMENTS)) {
+      if (k.trim().toUpperCase() === normalized && typeof v === 'string') {
+        return v;
       }
     }
-  } catch (e) {}
+  }
 
   // 2. Variável de ambiente direta (ex.: G1_REPLACEMENT, CNN_REPLACEMENT)
+  if (normalized === 'G1' && config.G1_REPLACEMENT) {
+    return config.G1_REPLACEMENT;
+  }
   const envDirect = process.env[`${normalized}_REPLACEMENT`];
   if (envDirect && envDirect.trim()) {
     return envDirect.trim();
   }
 
   // 3. Variável de ambiente geral padrão para substituição de proprietário da fonte
-  const envDefault = process.env.SOURCE_OWNER_REPLACEMENT;
-  if (envDefault && envDefault.trim()) {
-    return envDefault.trim();
+  if (config.SOURCE_OWNER_REPLACEMENT) {
+    return config.SOURCE_OWNER_REPLACEMENT;
   }
 
   return null;
@@ -231,10 +231,11 @@ export async function processarEConfigurarNoticia(textoNoticia: string): Promise
     return textCleanCache.get(cacheKey)!;
   }
 
-  // 1. Definição das variáveis de ambiente
-  const API_KEY = typeof process !== 'undefined' ? process.env.AI_API_KEY || '' : '';
-  const ENDPOINT = typeof process !== 'undefined' ? process.env.AI_ENDPOINT || '' : '';
-  const MODELO = typeof process !== 'undefined' ? process.env.AI_MODEL || '' : '';
+  // 1. Definição das variáveis de ambiente centralizadas
+  const config = getEnv();
+  const API_KEY = config.AI_API_KEY || '';
+  const ENDPOINT = config.AI_ENDPOINT || '';
+  const MODELO = config.AI_MODEL || '';
 
   // Instrução do sistema especializada em limpar o texto conforme as regras
   const systemPrompt =

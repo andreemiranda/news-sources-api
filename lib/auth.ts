@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getEnv } from '@/src/config/env';
 
 function safeCompare(provided: string, expected: string): boolean {
   const cleanProvided = provided.trim();
@@ -13,7 +14,7 @@ function safeCompare(provided: string, expected: string): boolean {
 }
 
 export function getApiKey(): string {
-  return (process.env.API_KEY || '').trim();
+  return getEnv().API_KEY;
 }
 
 export function validateApiKey(req: NextRequest): boolean {

@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: news-media-api
+    env: node
+    plan: starter
+    region: oregon
+    buildCommand: npm install && npm run build
+    startCommand: npm run start
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: API_KEY
+        sync: false
+      - key: NEXT_PUBLIC_BASE_URL
+        sync: false

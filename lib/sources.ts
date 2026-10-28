@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
 import rawSourcesData from '@/app/data/sources.json';
+import { getEnv } from '@/src/config/env';
 
 export interface Source {
   id: number | string;
@@ -189,7 +190,7 @@ export function getStats() {
 }
 
 export function getBaseUrl(req?: Request): string {
-  const envUrl = process.env.NEXT_PUBLIC_BASE_URL;
+  const envUrl = getEnv().NEXT_PUBLIC_BASE_URL;
   if (envUrl && envUrl.trim()) {
     let clean = envUrl.trim().replace(/\/+$/, '');
     if (!clean.startsWith('http://') && !clean.startsWith('https://')) {
