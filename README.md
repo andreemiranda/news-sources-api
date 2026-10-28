@@ -80,7 +80,7 @@ https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/images/
 
 **Exemplo com chave preenchida:**
 ```text
-https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/images/1216294345584?page=1&api_key=bn_88feb5baa3f84955677e8c11453aae352811b9fe6c3398cd
+https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/images/1216294345584?page=1&api_key=your_api_key_here
 ```
 
 #### Alternativas recomendadas via Headers (URL limpa):
