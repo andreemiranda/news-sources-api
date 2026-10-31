@@ -403,6 +403,65 @@ export default async function Home() {
           },
         },
       },
+      '/sync': {
+        get: {
+          tags: ['Synchronization'],
+          summary: 'Monitor WordPress API connection & on-demand sync',
+          description: 'Monitoramento ao vivo da conexão com a API REST do WordPress. Informa latência, status, total de publicações e a matéria mais recente. Adicione ?action=sync para forçar sincronização imediata.',
+          parameters: [
+            {
+              name: 'action',
+              in: 'query',
+              description: 'Passe "sync" para forçar revalidação e recarga imediata de todos os dados',
+              schema: { type: 'string', enum: ['sync'] },
+            },
+          ],
+          responses: {
+            '200': { description: 'Status de conexão e estatísticas em tempo real' },
+          },
+        },
+      },
+      '/revalidate': {
+        get: {
+          tags: ['Synchronization'],
+          summary: 'Webhook de revalidação instantânea (GET)',
+          description: 'Revalida instantaneamente caches ISR após publicação no WordPress usando secret token.',
+          parameters: [
+            {
+              name: 'secret',
+              in: 'query',
+              required: true,
+              description: 'Token secreto de revalidação (ex: camara-paraiso-revalidate-secret-token)',
+              schema: { type: 'string', example: 'camara-paraiso-revalidate-secret-token' },
+            },
+            {
+              name: 'all',
+              in: 'query',
+              description: 'Se true, revalida todas as rotas e tags em background',
+              schema: { type: 'boolean', example: true },
+            },
+            {
+              name: 'slug',
+              in: 'query',
+              description: 'Slug da matéria ou página para revalidar especificamente',
+              schema: { type: 'string' },
+            },
+          ],
+          responses: {
+            '200': { description: 'Revalidação efetuada com sucesso' },
+            '401': { description: 'Token de segredo inválido' },
+          },
+        },
+        post: {
+          tags: ['Synchronization'],
+          summary: 'Webhook de revalidação instantânea (POST / WP Webhooks)',
+          description: 'Recebe payloads JSON de plugins do WordPress (como WP Webhooks) para revalidar conteúdo e página inicial instantaneamente.',
+          responses: {
+            '200': { description: 'Revalidação efetuada com sucesso' },
+            '401': { description: 'Token de segredo inválido' },
+          },
+        },
+      },
     },
   };
 

@@ -5,9 +5,6 @@ const nextConfig = {
   compress: true,
   productionBrowserSourceMaps: false,
   output: 'standalone',
-  experimental: {
-    esmExternals: 'loose',
-  },
   async rewrites() {
     return [
       {
@@ -37,6 +34,14 @@ const nextConfig = {
       {
         source: '/stats',
         destination: '/api/stats',
+      },
+      {
+        source: '/revalidate',
+        destination: '/api/revalidate',
+      },
+      {
+        source: '/sync',
+        destination: '/api/sync',
       },
       {
         source: '/openapi.json',

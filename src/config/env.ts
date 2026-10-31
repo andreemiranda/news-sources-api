@@ -15,6 +15,8 @@ export interface EnvConfig {
   G1_REPLACEMENT?: string;
   SOURCE_OWNER_REPLACEMENT?: string;
   SOURCE_OWNER_REPLACEMENTS?: Record<string, string>;
+  REVALIDATE_SECRET: string;
+  WP_API_URL?: string;
 }
 
 function parsePort(val: string | undefined, defaultPort = 3000): number {
@@ -23,21 +25,52 @@ function parsePort(val: string | undefined, defaultPort = 3000): number {
   return isNaN(parsed) || parsed <= 0 ? defaultPort : parsed;
 }
 
-function parseJsonMap(raw: string | undefined): Record<string, string> | undefined {
+function parseReplacementMap(raw: string | undefined): Record<string, string> | undefined {
   if (!raw || !raw.trim()) return undefined;
-  try {
-    const parsed = JSON.parse(raw);
-    if (typeof parsed === 'object' && parsed !== null) {
-      const result: Record<string, string> = {};
-      for (const [k, v] of Object.entries(parsed)) {
-        if (typeof v === 'string') result[k.trim().toUpperCase()] = v;
+  const trimmed = raw.trim();
+
+  // 1. JSON format: {"G1": "NormaJurídica", "CNN": "Outro"}
+  if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (typeof parsed === 'object' && parsed !== null) {
+        const result: Record<string, string> = {};
+        for (const [k, v] of Object.entries(parsed)) {
+          if (typeof v === 'string') result[k.trim().toUpperCase()] = v;
+        }
+        return result;
       }
+    } catch {
+      // Continue to key-value or plain string fallback
+    }
+  }
+
+  // 2. Delimited key-value format: G1=NormaJurídica, CNN=Portal or G1:NormaJurídica
+  if (trimmed.includes('=') || (trimmed.includes(':') && !trimmed.startsWith('http'))) {
+    const pairs = trimmed.split(/[,;\n]+/);
+    const result: Record<string, string> = {};
+    let hasPair = false;
+    for (const pair of pairs) {
+      const sep = pair.includes('=') ? '=' : ':';
+      const [k, ...rest] = pair.split(sep);
+      const key = k?.trim();
+      const val = rest.join(sep).trim();
+      if (key && val) {
+        result[key.toUpperCase()] = val;
+        hasPair = true;
+      }
+    }
+    if (hasPair) {
       return result;
     }
-  } catch (err) {
-    console.warn('[Env] Failed to parse JSON replacement map from env:', err);
   }
-  return undefined;
+
+  // 3. Plain text replacement string (e.g. "NormaJurídica")
+  // Automatically maps as DEFAULT and common source owners
+  return {
+    DEFAULT: trimmed,
+    G1: trimmed,
+  };
 }
 
 export function getEnv(): EnvConfig {
@@ -62,8 +95,10 @@ export function getEnv(): EnvConfig {
     G1_REPLACEMENT: process.env.G1_REPLACEMENT?.trim(),
     SOURCE_OWNER_REPLACEMENT: process.env.SOURCE_OWNER_REPLACEMENT?.trim(),
     SOURCE_OWNER_REPLACEMENTS:
-      parseJsonMap(process.env.SOURCE_OWNER_REPLACEMENTS) ||
-      parseJsonMap(process.env.SOURCE_NAME_REPLACEMENTS),
+      parseReplacementMap(process.env.SOURCE_OWNER_REPLACEMENTS) ||
+      parseReplacementMap(process.env.SOURCE_NAME_REPLACEMENTS),
+    REVALIDATE_SECRET: process.env.REVALIDATE_SECRET?.trim() || 'camara-paraiso-revalidate-secret-token',
+    WP_API_URL: (process.env.WP_API_URL || process.env.WORDPRESS_API_URL)?.trim(),
   };
 }
 

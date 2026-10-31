@@ -22,6 +22,9 @@ export function getSourceOwnerReplacement(name: string): string | null {
         return v;
       }
     }
+    if (config.SOURCE_OWNER_REPLACEMENTS.DEFAULT) {
+      return config.SOURCE_OWNER_REPLACEMENTS.DEFAULT;
+    }
   }
 
   // 2. Variável de ambiente direta (ex.: G1_REPLACEMENT, CNN_REPLACEMENT)

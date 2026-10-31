@@ -129,3 +129,45 @@ A aplicação está configurada para deploy contínuo e sem servidor no Netlify:
 3. **Variáveis de Ambiente:**
    - Cadastre `API_KEY` com a senha desejada para proteger os endpoints.
    - Opcionalmente cadastre `NEXT_PUBLIC_BASE_URL` caso utilize domínio personalizado.
+   - Opcionalmente cadastre `REVALIDATE_SECRET` (padrão: `camara-paraiso-revalidate-secret-token`).
+
+---
+
+## Sincronização Contínua e Atualização Automática
+
+### 1. ISR em Segundo Plano (20 segundos)
+- O Next.js utiliza revalidação de 20 segundos (`revalidate: 20`) tanto nas consultas à API quanto nas rotas estáticas.
+- A cada 20 segundos, o app verifica automaticamente novidades na API REST e no arquivo de fontes (`sources.json`), atualizando dados em segundo plano sem necessidade de recompilação.
+
+### 2. Webhook de Revalidação Instantânea (`/api/revalidate`)
+Aceita requisições **GET** e **POST** autenticadas pelo secret token:
+
+- **Revalidação Geral de Todos os Caches:**
+  ```text
+  GET /api/revalidate?secret=camara-paraiso-revalidate-secret-token&all=true
+  ```
+
+- **Revalidação Específica por Matéria / Slug (compatível com WP Webhooks):**
+  ```bash
+  curl -X POST "https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/revalidate" \
+    -H "Content-Type: application/json" \
+    -d '{
+      "secret": "camara-paraiso-revalidate-secret-token",
+      "slug": "titulo-da-materia",
+      "type": "post"
+    }'
+  ```
+
+### 3. Painel de Status e Sincronização sob Demanda (`/api/sync`)
+- **Monitoramento em Tempo Real:**
+  ```text
+  GET /api/sync
+  ```
+  Informa status da conexão ao vivo, latência em ms, total de publicações na API e dados do post mais recente.
+
+- **Forçar Sincronização Imediata:**
+  ```text
+  GET /api/sync?action=sync
+  ```
+  Invalida todos os caches e força recarga imediata dos dados na hora.
+

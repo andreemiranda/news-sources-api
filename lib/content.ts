@@ -38,6 +38,7 @@ export interface FetchOptions {
   limit?: number;
   search?: string;
   raw?: boolean;
+  bypassCache?: boolean;
 }
 
 export function cleanText(input: string | undefined | null): string {
@@ -342,7 +343,8 @@ async function resilientFetch(
   url: string,
   site: string,
   isJson: boolean = true,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  bypassCache: boolean = false
 ): Promise<Response> {
   const refererUrl = site.startsWith('http') ? site : `https://${site}/`;
 
@@ -357,12 +359,16 @@ async function resilientFetch(
     'sec-ch-ua-platform': '"Windows"',
   };
 
+  const fetchInit: RequestInit = bypassCache
+    ? { headers: standardHeaders, signal, cache: 'no-store' }
+    : {
+        headers: standardHeaders,
+        signal,
+        next: { revalidate: 20, tags: ['news', 'sources', 'wordpress', 'content'] },
+      };
+
   try {
-    const res = await fetch(url, {
-      headers: standardHeaders,
-      signal,
-      cache: 'no-store',
-    });
+    const res = await fetch(url, fetchInit);
 
     if (res.ok) {
       return res;
@@ -385,12 +391,16 @@ async function resilientFetch(
     'Referer': refererUrl,
   };
 
+  const crawlerInit: RequestInit = bypassCache
+    ? { headers: crawlerHeaders, signal, cache: 'no-store' }
+    : {
+        headers: crawlerHeaders,
+        signal,
+        next: { revalidate: 20, tags: ['news', 'sources', 'wordpress', 'content'] },
+      };
+
   try {
-    const res2 = await fetch(url, {
-      headers: crawlerHeaders,
-      signal,
-      cache: 'no-store',
-    });
+    const res2 = await fetch(url, crawlerInit);
 
     if (res2.ok) {
       return res2;
@@ -398,15 +408,15 @@ async function resilientFetch(
 
     // Tier 3: Facebook External Hit
     if (res2.status === 403 || res2.status === 401 || res2.status === 503) {
-      const res3 = await fetch(url, {
-        headers: {
-          'User-Agent': 'facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)',
-          'Accept': isJson ? 'application/json, */*' : '*/*',
-          'Referer': refererUrl,
-        },
-        signal,
-        cache: 'no-store',
-      });
+      const fbHeaders: Record<string, string> = {
+        'User-Agent': 'facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)',
+        'Accept': isJson ? 'application/json, */*' : '*/*',
+        'Referer': refererUrl,
+      };
+      const res3 = await fetch(url, bypassCache
+        ? { headers: fbHeaders, signal, cache: 'no-store' }
+        : { headers: fbHeaders, signal, next: { revalidate: 20, tags: ['news', 'sources', 'wordpress', 'content'] } }
+      );
       return res3;
     }
 
@@ -427,6 +437,8 @@ export async function fetchSourceContent(
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 14000);
 
+  const bypassCache = Boolean(options.bypassCache);
+
   try {
     if (source.type === 'wp-api') {
       const urlObj = new URL(source.url);
@@ -440,7 +452,7 @@ export async function fetchSourceContent(
       let response: Response | undefined;
       let primaryError: any;
       try {
-        response = await resilientFetch(urlObj.toString(), source.site, true, controller.signal);
+        response = await resilientFetch(urlObj.toString(), source.site, true, controller.signal, bypassCache);
       } catch (e: any) {
         primaryError = e;
       }
@@ -576,7 +588,7 @@ export async function fetchSourceContent(
       };
     } else {
       // RSS Feed source
-      const response = await resilientFetch(source.url, source.site, false, controller.signal);
+      const response = await resilientFetch(source.url, source.site, false, controller.signal, bypassCache);
       clearTimeout(timeoutId);
 
       if (!response.ok) {
@@ -652,10 +664,11 @@ export async function fetchMediaContent(
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 14000);
+  const bypassCache = Boolean(options.bypassCache);
 
   try {
     if (mediaSource.type === 'rss') {
-      const feedData = await fetchSourceContent(mediaSource, { page: 1, limit: 100, search });
+      const feedData = await fetchSourceContent(mediaSource, { page: 1, limit: 100, search, bypassCache });
       clearTimeout(timeoutId);
 
       const uniqueRssMediaItems: ContentItem[] = [];
@@ -709,7 +722,7 @@ export async function fetchMediaContent(
     let response: Response | undefined;
     let primaryError: any;
     try {
-      response = await resilientFetch(urlObj.toString(), mediaSource.site, true, controller.signal);
+      response = await resilientFetch(urlObj.toString(), mediaSource.site, true, controller.signal, bypassCache);
     } catch (e: any) {
       primaryError = e;
     }
