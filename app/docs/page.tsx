@@ -13,19 +13,22 @@ export default function DocsPage() {
   const [isMounted, setIsMounted] = useState(false);
   const rapidocRef = useRef<HTMLElement | null>(null);
 
-  const envBaseUrl = process.env.NEXT_PUBLIC_BASE_URL;
+  const envBaseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_BASE_URL;
   const [baseDomain, setBaseDomain] = useState(() => {
     if (envBaseUrl && envBaseUrl.trim()) {
       return envBaseUrl.trim().replace(/^https?:\/\//, '').replace(/\/.*$/, '');
     }
-    return 'ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app';
+    if (typeof window !== 'undefined' && window.location?.host) {
+      return window.location.host;
+    }
+    return '';
   });
 
   useEffect(() => {
-    if (!envBaseUrl && typeof window !== 'undefined' && window.location.host) {
+    if (typeof window !== 'undefined' && window.location?.host) {
       setBaseDomain(window.location.host);
     }
-  }, [envBaseUrl]);
+  }, []);
 
   useEffect(() => {
     setIsMounted(true);

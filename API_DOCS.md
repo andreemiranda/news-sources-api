@@ -3,7 +3,7 @@
 Esta documentação técnica descreve a arquitetura unificada, os endpoints, modelos de autenticação e parâmetros de consulta da **News & Media Sources API**.
 
 > **Domínio Base Configurado (`NEXT_PUBLIC_BASE_URL`):**
-> `https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app`
+> `{APP_URL}`
 > *(Ao fazer deploy no Netlify ou utilizar domínio próprio, configure o valor na variável `NEXT_PUBLIC_BASE_URL` para atualizar todos os exemplos e gateways automaticamente).*
 
 ---
@@ -16,8 +16,8 @@ Todas as fontes e endpoints de conteúdo estão centralizados exclusivamente no 
 - **Identificador Único (ID de 13 dígitos sem o número 0):** O mesmo ID de fonte identifica tanto o endpoint de notícias quanto o endpoint de imagens/mídias.
   - Formato estrito: exatamente 13 dígitos numéricos contendo apenas números de 1 a 9 (sem o zero).
   - Exemplo: Portal `clebertoledo.com.br` possui o ID unificado `6571187291942`.
-  - Notícias: `GET https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/news/6571187291942`
-  - Imagens: `GET https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/images/6571187291942`
+  - Notícias: `GET {APP_URL}/api/news/6571187291942`
+  - Imagens: `GET {APP_URL}/api/images/6571187291942`
 - **Isolamento de Backend e Limpeza de Tags:**
   - As tags internas de backend (`site`, `url`, `mediaUrl`, `link`) são restritas ao backend e não são expostas nos endpoints públicos.
   - As tags `slug` e `alt` não são incluídas nos endpoints iniciais de listagem de fontes (`/api/images` e `/api/news`), mantendo a estrutura inicial limpa e sem tags redundantes.
@@ -36,7 +36,7 @@ Todas as fontes e endpoints de conteúdo estão centralizados exclusivamente no 
 
 ## 2. Autenticação Global
 
-Com exceção única da rota de verificação de saúde (`https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/health`), todos os endpoints exigem validação de chave de acesso.
+Com exceção única da rota de verificação de saúde (`{APP_URL}/api/health`), todos os endpoints exigem validação de chave de acesso.
 
 A autenticação pode ser enviada por qualquer uma das três formas abaixo:
 
@@ -50,7 +50,7 @@ A autenticação pode ser enviada por qualquer uma das três formas abaixo:
    ```
 3. **Query Parameter na URL:**
    ```http
-   https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/news?api_key=<sua-chave>
+   {APP_URL}/api/news?api_key=<sua-chave>
    ```
 
 > **Segurança:** A chave de API nunca é exposta no código-fonte. Em produção no Netlify, ela é lida diretamente da variável de ambiente `API_KEY`.
@@ -79,12 +79,12 @@ Os endpoints de conteúdo em tempo real retornam uma lista direta de itens (`[ .
 A URL correta deve utilizar o caractere `&` para separar os parâmetros da query string (em vez de um segundo `?`):
 
 ```text
-https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/images/1216294345584?page=1&api_key=<key>
+{APP_URL}/api/images/1216294345584?page=1&api_key=<key>
 ```
 
 **Exemplo com chave preenchida:**
 ```text
-https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/images/1216294345584?page=1&api_key=your_api_key_here
+{APP_URL}/api/images/1216294345584?page=1&api_key=your_api_key_here
 ```
 
 #### Alternativas recomendadas via Headers (URL limpa):
@@ -92,7 +92,7 @@ Para maior segurança e evitar expor a chave de API no histórico do navegador o
 
 **URL:**
 ```text
-https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/images/1216294345584?page=1
+{APP_URL}/api/images/1216294345584?page=1
 ```
 
 **Header (Opção 1 - Bearer):**
@@ -113,26 +113,26 @@ x-api-key: <key>
 
 - **Listar Todas as Fontes de Notícias:**
   ```http
-  GET https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/news?page=1&limit=20&category=Tocantins
+  GET {APP_URL}/api/news?page=1&limit=20&category=Tocantins
   ```
 - **Conteúdo em Tempo Real de uma Fonte:**
   ```http
-  GET https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/news/{id}?page=1&limit=10&search=educacao
+  GET {APP_URL}/api/news/{id}?page=1&limit=10&search=educacao
   ```
 - **Filtrar Fontes por Categoria:**
   ```http
-  GET https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/news/category/{categoria}
+  GET {APP_URL}/api/news/category/{categoria}
   ```
 
 ### 4.2. Mídias e Imagens
 
 - **Listar Fontes com Mídia Ativa:**
   ```http
-  GET https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/images
+  GET {APP_URL}/api/images
   ```
 - **Uploads e Imagens em Tempo Real de uma Fonte:**
   ```http
-  GET https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/images/{id}?page=1&limit=10
+  GET {APP_URL}/api/images/{id}?page=1&limit=10
   ```
   *Também suporta passagem direta via query param:* `GET /api/images?id={id}&limit=10`
 
@@ -164,19 +164,19 @@ Cada item retornado inclui as tags **`slug`** (contendo o slug exato da notícia
 
 - **Categorias Disponíveis:**
   ```http
-  GET https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/categories
+  GET {APP_URL}/api/categories
   ```
 - **Tipos de Fontes (`wp-api` e `rss`):**
   ```http
-  GET https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/types
+  GET {APP_URL}/api/types
   ```
 - **Estatísticas Globais:**
   ```http
-  GET https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/stats
+  GET {APP_URL}/api/stats
   ```
 - **Health Check (Público):**
   ```http
-  GET https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/health
+  GET {APP_URL}/api/health
   ```
 
 ---
@@ -187,35 +187,35 @@ Abaixo estão listadas fontes ativas configuradas no `app/data/sources.json`:
 
 | ID Unificado | Categoria | Portal / Site | Tipo | Endpoint de Notícias | Endpoint de Mídia |
 |---|---|---|---|---|---|
-| `528374619283746` | Justiça | ambitojuridico.com.br | `wp-api` | `GET https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/news/528374619283746` | `GET https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/images/528374619283746` |
-| `194728365019283` | Justiça | justa.org.br | `wp-api` | `GET https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/news/194728365019283` | `GET https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/images/194728365019283` |
-| `736482910573649` | Justiça | odireito.com | `wp-api` | `GET https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/news/736482910573649` | `GET https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/images/736482910573649` |
-| `813947265038471` | Justiça | rotajuridica.com.br | `wp-api` | `GET https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/news/813947265038471` | `GET https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/images/813947265038471` |
-| `383841537673882` | Tocantins | clebertoledo.com.br | `wp-api` | `GET https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/news/383841537673882` | `GET https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/images/383841537673882` |
-| `893766336492326` | Educação | infoeducacao.com.br | `wp-api` | `GET https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/news/893766336492326` | `GET https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/images/893766336492326` |
-| `119282349536522` | Justiça | nacaojuridica.com.br | `wp-api` | `GET https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/news/119282349536522` | `GET https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/images/119282349536522` |
-| `138781293968447` | Tocantins | atitudeto.com.br | `wp-api` | `GET https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/news/138781293968447` | `GET https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/images/138781293968447` |
-| `912241216478934` | Tocantins | pmwnoticias.com.br | `wp-api` | `GET https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/news/912241216478934` | `GET https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/images/912241216478934` |
-| `119319283249741` | Notícias Gerais | admin.cnnbrasil.com.br | `wp-api` | `GET https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/news/119319283249741` | `GET https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/images/119319283249741` |
-| `673832516549963` | Tocantins | gazetadocerrado.com.br | `wp-api` | `GET https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/news/673832516549963` | `GET https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/images/673832516549963` |
-| `859131619791157` | Economia | minhaseconomias.com.br | `wp-api` | `GET https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/news/859131619791157` | `GET https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/images/859131619791157` |
-| `331649958919499` | Esporte | gazetaesportiva.com | `wp-api` | `GET https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/news/331649958919499` | `GET https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/images/331649958919499` |
-| `263228425877841` | Notícias Gerais | vocesa.abril.com.br | `wp-api` | `GET https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/news/263228425877841` | `GET https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/images/263228425877841` |
-| `914761953262293` | Finanças | classic.exame.com | `wp-api` | `GET https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/news/914761953262293` | `GET https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/images/914761953262293` |
-| `484292183833791` | Palmeiras | palmeiras.com.br | `wp-api` | `GET https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/news/484292183833791` | `GET https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/images/484292183833791` |
-| `699842191757118` | Goiás | opiniaogoias.com.br | `wp-api` | `GET https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/news/699842191757118` | `GET https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/images/699842191757118` |
-| `431642583394448` | Goiás | portalnoticiasgoias.com.br | `wp-api` | `GET https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/news/431642583394448` | `GET https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/images/431642583394448` |
-| `232452491983424` | Goiás | diariodegoias.com.br | `wp-api` | `GET https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/news/232452491983424` | `GET https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/images/232452491983424` |
-| `382992878388555` | Justiça | conjur.com.br | `wp-api` | `GET https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/news/382992878388555` | `GET https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/images/382992878388555` |
-| `214239935451987` | Tocantins | vozdobico.com.br | `wp-api` | `GET https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/news/214239935451987` | `GET https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/images/214239935451987` |
-| `427785761975213` | Notícias Gerais | g1.globo.com | `rss` | `GET https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/news/427785761975213` | - |
+| `528374619283746` | Justiça | ambitojuridico.com.br | `wp-api` | `GET {APP_URL}/api/news/528374619283746` | `GET {APP_URL}/api/images/528374619283746` |
+| `194728365019283` | Justiça | justa.org.br | `wp-api` | `GET {APP_URL}/api/news/194728365019283` | `GET {APP_URL}/api/images/194728365019283` |
+| `736482910573649` | Justiça | odireito.com | `wp-api` | `GET {APP_URL}/api/news/736482910573649` | `GET {APP_URL}/api/images/736482910573649` |
+| `813947265038471` | Justiça | rotajuridica.com.br | `wp-api` | `GET {APP_URL}/api/news/813947265038471` | `GET {APP_URL}/api/images/813947265038471` |
+| `383841537673882` | Tocantins | clebertoledo.com.br | `wp-api` | `GET {APP_URL}/api/news/383841537673882` | `GET {APP_URL}/api/images/383841537673882` |
+| `893766336492326` | Educação | infoeducacao.com.br | `wp-api` | `GET {APP_URL}/api/news/893766336492326` | `GET {APP_URL}/api/images/893766336492326` |
+| `119282349536522` | Justiça | nacaojuridica.com.br | `wp-api` | `GET {APP_URL}/api/news/119282349536522` | `GET {APP_URL}/api/images/119282349536522` |
+| `138781293968447` | Tocantins | atitudeto.com.br | `wp-api` | `GET {APP_URL}/api/news/138781293968447` | `GET {APP_URL}/api/images/138781293968447` |
+| `912241216478934` | Tocantins | pmwnoticias.com.br | `wp-api` | `GET {APP_URL}/api/news/912241216478934` | `GET {APP_URL}/api/images/912241216478934` |
+| `119319283249741` | Notícias Gerais | admin.cnnbrasil.com.br | `wp-api` | `GET {APP_URL}/api/news/119319283249741` | `GET {APP_URL}/api/images/119319283249741` |
+| `673832516549963` | Tocantins | gazetadocerrado.com.br | `wp-api` | `GET {APP_URL}/api/news/673832516549963` | `GET {APP_URL}/api/images/673832516549963` |
+| `859131619791157` | Economia | minhaseconomias.com.br | `wp-api` | `GET {APP_URL}/api/news/859131619791157` | `GET {APP_URL}/api/images/859131619791157` |
+| `331649958919499` | Esporte | gazetaesportiva.com | `wp-api` | `GET {APP_URL}/api/news/331649958919499` | `GET {APP_URL}/api/images/331649958919499` |
+| `263228425877841` | Notícias Gerais | vocesa.abril.com.br | `wp-api` | `GET {APP_URL}/api/news/263228425877841` | `GET {APP_URL}/api/images/263228425877841` |
+| `914761953262293` | Finanças | classic.exame.com | `wp-api` | `GET {APP_URL}/api/news/914761953262293` | `GET {APP_URL}/api/images/914761953262293` |
+| `484292183833791` | Palmeiras | palmeiras.com.br | `wp-api` | `GET {APP_URL}/api/news/484292183833791` | `GET {APP_URL}/api/images/484292183833791` |
+| `699842191757118` | Goiás | opiniaogoias.com.br | `wp-api` | `GET {APP_URL}/api/news/699842191757118` | `GET {APP_URL}/api/images/699842191757118` |
+| `431642583394448` | Goiás | portalnoticiasgoias.com.br | `wp-api` | `GET {APP_URL}/api/news/431642583394448` | `GET {APP_URL}/api/images/431642583394448` |
+| `232452491983424` | Goiás | diariodegoias.com.br | `wp-api` | `GET {APP_URL}/api/news/232452491983424` | `GET {APP_URL}/api/images/232452491983424` |
+| `382992878388555` | Justiça | conjur.com.br | `wp-api` | `GET {APP_URL}/api/news/382992878388555` | `GET {APP_URL}/api/images/382992878388555` |
+| `214239935451987` | Tocantins | vozdobico.com.br | `wp-api` | `GET {APP_URL}/api/news/214239935451987` | `GET {APP_URL}/api/images/214239935451987` |
+| `427785761975213` | Notícias Gerais | g1.globo.com | `rss` | `GET {APP_URL}/api/news/427785761975213` | - |
 
 ---
 
 ## 6. Documentação Interativa RapiDoc e Swagger UI
 
-- **Swagger UI (`https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/`):** Interface visual para teste imediato de requisições com botão **Authorize**.
-- **RapiDoc (`https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/docs`):** Interface de documentação técnica baseada em Web Components para exploração profunda da especificação OpenAPI 3.0.3.
+- **Swagger UI (`{APP_URL}/`):** Interface visual para teste imediato de requisições com botão **Authorize**.
+- **RapiDoc (`{APP_URL}/docs`):** Interface de documentação técnica baseada em Web Components para exploração profunda da especificação OpenAPI 3.0.3.
 
 ---
 

@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { revalidatePath, revalidateTag } from 'next/cache';
-import { getAllSources, getAllMediaSources } from '@/lib/sources';
+import { getAllSources, getAllMediaSources, getBaseUrl } from '@/lib/sources';
 import { getEnv } from '@/src/config/env';
 import { cleanText } from '@/lib/content';
 
@@ -107,6 +107,8 @@ export async function GET(req: NextRequest) {
     errorMessage = err.message || 'Connection timeout';
   }
 
+  const baseUrl = getBaseUrl(req);
+
   // Ensure fallback representation if upstream is unreachable or empty
   if (!latestPost) {
     latestPost = {
@@ -114,9 +116,12 @@ export async function GET(req: NextRequest) {
       title: 'Atualização periódica das fontes de notícias',
       slug: 'atualizacao-periodica-das-fontes',
       date: new Date().toISOString(),
+      link: `${baseUrl}/api/news/6571187291942`,
       type: 'post',
       status: 'publish',
     };
+  } else {
+    latestPost.link = `${baseUrl}/api/news/${latestPost.id || 6571187291942}`;
   }
 
   const mediaSources = getAllMediaSources();
@@ -129,8 +134,7 @@ export async function GET(req: NextRequest) {
     lastSynced: new Date().toISOString(),
     latestPost,
     connection: {
-      site: siteDomain,
-      endpoint: primaryTargetUrl,
+      gateway: `${baseUrl}/api`,
       activeSources: allSources.filter((s) => s.active).length,
       activeWpSources: wpSources.length,
       activeMediaSources: mediaSources.filter((s) => s.active).length,

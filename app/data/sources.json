@@ -39,7 +39,7 @@
     {
       "id": 1216294345584,
       "category": "Tocantins",
-      "site": "news-sources-api.vercel.appr",
+      "site": "news-sources-api.vercel.app",
       "type": "wp-api",
       "url": "https://atitudeto.com.br/wp-json/wp/v2/posts",
       "active": true,
@@ -56,7 +56,7 @@
     },
     {
       "id": 1144428532544,
-      "category": "Notícias Gerais",
+      "category": "Brasil",
       "site": "news-sources-api.vercel.app",
       "type": "wp-api",
       "url": "https://admin.cnnbrasil.com.br/wp-json/wp/v2/posts",
@@ -92,7 +92,7 @@
     },
     {
       "id": 6242412692949,
-      "category": "Notícias Gerais",
+      "category": "Brasil",
       "site": "news-sources-api.vercel.app",
       "type": "wp-api",
       "url": "https://vocesa.abril.com.br/wp-json/wp/v2/posts",
@@ -245,7 +245,7 @@
     },
     {
       "id": 8281449136684,
-      "category": "Notícias Gerais",
+      "category": "Brasil",
       "site": "news-sources-api.vercel.app",
       "type": "wp-api",
       "url": "https://www.folhadestra.com/wp-json/wp/v2/posts",
@@ -254,7 +254,7 @@
     },
     {
       "id": 9886348421411,
-      "category": "Notícias Gerais",
+      "category": "Brasil",
       "site": "news-sources-api.vercel.app",
       "type": "rss",
       "url": "https://g1.globo.com/dynamo/rss2.xml",

@@ -3,7 +3,7 @@
 API REST para acesso centralizado a fontes de notícias brasileiras, conteúdos em tempo real (posts, matérias jornalísticas e artigos) e uploads de mídia (imagens, anexos e fotos), padronizando saídas de REST APIs WordPress (`wp-api`) e feeds XML (`rss`).
 
 > **Domínio Base Atual (`NEXT_PUBLIC_BASE_URL`):**
-> `https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app`
+> `{APP_URL}`
 
 ---
 
@@ -40,9 +40,9 @@ Todas as fontes de dados e endpoints de mídia estão centralizados em um único
 
 ## Documentação Interativa
 
-- **Swagger UI**: Disponível na página inicial (`https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/`).
-- **RapiDoc**: Disponível na rota dedicada (`https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/docs`).
-- **Especificação OpenAPI 3.0.3 (JSON)**: `https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/openapi.json`.
+- **Swagger UI**: Disponível na página inicial (`{APP_URL}/`).
+- **RapiDoc**: Disponível na rota dedicada (`{APP_URL}/docs`).
+- **Especificação OpenAPI 3.0.3 (JSON)**: `{APP_URL}/api/openapi.json`.
 
 ---
 
@@ -50,15 +50,15 @@ Todas as fontes de dados e endpoints de mídia estão centralizados em um único
 
 | Método | Endpoint | Descrição |
 |---|---|---|
-| GET | `https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/news` | Lista de fontes de notícias cadastradas (filtros: `category`, `type`, `active`) |
-| GET | `https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/news/{id}` | Notícias em tempo real da fonte `{id}` |
-| GET | `https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/news/category/{category}` | Fontes filtradas por categoria |
-| GET | `https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/images` | Lista de fontes com suporte a mídia e uploads |
-| GET | `https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/images/{id}` | Mídias e imagens em tempo real da fonte `{id}` |
-| GET | `https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/categories` | Categorias disponíveis com total de fontes |
-| GET | `https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/types` | Tipos suportados (`wp-api`, `rss`) com totais |
-| GET | `https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/stats` | Estatísticas gerais da API |
-| GET | `https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/health` | Verificação de integridade e uptime (Público, sem auth) |
+| GET | `{APP_URL}/api/news` | Lista de fontes de notícias cadastradas (filtros: `category`, `type`, `active`) |
+| GET | `{APP_URL}/api/news/{id}` | Notícias em tempo real da fonte `{id}` |
+| GET | `{APP_URL}/api/news/category/{category}` | Fontes filtradas por categoria |
+| GET | `{APP_URL}/api/images` | Lista de fontes com suporte a mídia e uploads |
+| GET | `{APP_URL}/api/images/{id}` | Mídias e imagens em tempo real da fonte `{id}` |
+| GET | `{APP_URL}/api/categories` | Categorias disponíveis com total de fontes |
+| GET | `{APP_URL}/api/types` | Tipos suportados (`wp-api`, `rss`) com totais |
+| GET | `{APP_URL}/api/stats` | Estatísticas gerais da API |
+| GET | `{APP_URL}/api/health` | Verificação de integridade e uptime (Público, sem auth) |
 
 > **Nota sobre campos `alt` e `slug`:** As tags `alt` e `slug` foram removidas das listagens iniciais de fontes (`/api/images` e `/api/news`) e estão presentes apenas nos endpoints onde consta cada notícia ou mídia (`/api/news/{id}` e `/api/images/{id}`), identificando o texto alternativo e slug diretamente associados a cada notícia/imagem.
 
@@ -75,12 +75,12 @@ Os endpoints de conteúdo retornam os dados paginados com suporte a HATEOAS, `ne
 A URL correta deve utilizar o caractere `&` para separar os parâmetros da query string (em vez de um segundo `?`):
 
 ```text
-https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/images/1216294345584?page=1&api_key=<key>
+{APP_URL}/api/images/1216294345584?page=1&api_key=<key>
 ```
 
 **Exemplo com chave preenchida:**
 ```text
-https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/images/1216294345584?page=1&api_key=your_api_key_here
+{APP_URL}/api/images/1216294345584?page=1&api_key=your_api_key_here
 ```
 
 #### Alternativas recomendadas via Headers (URL limpa):
@@ -88,7 +88,7 @@ Para maior segurança e evitar expor a chave de API no histórico do navegador o
 
 **URL:**
 ```text
-https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/images/1216294345584?page=1
+{APP_URL}/api/images/1216294345584?page=1
 ```
 
 **Header (Opção 1 - Bearer):**
@@ -105,13 +105,13 @@ x-api-key: <key>
 
 **Buscar Notícias:**
 ```bash
-curl -i "https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/news/6571187291942?page=1&limit=5" \
+curl -i "{APP_URL}/api/news/6571187291942?page=1&limit=5" \
   -H "Authorization: Bearer SUA_API_KEY"
 ```
 
 **Buscar Imagens / Mídias:**
 ```bash
-curl -i "https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/images/6571187291942?page=1&limit=5" \
+curl -i "{APP_URL}/api/images/6571187291942?page=1&limit=5" \
   -H "Authorization: Bearer SUA_API_KEY"
 ```
 
@@ -149,7 +149,7 @@ Aceita requisições **GET** e **POST** autenticadas pelo secret token:
 
 - **Revalidação Específica por Matéria / Slug (compatível com WP Webhooks):**
   ```bash
-  curl -X POST "https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app/api/revalidate" \
+  curl -X POST "{APP_URL}/api/revalidate" \
     -H "Content-Type: application/json" \
     -d '{
       "secret": "camara-paraiso-revalidate-secret-token",
@@ -170,4 +170,19 @@ Aceita requisições **GET** e **POST** autenticadas pelo secret token:
   GET /api/sync?action=sync
   ```
   Invalida todos os caches e força recarga imediata dos dados na hora.
+
+---
+
+## Sincronização Automática de Versões (Cliente / Servidor)
+
+Para prevenir erros de conflito de implantação (*deployment mismatch* ou `ChunkLoadError` quando novos builds são publicados enquanto usuários mantêm abas abertas):
+
+1. **Build ID Determinístico:** O `next.config.mjs` gera um identificador de build unificado por commit/versão (`BUILD_ID`).
+2. **Endpoint de Versão (`/api/version`):**
+   ```text
+   GET /api/version
+   ```
+   Retorna a versão ativa do servidor com cabeçalho `Cache-Control: no-store` e tags `X-App-Version` e `X-Build-Id`.
+3. **Auto-Recuperação de Chunks no Cliente:** O componente invisível `components/DeploymentVersionSync.tsx` intercepta falhas de carregamento de chunks defasados e divergências de versão na retomada de foco da janela, efetuando auto-recarga limpa e transparente sem travar o aplicativo nem exigir intervenção manual do usuário.
+
 

@@ -190,7 +190,15 @@ export function getStats() {
 }
 
 export function getBaseUrl(req?: Request): string {
-  const envUrl = getEnv().NEXT_PUBLIC_BASE_URL;
+  // 1. Explicit environment configurations (custom domain or hosting platform)
+  const envUrl =
+    process.env.APP_URL ||
+    getEnv().NEXT_PUBLIC_BASE_URL ||
+    process.env.NEXT_PUBLIC_APP_URL ||
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined) ||
+    (process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : undefined) ||
+    process.env.RENDER_EXTERNAL_URL;
+
   if (envUrl && envUrl.trim()) {
     let clean = envUrl.trim().replace(/\/+$/, '');
     if (!clean.startsWith('http://') && !clean.startsWith('https://')) {
@@ -198,11 +206,13 @@ export function getBaseUrl(req?: Request): string {
     }
     return clean;
   }
+
+  // 2. Request headers (X-Forwarded-Host or Host)
   if (req) {
-    const forwardedHost = req.headers.get('x-forwarded-host');
+    const forwardedHost = req.headers.get('x-forwarded-host') || req.headers.get('host');
     const forwardedProto = req.headers.get('x-forwarded-proto') || 'https';
     if (forwardedHost) {
-      return `${forwardedProto}://${forwardedHost}`;
+      return `${forwardedProto}://${forwardedHost}`.replace(/\/+$/, '');
     }
     try {
       const parsed = new URL(req.url);
@@ -211,10 +221,18 @@ export function getBaseUrl(req?: Request): string {
       // fallback
     }
   }
-  return 'https://ais-dev-4jv2t5wlv5nrqhdolstrpx-124157476255.us-west1.run.app';
+
+  // 3. Client-side browser runtime
+  if (typeof window !== 'undefined' && window.location?.origin) {
+    return window.location.origin;
+  }
+
+  // 4. Local development server fallback
+  const port = getEnv().PORT || 3000;
+  return `http://localhost:${port}`;
 }
 
 export function getBaseDomain(req?: Request): string {
   const url = getBaseUrl(req);
-  return url.replace(/^https?:\/\//, '').replace(/\/.*$/, '');
+  return url.replace(/^https?:\/\//, '').replace(/\/.*$/, '') || 'localhost';
 }

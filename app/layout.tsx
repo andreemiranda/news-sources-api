@@ -5,6 +5,8 @@ import { Inter } from 'next/font/google';
 const inter = Inter({ subsets: ['latin'] });
 
 import ResizeObserverFix from '@/components/ResizeObserverFix';
+import DeploymentVersionSync from '@/components/DeploymentVersionSync';
+import { BUILD_ID } from '@/src/config/version';
 
 export const metadata: Metadata = {
   title: 'News Sources API',
@@ -29,9 +31,25 @@ export default function RootLayout({
             __html: `
               (function() {
                 if (typeof window === 'undefined') return;
+
+                // 1. Intercept deployment chunk mismatch errors early
+                var reloadKey = '__app_version_sync_reload__';
+                var handleChunkError = function(e) {
+                  var msg = (e && (e.message || (e.error && e.error.message))) || '';
+                  if (typeof msg === 'string' && (msg.indexOf('ChunkLoadError') !== -1 || msg.indexOf('Loading chunk') !== -1)) {
+                    var last = parseInt(sessionStorage.getItem(reloadKey) || '0', 10);
+                    if (Date.now() - last > 15000) {
+                      sessionStorage.setItem(reloadKey, String(Date.now()));
+                      window.location.reload();
+                    }
+                  }
+                };
+                window.addEventListener('error', handleChunkError, true);
+
+                // 2. Suppress benign ResizeObserver notifications
                 var suppress = function(e) {
                   var msg = (e && (e.message || (e.error && e.error.message))) || '';
-                  if (typeof msg === 'string' && msg.indexOf('ResizeObserver') !== -1) {
+                  if (typeof msg === 'string' && (msg.indexOf('ResizeObserver') !== -1)) {
                     if (e.stopImmediatePropagation) e.stopImmediatePropagation();
                     if (e.preventDefault) e.preventDefault();
                     return true;
@@ -56,6 +74,7 @@ export default function RootLayout({
       </head>
       <body className={inter.className} suppressHydrationWarning>
         <ResizeObserverFix />
+        <DeploymentVersionSync serverBuildId={BUILD_ID} />
         {children}
       </body>
     </html>

@@ -346,7 +346,12 @@ async function resilientFetch(
   signal?: AbortSignal,
   bypassCache: boolean = false
 ): Promise<Response> {
-  const refererUrl = site.startsWith('http') ? site : `https://${site}/`;
+  let refererUrl: string;
+  try {
+    refererUrl = new URL(url).origin;
+  } catch {
+    refererUrl = site.startsWith('http') ? site : `https://${site}/`;
+  }
 
   const standardHeaders: Record<string, string> = {
     'User-Agent':

@@ -18,8 +18,8 @@ export async function GET(req: NextRequest) {
       version: '1.0.0',
     },
     servers: [
-      { url: `${baseUrl}/api`, description: `Production Gateway (${baseDomain})` },
-      { url: '/api', description: 'Current Environment / Relative Gateway' },
+      { url: '/api', description: 'API Gateway (Ambiente Atual / Relativo)' },
+      ...(baseUrl ? [{ url: `${baseUrl}/api`, description: `Gateway de Produção (${baseDomain})` }] : []),
     ],
     components: {
       securitySchemes: {
@@ -540,6 +540,33 @@ export async function GET(req: NextRequest) {
           },
         },
       },
+      '/version': {
+        get: {
+          tags: ['System'],
+          summary: 'Deployment version synchronization endpoint',
+          description: 'Retorna a versão do build ativo e metadados de deploy para sincronização automática entre cliente e servidor, prevenindo conflitos de implantação.',
+          security: [],
+          responses: {
+            '200': {
+              description: 'Versão do aplicativo e ID de build do servidor',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      version: { type: 'string', example: '1.0.0' },
+                      buildId: { type: 'string', example: 'v1.0.0-release' },
+                      deploymentTime: { type: 'string' },
+                      environment: { type: 'string' },
+                      status: { type: 'string', example: 'synchronized' },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
       '/sync': {
         get: {
           tags: ['Synchronization'],
@@ -617,32 +644,32 @@ export async function GET(req: NextRequest) {
       (spec.paths as any)[`/news/${source.id}`] = {
         get: {
           tags: [`Sources - ${source.category}`],
-          summary: `Get live news from ${source.site}`,
-          description: `Fetches real news articles dynamically from ${source.url} (${source.type}). ID: ${source.id}`,
+          summary: `Consulta de notícias - ${source.category}`,
+          description: `Retorna artigos e notícias da categoria ${source.category}. Identificador da fonte: ${source.id}`,
           security: [{ ApiKeyAuth: [] }, { BearerAuth: [] }, { QueryApiKey: [] }],
           parameters: [
             {
               name: 'page',
               in: 'query',
-              description: 'Page number (default: 1)',
+              description: 'Número da página (padrão: 1)',
               schema: { type: 'integer', default: 1, minimum: 1 },
             },
             {
               name: 'limit',
               in: 'query',
-              description: 'Items per page (default: 10, max: 100)',
+              description: 'Quantidade de itens por página (padrão: 10, máx: 100)',
               schema: { type: 'integer', default: 10, minimum: 1, maximum: 100 },
             },
             {
               name: 'search',
               in: 'query',
-              description: 'Search keyword',
+              description: 'Termo de busca para filtrar notícias',
               schema: { type: 'string' },
             },
           ],
           responses: {
             '200': {
-              description: 'Successful response',
+              description: 'Lista de artigos obtida com sucesso',
               content: {
                 'application/json': {
                   schema: {
@@ -652,7 +679,7 @@ export async function GET(req: NextRequest) {
                 },
               },
             },
-            '401': { description: 'Unauthorized' },
+            '401': { description: 'Não autorizado' },
           },
         },
       };
@@ -662,26 +689,26 @@ export async function GET(req: NextRequest) {
         (spec.paths as any)[`/images/${source.id}`] = {
           get: {
             tags: ['Images & Media Sources'],
-            summary: `Get media uploads from ${source.site}`,
-            description: `Fetches media uploads directly from ${source.site}. Unified ID: ${source.id}`,
+            summary: `Consulta de mídias - ${source.category}`,
+            description: `Retorna imagens e mídias jornalísticas da categoria ${source.category}. Identificador da fonte: ${source.id}`,
             security: [{ ApiKeyAuth: [] }, { BearerAuth: [] }, { QueryApiKey: [] }],
             parameters: [
               {
                 name: 'page',
                 in: 'query',
-                description: 'Page number (default: 1)',
+                description: 'Número da página (padrão: 1)',
                 schema: { type: 'integer', default: 1, minimum: 1 },
               },
               {
                 name: 'limit',
                 in: 'query',
-                description: 'Items per page (default: 10, max: 100)',
+                description: 'Quantidade de itens por página (padrão: 10, máx: 100)',
                 schema: { type: 'integer', default: 10, minimum: 1, maximum: 100 },
               },
             ],
             responses: {
               '200': {
-                description: 'Successful response',
+                description: 'Lista de mídias obtida com sucesso',
                 content: {
                   'application/json': {
                     schema: {
@@ -691,7 +718,7 @@ export async function GET(req: NextRequest) {
                   },
                 },
               },
-              '401': { description: 'Unauthorized' },
+              '401': { description: 'Não autorizado' },
             },
           },
         };

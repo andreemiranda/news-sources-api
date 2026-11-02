@@ -7,32 +7,33 @@
     "build": "next build",
     "start": "next start",
     "start:custom": "node server.js",
-    "lint": "next lint"
+    "lint": "eslint ."
   },
   "dependencies": {
-    "@types/sanitize-html": "^2.16.2",
-    "express-paginate": "^1.0.2",
     "he": "^1.2.0",
     "lucide-react": "^0.260.0",
     "next": "14.2.35",
     "rapidoc": "^9.3.8",
     "react": "18.3.1",
     "react-dom": "18.3.1",
-    "sanitize-html": "^2.18.0",
-    "swagger-ui-react": "^5.32.15"
+    "sanitize-html": "^2.18.0"
   },
   "devDependencies": {
     "@types/he": "^1.2.3",
     "@types/node": "22.20.1",
     "@types/react": "18.3.31",
     "@types/react-dom": "18.3.7",
-    "@types/swagger-ui-react": "^4.18.3",
+    "@types/sanitize-html": "^2.16.2",
     "autoprefixer": "10.4.21",
-    "eslint": "8.57.1",
-    "eslint-config-next": "14.2.35",
+    "eslint": "^9.20.0",
+    "eslint-config-next": "^15.1.7",
     "postcss": "8.5.6",
     "tailwindcss": "3.4.19",
     "typescript": "5.9.3"
+  },
+  "overrides": {
+    "glob": "^10.4.5",
+    "rimraf": "^5.0.10"
   },
   "engines": {
     "node": "22.x"
