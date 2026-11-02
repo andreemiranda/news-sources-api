@@ -255,6 +255,123 @@ export function deduplicateImages(items: ContentItem[]): ContentItem[] {
   });
 }
 
+const GENERIC_REPEATED_BANNERS = [
+  'copa-alem-da-copa-novo.jpeg',
+  'copa-alem-da-copa',
+  'default-thumbnail',
+  'placeholder',
+  'logo-padrao',
+];
+
+export function isGenericBanner(url?: string | null): boolean {
+  if (!url) return true;
+  const lower = url.toLowerCase();
+  return GENERIC_REPEATED_BANNERS.some((b) => lower.includes(b));
+}
+
+export function extractContentImages(html?: string | null): string[] {
+  if (!html) return [];
+  const results: string[] = [];
+  const regex = /<img[^>]+(?:src|data-src|data-lazy-src)=["']([^"']+)["']/gi;
+  let match;
+  while ((match = regex.exec(html)) !== null) {
+    const src = match[1]?.trim();
+    if (
+      src &&
+      !src.includes('avatar') &&
+      !src.includes('gravatar') &&
+      !src.includes('pixel') &&
+      !src.includes('emoji') &&
+      !src.includes('smilies') &&
+      !src.includes('w.org')
+    ) {
+      results.push(src);
+    }
+  }
+  return results;
+}
+
+export async function getLudopedioFeedMap(
+  refererSite: string,
+  signal?: AbortSignal,
+  bypassCache: boolean = false
+): Promise<Map<string, string>> {
+  const map = new Map<string, string>();
+  try {
+    const feedRes = await resilientFetch(
+      'https://ludopedio.org.br/feed/',
+      refererSite,
+      false,
+      signal,
+      bypassCache
+    );
+    if (feedRes.ok) {
+      const xml = await feedRes.text();
+      const items = xml.match(/<item[\s\S]*?<\/item>/gi) || [];
+      for (const it of items) {
+        const titleMatch = it.match(/<title>([\s\S]*?)<\/title>/i);
+        const rawT = titleMatch ? titleMatch[1].replace(/<!\[CDATA\[([\s\S]*?)\]\]>/gi, '$1').trim() : '';
+        const itunes = it.match(/<itunes:image[^>]+href=["']([^"']+)["']/i)?.[1];
+        const contentImg = it.match(/<img[^>]+src=["']([^"']+)["']/i)?.[1];
+        const img = itunes || contentImg;
+        if (rawT && img) {
+          const normKey = rawT
+            .toLowerCase()
+            .replace(/&#8211;/g, '-')
+            .replace(/[–—]/g, '-')
+            .replace(/\s+/g, ' ')
+            .trim();
+          map.set(normKey, img);
+        }
+      }
+    }
+  } catch {
+    // gracefully continue
+  }
+  return map;
+}
+
+export function resolveBestPostImage(
+  post: any,
+  featuredMediaUrl?: string | null,
+  feedImageMap?: Map<string, string>
+): string | undefined {
+  const rawTitle = cleanText(post.title?.rendered || post.title || '');
+  const contentImages = extractContentImages(post.content?.rendered);
+  const excerptImages = extractContentImages(post.excerpt?.rendered);
+  const allContentImages = [...contentImages, ...excerptImages];
+
+  // Specific content image that is not a generic repeating banner
+  const specificContentImg = allContentImages.find((u) => !isGenericBanner(u));
+
+  // Feed image matching title
+  const normTitle = rawTitle
+    .toLowerCase()
+    .replace(/&#8211;/g, '-')
+    .replace(/[–—]/g, '-')
+    .replace(/\s+/g, ' ')
+    .trim();
+  const feedImg = feedImageMap?.get(normTitle);
+
+  let candidate =
+    post.jetpack_featured_media_url ||
+    post.featured_media_src_url ||
+    featuredMediaUrl ||
+    undefined;
+
+  if (isGenericBanner(candidate)) {
+    candidate = specificContentImg || feedImg || allContentImages[0] || (candidate && !isGenericBanner(candidate) ? candidate : undefined);
+  } else if (specificContentImg && !featuredMediaUrl) {
+    candidate = specificContentImg;
+  }
+
+  if (feedImg && isGenericBanner(candidate)) {
+    candidate = feedImg;
+  }
+
+  return candidate || undefined;
+}
+
 export function parseRssFeed(xml: string): { feed: any; items: ContentItem[] } {
   let feedTitle = extractTagValue(xml, 'title');
   if (feedTitle && feedTitle.trim().toLowerCase() === 'g1') {
@@ -294,17 +411,38 @@ export function parseRssFeed(xml: string): { feed: any; items: ContentItem[] } {
       )
       .filter((c) => Boolean(c) && !/\bg1\b/i.test(c.trim()));
 
-    let imageUrl = extractAttribute(block, 'enclosure', 'url');
+    // 1. Check itunes:image first (podcasts, episodes, custom covers)
+    let imageUrl = block.match(/<itunes:image[^>]+href=["']([^"']+)["']/i)?.[1];
+    
+    // 2. Check enclosure if it is an image
+    if (!imageUrl) {
+      const encUrl = extractAttribute(block, 'enclosure', 'url');
+      if (encUrl && /\.(?:jpg|jpeg|png|webp|gif)(?:\?.*)?$/i.test(encUrl)) {
+        imageUrl = encUrl;
+      }
+    }
+
+    // 3. Check media:content and media:thumbnail
     if (!imageUrl) {
       imageUrl = extractAttribute(block, 'media:content', 'url');
     }
     if (!imageUrl) {
       imageUrl = extractAttribute(block, 'media:thumbnail', 'url');
     }
+
+    // 4. Check content images
+    if (!imageUrl && content) {
+      const contentImgs = extractContentImages(content);
+      if (contentImgs.length > 0) {
+        imageUrl = contentImgs[0];
+      }
+    }
+
+    // 5. Check description images
     if (!imageUrl && description) {
-      const imgMatch = description.match(/<img[^>]+src=["']([^"']+)["']/i);
-      if (imgMatch) {
-        imageUrl = imgMatch[1];
+      const descImgs = extractContentImages(description);
+      if (descImgs.length > 0) {
+        imageUrl = descImgs[0];
       }
     }
 
@@ -535,6 +673,11 @@ export async function fetchSourceContent(
       const total = totalHeader ? parseInt(totalHeader, 10) : Array.isArray(rawPosts) ? rawPosts.length : 0;
       const totalPages = totalPagesHeader ? parseInt(totalPagesHeader, 10) : Math.ceil(total / limit) || 1;
 
+      let feedImageMap: Map<string, string> | undefined;
+      if (source.url?.includes('ludopedio') || String(source.id) === '9124882157745') {
+        feedImageMap = await getLudopedioFeedMap(source.site, controller.signal, bypassCache);
+      }
+
       const items: ContentItem[] = Array.isArray(rawPosts)
         ? rawPosts.map((post: any) => {
             const featuredMedia = post._embedded?.['wp:featuredmedia']?.[0]?.source_url;
@@ -542,15 +685,7 @@ export async function fetchSourceContent(
             const title = removeG1Sentences(rawTitle);
             const slug = post.slug ? String(post.slug).trim() : slugify(title);
 
-            let img = post.jetpack_featured_media_url || featuredMedia;
-            if (!img && post.content?.rendered) {
-              const m = post.content.rendered.match(/<img[^>]+src=["']([^"']+)["']/i);
-              if (m) img = m[1];
-            }
-            if (!img && post.excerpt?.rendered) {
-              const m = post.excerpt.rendered.match(/<img[^>]+src=["']([^"']+)["']/i);
-              if (m) img = m[1];
-            }
+            const img = resolveBestPostImage(post, featuredMedia, feedImageMap);
 
             const rawId = typeof post.id === 'number' ? post.id : parseInt(String(post.id), 10);
             const numericId = !isNaN(rawId) && rawId > 0 ? rawId : generate6DigitId(slug || title);
@@ -805,22 +940,18 @@ export async function fetchMediaContent(
     const total = totalHeader ? parseInt(totalHeader, 10) : Array.isArray(rawPosts) ? rawPosts.length : 0;
     const totalPages = totalPagesHeader ? parseInt(totalPagesHeader, 10) : Math.ceil(total / limit) || 1;
 
+    let feedImageMap: Map<string, string> | undefined;
+    if (mediaSource.url?.includes('ludopedio') || String(mediaSource.id) === '9124882157745') {
+      feedImageMap = await getLudopedioFeedMap(mediaSource.site, controller.signal, bypassCache);
+    }
+
     const items: ContentItem[] = Array.isArray(rawPosts)
       ? rawPosts
           .map((post: any) => {
             const newsTitle = cleanText(post.title?.rendered || post.title || 'Sem título');
             const newsSlug = post.slug ? String(post.slug).trim() : slugify(newsTitle);
-            const featuredMedia = post._embedded?.['wp:featuredmedia']?.[0];
-            let imageUrl = featuredMedia?.source_url || post.jetpack_featured_media_url || post.featured_media_src_url;
-
-            if (!imageUrl && post.content?.rendered) {
-              const match = post.content.rendered.match(/<img[^>]+src=["']([^"']+)["']/i);
-              if (match) imageUrl = match[1];
-            }
-            if (!imageUrl && post.excerpt?.rendered) {
-              const match = post.excerpt.rendered.match(/<img[^>]+src=["']([^"']+)["']/i);
-              if (match) imageUrl = match[1];
-            }
+            const featuredMedia = post._embedded?.['wp:featuredmedia']?.[0]?.source_url;
+            const imageUrl = resolveBestPostImage(post, featuredMedia, feedImageMap);
 
             const rawId = typeof post.id === 'number' ? post.id : parseInt(String(post.id), 10);
             const numericId = !isNaN(rawId) && rawId > 0 ? rawId : generate6DigitId(newsSlug || newsTitle);

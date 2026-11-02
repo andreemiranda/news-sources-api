@@ -5,15 +5,6 @@ const nextConfig = {
   compress: true,
   productionBrowserSourceMaps: false,
   output: 'standalone',
-  generateBuildId: async () => {
-    return (
-      process.env.BUILD_ID ||
-      process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 12) ||
-      process.env.RENDER_GIT_COMMIT?.slice(0, 12) ||
-      process.env.RAILWAY_GIT_COMMIT_SHA?.slice(0, 12) ||
-      'v1.0.0-release'
-    );
-  },
   async headers() {
     return [
       {

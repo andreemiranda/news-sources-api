@@ -20,7 +20,8 @@ export default function DeploymentVersionSync({
   const isCheckingRef = useRef<boolean>(false);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    // In development mode, Next dev handles HMR; only intercept chunk errors
+    const isDev = process.env.NODE_ENV === 'development';
 
     // 1. Store initial known buildId
     if (serverBuildId && !currentBuildIdRef.current) {
@@ -115,23 +116,24 @@ export default function DeploymentVersionSync({
       }
     };
 
-    // 4. Initial check if serverBuildId was not pre-populated
-    if (!currentBuildIdRef.current) {
+    // 4. Initial check if serverBuildId was not pre-populated (production only)
+    if (!isDev && !currentBuildIdRef.current) {
       verifyServerVersion();
     }
 
-    // 5. Check on window focus and tab visibility change
+    // 5. Check on window focus and tab visibility change (production only)
     const onVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
+      if (!isDev && document.visibilityState === 'visible') {
         verifyServerVersion();
       }
     };
 
-    window.addEventListener('visibilitychange', onVisibilityChange);
-    window.addEventListener('focus', verifyServerVersion);
-
-    // 6. Periodic heartbeat check
-    const intervalId = setInterval(verifyServerVersion, checkIntervalMs);
+    let intervalId: any;
+    if (!isDev) {
+      window.addEventListener('visibilitychange', onVisibilityChange);
+      window.addEventListener('focus', verifyServerVersion);
+      intervalId = setInterval(verifyServerVersion, checkIntervalMs);
+    }
 
     return () => {
       window.removeEventListener('error', errorHandler as any, true);

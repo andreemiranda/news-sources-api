@@ -20,6 +20,9 @@ export function getApiKey(): string {
 export function validateApiKey(req: NextRequest): boolean {
   const apiKey = getApiKey();
   if (!apiKey) {
+    if (process.env.NODE_ENV !== 'production') {
+      return true;
+    }
     console.error('API_KEY is not configured in the environment.');
     return false;
   }
