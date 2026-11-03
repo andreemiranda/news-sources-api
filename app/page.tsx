@@ -2,8 +2,8 @@ export const dynamic = 'force-dynamic';
 
 import { getAllSources, getAllMediaSources, getCategories, getTypes, getBaseUrl, getBaseDomain } from '@/lib/sources';
 import Link from 'next/link';
-import { BookOpen, KeyRound, ShieldAlert, CheckCircle2 } from 'lucide-react';
-import SwaggerUIWrapper from '@/components/SwaggerUIWrapper';
+import { BookOpen, KeyRound } from 'lucide-react';
+import HomePageTabs from '@/components/HomePageTabs';
 
 export default async function Home() {
   const sources = getAllSources();
@@ -652,9 +652,7 @@ export default async function Home() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="bg-white border border-slate-200 shadow-sm rounded-xl p-6">
-          <SwaggerUIWrapper spec={spec} />
-        </div>
+        <HomePageTabs sources={sources} categories={categories} spec={spec} />
       </div>
 
       <footer className="border-t border-slate-200 bg-white">

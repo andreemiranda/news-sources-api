@@ -15,6 +15,14 @@ export default function SwaggerUIWrapper({ spec, url }: SwaggerUIWrapperProps) {
   useEffect(() => {
     let isMounted = true;
 
+    // Timeout: if Swagger takes longer than 4 seconds to load from unpkg CDN, show friendly fallback
+    const timer = setTimeout(() => {
+      if (isMounted && status === 'loading') {
+        setStatus('error');
+        setErrorMessage('O CDN do Swagger UI demorou para responder no navegador.');
+      }
+    }, 4500);
+
     // 1. Ensure Swagger UI CSS is attached
     if (!document.getElementById('swagger-ui-stylesheet')) {
       const link = document.createElement('link');
@@ -46,11 +54,13 @@ export default function SwaggerUIWrapper({ spec, url }: SwaggerUIWrapperProps) {
             docExpansion: 'list',
           });
           if (isMounted) {
+            clearTimeout(timer);
             setStatus('ready');
           }
         } catch (err: any) {
           console.error('[SwaggerUI] Initialization error:', err);
           if (isMounted) {
+            clearTimeout(timer);
             setErrorMessage(err?.message || 'Erro ao inicializar visualizador');
             setStatus('error');
           }
@@ -63,6 +73,7 @@ export default function SwaggerUIWrapper({ spec, url }: SwaggerUIWrapperProps) {
       initSwagger();
       return () => {
         isMounted = false;
+        clearTimeout(timer);
       };
     }
 
@@ -79,7 +90,8 @@ export default function SwaggerUIWrapper({ spec, url }: SwaggerUIWrapperProps) {
       script.onerror = (e) => {
         console.error('[SwaggerUI] Failed to load SwaggerUIBundle script:', e);
         if (isMounted) {
-          setErrorMessage('Falha no carregamento do script do Swagger UI');
+          clearTimeout(timer);
+          setErrorMessage('Falha no carregamento do script do Swagger UI via CDN');
           setStatus('error');
         }
       };
@@ -90,42 +102,45 @@ export default function SwaggerUIWrapper({ spec, url }: SwaggerUIWrapperProps) {
 
     return () => {
       isMounted = false;
+      clearTimeout(timer);
       if (script) {
         script.removeEventListener('load', initSwagger);
       }
     };
-  }, [spec, url]);
+  }, [spec, url, status]);
 
   return (
-    <div className="bg-white rounded-lg p-2 min-h-[400px]">
+    <div className="bg-white rounded-lg p-2 min-h-[300px]">
       {status === 'loading' && (
-        <div className="flex flex-col items-center justify-center py-16 text-slate-500">
-          <div className="w-9 h-9 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4" />
+        <div className="flex flex-col items-center justify-center py-12 text-slate-500">
+          <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-3" />
           <p className="text-sm font-medium text-slate-700">Carregando documentação interativa Swagger UI...</p>
-          <p className="text-xs text-slate-400 mt-1">Carregando esquemas da OpenAPI</p>
+          <p className="text-xs text-slate-400 mt-1">Sincronizando esquemas e parâmetros da OpenAPI</p>
         </div>
       )}
 
       {status === 'error' && (
-        <div className="p-8 text-center bg-slate-50 border border-slate-200 rounded-xl my-4">
+        <div className="p-6 text-center bg-slate-50 border border-slate-200 rounded-xl my-2">
           <p className="text-sm font-semibold text-slate-800 mb-1">
-            Não foi possível renderizar o Swagger UI diretamente
+            Visualização alternativa disponível
           </p>
-          {errorMessage && (
-            <p className="text-xs text-slate-500 mb-4 font-mono">{errorMessage}</p>
-          )}
+          <p className="text-xs text-slate-500 mb-4 max-w-lg mx-auto">
+            {errorMessage || 'O script externo do Swagger UI não pôde ser carregado no momento.'} Você pode explorar as fontes e rotas nativamente logo abaixo ou abrir o RapiDoc.
+          </p>
           <div className="flex flex-wrap items-center justify-center gap-3">
-            <button
-              onClick={() => window.location.reload()}
-              className="inline-flex items-center gap-2 bg-slate-200 hover:bg-slate-300 text-slate-800 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-            >
-              Tentar Novamente
-            </button>
             <a
               href="/docs"
               className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm"
             >
-              Abrir Documentação RapiDoc (/docs)
+              Abrir Documentação Completa RapiDoc (/docs)
+            </a>
+            <a
+              href="/api/openapi.json"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 bg-slate-200 hover:bg-slate-300 text-slate-800 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+            >
+              Ver OpenAPI Spec JSON (/api/openapi.json)
             </a>
           </div>
         </div>

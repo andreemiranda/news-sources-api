@@ -20,28 +20,50 @@ export default function DeploymentVersionSync({
   const isCheckingRef = useRef<boolean>(false);
 
   useEffect(() => {
-    // In development mode, Next dev handles HMR; only intercept chunk errors
-    const isDev = process.env.NODE_ENV === 'development';
+    // In development mode, Next dev server handles HMR and live reload natively.
+    // Avoid automated reloads in development to prevent blank pages or hot-reload cycles.
+    if (process.env.NODE_ENV === 'development') {
+      return;
+    }
 
     // 1. Store initial known buildId
     if (serverBuildId && !currentBuildIdRef.current) {
       currentBuildIdRef.current = serverBuildId;
     }
 
+    // Helper: Safely access sessionStorage without throwing in restricted cross-origin iframes
+    const safeGetStorage = (key: string): string | null => {
+      try {
+        return typeof window !== 'undefined' && window.sessionStorage
+          ? window.sessionStorage.getItem(key)
+          : null;
+      } catch {
+        return null;
+      }
+    };
+
+    const safeSetStorage = (key: string, val: string): void => {
+      try {
+        if (typeof window !== 'undefined' && window.sessionStorage) {
+          window.sessionStorage.setItem(key, val);
+        }
+      } catch {}
+    };
+
     // Helper: Safely reload page once to resolve deployment chunk conflicts
     const safelySynchronizeWithServer = (reason: string) => {
       try {
-        const lastReload = parseInt(sessionStorage.getItem(SESSION_RELOAD_KEY) || '0', 10);
+        const lastReload = parseInt(safeGetStorage(SESSION_RELOAD_KEY) || '0', 10);
         const now = Date.now();
 
         if (now - lastReload > RELOAD_THROTTLE_MS) {
-          sessionStorage.setItem(SESSION_RELOAD_KEY, now.toString());
+          safeSetStorage(SESSION_RELOAD_KEY, now.toString());
           console.info(`[VersionSync] Deployment updated (${reason}). Synchronizing client with server...`);
           // Hard reload from server to fetch fresh chunks & assets
           window.location.reload();
         }
       } catch {
-        window.location.reload();
+        // Fallback without infinite reload
       }
     };
 
@@ -117,23 +139,20 @@ export default function DeploymentVersionSync({
     };
 
     // 4. Initial check if serverBuildId was not pre-populated (production only)
-    if (!isDev && !currentBuildIdRef.current) {
+    if (!currentBuildIdRef.current) {
       verifyServerVersion();
     }
 
     // 5. Check on window focus and tab visibility change (production only)
     const onVisibilityChange = () => {
-      if (!isDev && document.visibilityState === 'visible') {
+      if (document.visibilityState === 'visible') {
         verifyServerVersion();
       }
     };
 
-    let intervalId: any;
-    if (!isDev) {
-      window.addEventListener('visibilitychange', onVisibilityChange);
-      window.addEventListener('focus', verifyServerVersion);
-      intervalId = setInterval(verifyServerVersion, checkIntervalMs);
-    }
+    window.addEventListener('visibilitychange', onVisibilityChange);
+    window.addEventListener('focus', verifyServerVersion);
+    const intervalId = setInterval(verifyServerVersion, checkIntervalMs);
 
     return () => {
       window.removeEventListener('error', errorHandler as any, true);

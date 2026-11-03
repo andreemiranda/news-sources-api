@@ -10,26 +10,8 @@ export default function ResizeObserverFix() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    // 1. Debounce ResizeObserver callbacks using requestAnimationFrame to prevent loop limit exceeded
-    if (window.ResizeObserver && !(window as any).__RO_PATCHED__) {
-      const OriginalRO = window.ResizeObserver;
-      (window as any).__RO_PATCHED__ = true;
-      (window as any).ResizeObserver = class PatchedResizeObserver extends OriginalRO {
-        constructor(callback: ResizeObserverCallback) {
-          super((entries, observer) => {
-            window.requestAnimationFrame(() => {
-              try {
-                callback(entries, observer);
-              } catch (e) {
-                // Ignore layout observer warnings
-              }
-            });
-          });
-        }
-      };
-    }
-
-    // 2. Suppress unhandled ResizeObserver notifications from triggering dev overlay
+    // Suppress unhandled benign ResizeObserver notifications from triggering dev overlay
+    // Do not subclass or replace window.ResizeObserver constructor, as it breaks libraries relying on native prototypes
     const errorHandler = (event: ErrorEvent) => {
       const msg = event?.message || '';
       if (

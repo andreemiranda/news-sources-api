@@ -2,7 +2,17 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
+html, body {
+  display: block !important;
+  visibility: visible !important;
+  min-height: 100%;
   margin: 0;
   padding: 0;
+  background-color: #f8fafc;
 }
+
+/* Guard against Next.js FOUC style hiding body permanently in sandboxed iframes */
+style[data-next-hide-fouc] {
+  display: none !important;
+}
+
