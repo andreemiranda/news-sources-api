@@ -8,6 +8,10 @@ export interface EnvConfig {
   PORT: number;
   NODE_ENV: 'development' | 'production' | 'test';
   API_KEY: string;
+  APP_URL?: string;
+  APP_DOMAIN?: string;
+  NEXT_PUBLIC_APP_URL?: string;
+  NEXT_PUBLIC_APP_DOMAIN?: string;
   NEXT_PUBLIC_BASE_URL?: string;
   AI_API_KEY?: string;
   AI_ENDPOINT?: string;
@@ -88,7 +92,11 @@ export function getEnv(): EnvConfig {
     PORT: parsePort(process.env.PORT, 3000),
     NODE_ENV: (process.env.NODE_ENV as any) || 'development',
     API_KEY: apiKey,
-    NEXT_PUBLIC_BASE_URL: process.env.NEXT_PUBLIC_BASE_URL?.trim(),
+    APP_URL: (process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_BASE_URL)?.trim(),
+    APP_DOMAIN: (process.env.APP_DOMAIN || process.env.NEXT_PUBLIC_APP_DOMAIN)?.trim(),
+    NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL?.trim(),
+    NEXT_PUBLIC_APP_DOMAIN: process.env.NEXT_PUBLIC_APP_DOMAIN?.trim(),
+    NEXT_PUBLIC_BASE_URL: (process.env.NEXT_PUBLIC_BASE_URL || process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL)?.trim(),
     AI_API_KEY: process.env.AI_API_KEY?.trim(),
     AI_ENDPOINT: process.env.AI_ENDPOINT?.trim(),
     AI_MODEL: process.env.AI_MODEL?.trim(),

@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { revalidatePath, revalidateTag } from 'next/cache';
-import { getAllSources, getAllMediaSources, getBaseUrl } from '@/lib/sources';
+import { getAllSources, getAllMediaSources, getBaseUrl, getBaseDomain, formatAppEmail } from '@/lib/sources';
 import { getEnv } from '@/src/config/env';
 import { cleanText } from '@/lib/content';
 
@@ -135,6 +135,9 @@ export async function GET(req: NextRequest) {
     latestPost,
     connection: {
       gateway: `${baseUrl}/api`,
+      appUrl: baseUrl,
+      appDomain: getBaseDomain(req),
+      contactEmail: formatAppEmail('contato', req),
       activeSources: allSources.filter((s) => s.active).length,
       activeWpSources: wpSources.length,
       activeMediaSources: mediaSources.filter((s) => s.active).length,

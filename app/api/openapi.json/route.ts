@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getCategories, getTypes, getAllSources, getAllMediaSources, getBaseUrl, getBaseDomain } from '@/lib/sources';
+import { getCategories, getTypes, getAllSources, getAllMediaSources, getBaseUrl, getBaseDomain, formatAppEmail, formatAppUrl } from '@/lib/sources';
 
 export async function GET(req: NextRequest) {
   const categories = getCategories().map((c) => c.category);
@@ -16,6 +16,11 @@ export async function GET(req: NextRequest) {
       description:
         'REST API for accessing news sources data and live articles/media aggregated from Brazilian news outlets. Endpoints require API Key authentication via header Authorization: Bearer <key>, header x-api-key, or query parameter ?api_key=<key>.',
       version: '1.0.0',
+      contact: {
+        name: 'Suporte API',
+        url: formatAppUrl('/docs', req),
+        email: formatAppEmail('contato', req),
+      },
     },
     servers: [
       { url: '/api', description: 'API Gateway (Ambiente Atual / Relativo)' },

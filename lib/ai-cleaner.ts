@@ -193,7 +193,7 @@ export function preCleanText(rawText: string): string {
         // Frase muito curta isolada
         return false;
       }
-      if (/^(veja mais|leia também|saiba mais|clique aqui|confira|compartilhe|siga|inscreva-se|faça parte)/i.test(p)) {
+      if (/^(veja mais|leia também|saiba mais|clique aqui|confira|compartilhe|siga|inscreva-se|faça parte|bom[\s-]dia)/i.test(p)) {
         return false;
       }
       return true;

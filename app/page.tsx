@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic';
 
-import { getAllSources, getAllMediaSources, getCategories, getTypes, getBaseUrl, getBaseDomain } from '@/lib/sources';
+import { getAllSources, getAllMediaSources, getCategories, getTypes, getBaseUrl, getBaseDomain, formatAppEmail, formatAppUrl } from '@/lib/sources';
 import Link from 'next/link';
 import { BookOpen, KeyRound } from 'lucide-react';
 import HomePageTabs from '@/components/HomePageTabs';
@@ -20,6 +20,11 @@ export default async function Home() {
       description:
         'REST API for accessing news sources data and live articles/media aggregated from Brazilian news outlets. All endpoints require API key authentication.',
       version: '1.0.0',
+      contact: {
+        name: 'Suporte API',
+        url: formatAppUrl('/docs'),
+        email: formatAppEmail('contato'),
+      },
     },
     servers: [
       { url: '/api', description: 'API Gateway (Ambiente Atual / Relativo)' },
@@ -652,7 +657,13 @@ export default async function Home() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <HomePageTabs sources={sources} categories={categories} spec={spec} />
+        <HomePageTabs
+          sources={sources}
+          categories={categories}
+          spec={spec}
+          appUrl={baseUrl}
+          appDomain={baseDomain}
+        />
       </div>
 
       <footer className="border-t border-slate-200 bg-white">

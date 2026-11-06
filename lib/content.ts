@@ -13,6 +13,7 @@ export interface ContentItem {
   author?: string;
   categories?: string[];
   imageUrl?: string;
+  availableImages?: string[];
   _links?: Record<string, { href: string | null }>;
 }
 
@@ -157,6 +158,59 @@ export function isVideoBroadcastWithoutContent(
   return false;
 }
 
+/**
+ * Detecta se uma matéria fala de "Bom dia", começa com "Bom dia",
+ * ou tem "Bom dia" no título, descrição ou conteúdo.
+ * Requisito estrito: "Remova desta api todas as notícias que fala de Bom dia ou começa com Bom dia ou tenha Bom dia no titulo ou no conteudo."
+ */
+export function hasBomDia(
+  title?: string | null,
+  content?: string | null,
+  description?: string | null
+): boolean {
+  const bomDiaRegex = /\bbom[\s-]dia\b/i;
+
+  const t = (title || '').trim();
+  const c = (content || '').trim();
+  const d = (description || '').trim();
+
+  // 1. Título fala de Bom dia, começa com Bom dia ou tem Bom dia
+  if (bomDiaRegex.test(t) || t.toLowerCase().includes('bom dia') || t.toLowerCase().includes('bom-dia')) {
+    return true;
+  }
+
+  // 2. Conteúdo fala de Bom dia ou tem Bom dia
+  if (bomDiaRegex.test(c) || c.toLowerCase().includes('bom dia') || c.toLowerCase().includes('bom-dia')) {
+    return true;
+  }
+
+  // 3. Descrição fala de Bom dia ou tem Bom dia
+  if (bomDiaRegex.test(d) || d.toLowerCase().includes('bom dia') || d.toLowerCase().includes('bom-dia')) {
+    return true;
+  }
+
+  return false;
+}
+
+/**
+ * Validador principal que decide se uma matéria pode ser retornada pela API:
+ * 1. Remove qualquer matéria que fale de Bom dia ou tenha Bom dia no título ou conteúdo.
+ * 2. Remove chamadas de vídeo/telejornal sem conteúdo jornalístico textual.
+ */
+export function isArticleAllowed(item: {
+  title?: string | null;
+  content?: string | null;
+  description?: string | null;
+}): boolean {
+  if (hasBomDia(item.title, item.content, item.description)) {
+    return false;
+  }
+  if (isVideoBroadcastWithoutContent(item.title, item.content, item.description)) {
+    return false;
+  }
+  return true;
+}
+
 export function extractPostContextFromLink(link: string | undefined): { postSlug?: string; postTitle?: string } {
   if (!link) return {};
   try {
@@ -235,25 +289,96 @@ function extractAttribute(xml: string, tagName: string, attrName: string): strin
 }
 
 /**
- * Deduplica URLs de imagens entre as notícias do lote para garantir que cada notícia
- * possua sua imagem única proveniente da API, eliminando repetições.
+ * Incorpora uma URL de imagem ao conteúdo da matéria caso ainda não esteja presente
  */
-export function deduplicateImages(items: ContentItem[]): ContentItem[] {
-  const seenImages = new Set<string>();
+export function incorporateImageIntoContent(
+  content: string | undefined | null,
+  imageUrl: string | undefined | null,
+  altText: string | undefined | null
+): string {
+  const currentContent = content || '';
+  if (!imageUrl) return currentContent;
+
+  const cleanUrl = imageUrl.trim();
+  if (!cleanUrl) return currentContent;
+
+  // Se o conteúdo já contém a URL desta imagem, mantém como está
+  if (currentContent.includes(cleanUrl)) {
+    return currentContent;
+  }
+
+  const cleanAlt = cleanText(altText || 'Imagem da notícia');
+  const imgTag = `<p><img src="${cleanUrl}" alt="${cleanAlt}" /></p>\n\n`;
+
+  return imgTag + currentContent;
+}
+
+/**
+ * Deduplica imagens na mesma categoria e feed:
+ * 1. Em caso de repetição de URL de imagem verificada entre as matérias do lote:
+ *    - Incorpora ao conteúdo uma segunda imagem que contenha no conteúdo da notícia a fim de evitar imagens duplicadas no mesmo feed.
+ *    - Somente em caso se não houver uma segunda imagem dentro da notícia, mantém e incorpora a mesma URL de imagem.
+ * 2. Se for a primeira ocorrência, utiliza a imagem primária e a incorpora ao conteúdo.
+ */
+export function deduplicateFeedImages(items: ContentItem[]): ContentItem[] {
+  const seenImageUrls = new Set<string>();
+
   return items.map((item) => {
-    if (!item.imageUrl) return item;
-    const normalizedUrl = item.imageUrl.trim().toLowerCase();
-    if (seenImages.has(normalizedUrl)) {
-      // Já utilizada por outra matéria neste mesmo endpoint: remove repetição
-      return {
-        ...item,
-        imageUrl: undefined,
-      };
+    const available = (item.availableImages || []).filter(
+      (img) => Boolean(img) && !isGenericBanner(img)
+    );
+
+    // Candidata primária: imageUrl definida no parsing ou a primeira das imagens disponíveis
+    const primaryImg = item.imageUrl || available[0];
+
+    let chosenImage: string | undefined = undefined;
+
+    if (primaryImg) {
+      const normPrimary = primaryImg.trim().toLowerCase();
+
+      if (seenImageUrls.has(normPrimary)) {
+        // REPETIÇÃO DETECTADA NA MESMA CATEGORIA / FEED!
+        // Buscar uma segunda imagem no conteúdo da notícia que ainda não tenha sido usada no feed
+        const secondImage = available.find((img) => {
+          const norm = img.trim().toLowerCase();
+          return norm !== normPrimary && !seenImageUrls.has(norm);
+        });
+
+        if (secondImage) {
+          // Encontrou segunda imagem diferente no conteúdo da matéria
+          chosenImage = secondImage;
+          seenImageUrls.add(secondImage.trim().toLowerCase());
+        } else {
+          // Somente se não houver segunda imagem dentro da notícia, mantém e incorpora a mesma URL de imagem
+          chosenImage = primaryImg;
+        }
+      } else {
+        // Primeira ocorrência da imagem no feed
+        chosenImage = primaryImg;
+        seenImageUrls.add(normPrimary);
+      }
     }
-    seenImages.add(normalizedUrl);
-    return item;
+
+    // Incorporar a imagem escolhida ao conteúdo da notícia
+    const updatedContent = incorporateImageIntoContent(
+      item.content || item.description,
+      chosenImage,
+      item.alt || item.title
+    );
+
+    // Remover propriedade temporária availableImages do objeto final
+    const cleanItem = { ...item };
+    delete cleanItem.availableImages;
+
+    return {
+      ...cleanItem,
+      imageUrl: chosenImage || undefined,
+      content: updatedContent,
+    };
   });
 }
+
+export const deduplicateImages = deduplicateFeedImages;
 
 const GENERIC_REPEATED_BANNERS = [
   'copa-alem-da-copa-novo.jpeg',
@@ -272,22 +397,53 @@ export function isGenericBanner(url?: string | null): boolean {
 export function extractContentImages(html?: string | null): string[] {
   if (!html) return [];
   const results: string[] = [];
-  const regex = /<img[^>]+(?:src|data-src|data-lazy-src)=["']([^"']+)["']/gi;
-  let match;
-  while ((match = regex.exec(html)) !== null) {
-    const src = match[1]?.trim();
+  const seen = new Set<string>();
+
+  const addImg = (url: string | undefined | null) => {
+    if (!url) return;
+    const clean = url.trim().replace(/&amp;/g, '&');
     if (
-      src &&
-      !src.includes('avatar') &&
-      !src.includes('gravatar') &&
-      !src.includes('pixel') &&
-      !src.includes('emoji') &&
-      !src.includes('smilies') &&
-      !src.includes('w.org')
+      clean.startsWith('http') &&
+      !clean.includes('avatar') &&
+      !clean.includes('gravatar') &&
+      !clean.includes('pixel') &&
+      !clean.includes('emoji') &&
+      !clean.includes('smilies') &&
+      !clean.includes('w.org') &&
+      !clean.includes('1x1') &&
+      !clean.includes('s.w.org')
     ) {
-      results.push(src);
+      const lower = clean.toLowerCase();
+      if (!seen.has(lower) && !isGenericBanner(lower)) {
+        seen.add(lower);
+        results.push(clean);
+      }
+    }
+  };
+
+  // 1. Tags <img> completas
+  const imgTagRegex = /<img\b([^>]*)\/?>/gi;
+  let tagMatch;
+  while ((tagMatch = imgTagRegex.exec(html)) !== null) {
+    const attrs = tagMatch[1];
+    const srcMatch = attrs.match(/\b(?:src|data-src|data-lazy-src|data-original|data-orig-file)=["']([^"']+)["']/i);
+    if (srcMatch) {
+      addImg(srcMatch[1]);
+    }
+    const srcsetMatch = attrs.match(/\bsrcset=["']([^"']+)["']/i);
+    if (srcsetMatch) {
+      const firstSrc = srcsetMatch[1].split(',')[0]?.trim().split(/\s+/)[0];
+      addImg(firstSrc);
     }
   }
+
+  // 2. Links diretos para imagens no HTML
+  const linkImgRegex = /<a\b[^>]*\bhref=["']([^"']+\.(?:jpg|jpeg|png|webp|gif)(?:\?[^"']*)?)["']/gi;
+  let linkMatch;
+  while ((linkMatch = linkImgRegex.exec(html)) !== null) {
+    addImg(linkMatch[1]);
+  }
+
   return results;
 }
 
@@ -372,6 +528,104 @@ export function resolveBestPostImage(
   return candidate || undefined;
 }
 
+export function extractAllWordPressImages(
+  post: any,
+  featuredMediaUrl?: string | null,
+  feedImageMap?: Map<string, string>
+): string[] {
+  const list: string[] = [];
+  const seen = new Set<string>();
+
+  const add = (u?: string | null) => {
+    if (!u) return;
+    const clean = u.trim();
+    if (clean.startsWith('http')) {
+      const lower = clean.toLowerCase();
+      if (!seen.has(lower) && !isGenericBanner(lower)) {
+        seen.add(lower);
+        list.push(clean);
+      }
+    }
+  };
+
+  // 1. Melhor imagem calculada
+  const best = resolveBestPostImage(post, featuredMediaUrl, feedImageMap);
+  if (best) add(best);
+
+  // 2. Featured media
+  if (featuredMediaUrl) add(featuredMediaUrl);
+  if (post.featured_media_src_url) add(post.featured_media_src_url);
+  if (post.jetpack_featured_media_url) add(post.jetpack_featured_media_url);
+
+  // 3. Imagens do conteúdo HTML
+  for (const img of extractContentImages(post.content?.rendered)) add(img);
+
+  // 4. Imagens do resumo HTML
+  for (const img of extractContentImages(post.excerpt?.rendered)) add(img);
+
+  // 5. Imagem mapeada do feed
+  const rawTitle = cleanText(post.title?.rendered || post.title || '');
+  const normTitle = rawTitle.toLowerCase().replace(/&#8211;/g, '-').replace(/[–—]/g, '-').replace(/\s+/g, ' ').trim();
+  const feedImg = feedImageMap?.get(normTitle);
+  if (feedImg) add(feedImg);
+
+  return list;
+}
+
+export function extractAllRssImages(block: string, content?: string, description?: string): string[] {
+  const list: string[] = [];
+  const seen = new Set<string>();
+
+  const add = (u?: string | null) => {
+    if (!u) return;
+    const clean = u.trim();
+    if (clean.startsWith('http')) {
+      const lower = clean.toLowerCase();
+      if (!seen.has(lower) && !isGenericBanner(lower)) {
+        seen.add(lower);
+        list.push(clean);
+      }
+    }
+  };
+
+  // 1. itunes:image
+  const itunesMatch = block.match(/<itunes:image[^>]+href=["']([^"']+)["']/i);
+  if (itunesMatch) add(itunesMatch[1]);
+
+  // 2. enclosures
+  const encMatches = block.match(/<enclosure[^>]+url=["']([^"']+)["'][^>]*>/gi) || [];
+  for (const enc of encMatches) {
+    const url = enc.match(/url=["']([^"']+)["']/i)?.[1];
+    if (url && /\.(?:jpg|jpeg|png|webp|gif)(?:\?.*)?$/i.test(url)) {
+      add(url);
+    }
+  }
+
+  // 3. media:content tags
+  const mediaMatches = block.match(/<media:content[^>]+url=["']([^"']+)["'][^>]*>/gi) || [];
+  for (const m of mediaMatches) {
+    const url = m.match(/url=["']([^"']+)["']/i)?.[1];
+    add(url);
+  }
+
+  // 4. media:thumbnail tags
+  const thumbMatches = block.match(/<media:thumbnail[^>]+url=["']([^"']+)["'][^>]*>/gi) || [];
+  for (const m of thumbMatches) {
+    const url = m.match(/url=["']([^"']+)["']/i)?.[1];
+    add(url);
+  }
+
+  // 5. Imagens dentro de content e description
+  if (content) {
+    for (const img of extractContentImages(content)) add(img);
+  }
+  if (description) {
+    for (const img of extractContentImages(description)) add(img);
+  }
+
+  return list;
+}
+
 export function parseRssFeed(xml: string): { feed: any; items: ContentItem[] } {
   let feedTitle = extractTagValue(xml, 'title');
   if (feedTitle && feedTitle.trim().toLowerCase() === 'g1') {
@@ -386,7 +640,7 @@ export function parseRssFeed(xml: string): { feed: any; items: ContentItem[] } {
   };
 
   const itemBlocks = xml.match(/<item[\s\S]*?<\/item>/gi) || [];
-  const items: ContentItem[] = itemBlocks.map((block, index) => {
+  const rawItems: ContentItem[] = itemBlocks.map((block, index) => {
     const rawTitle = extractTagValue(block, 'title');
     const title = cleanText(removeG1Sentences(rawTitle || ''));
     const link = extractTagValue(block, 'link') || extractTagValue(block, 'guid');
@@ -411,40 +665,9 @@ export function parseRssFeed(xml: string): { feed: any; items: ContentItem[] } {
       )
       .filter((c) => Boolean(c) && !/\bg1\b/i.test(c.trim()));
 
-    // 1. Check itunes:image first (podcasts, episodes, custom covers)
-    let imageUrl = block.match(/<itunes:image[^>]+href=["']([^"']+)["']/i)?.[1];
-    
-    // 2. Check enclosure if it is an image
-    if (!imageUrl) {
-      const encUrl = extractAttribute(block, 'enclosure', 'url');
-      if (encUrl && /\.(?:jpg|jpeg|png|webp|gif)(?:\?.*)?$/i.test(encUrl)) {
-        imageUrl = encUrl;
-      }
-    }
-
-    // 3. Check media:content and media:thumbnail
-    if (!imageUrl) {
-      imageUrl = extractAttribute(block, 'media:content', 'url');
-    }
-    if (!imageUrl) {
-      imageUrl = extractAttribute(block, 'media:thumbnail', 'url');
-    }
-
-    // 4. Check content images
-    if (!imageUrl && content) {
-      const contentImgs = extractContentImages(content);
-      if (contentImgs.length > 0) {
-        imageUrl = contentImgs[0];
-      }
-    }
-
-    // 5. Check description images
-    if (!imageUrl && description) {
-      const descImgs = extractContentImages(description);
-      if (descImgs.length > 0) {
-        imageUrl = descImgs[0];
-      }
-    }
+    // Extrair todas as imagens disponíveis na notícia do feed
+    const availableImages = extractAllRssImages(block, content, description);
+    const imageUrl = availableImages[0] || undefined;
 
     const itemTitle = title || 'Sem título';
     const itemSlug = slugify(itemTitle);
@@ -467,9 +690,13 @@ export function parseRssFeed(xml: string): { feed: any; items: ContentItem[] } {
       author: author || undefined,
       categories: categories.length > 0 ? categories : undefined,
       imageUrl: imageUrl || undefined,
+      availableImages,
     };
   })
-  .filter((item) => !isVideoBroadcastWithoutContent(item.title, item.content, item.description));
+  .filter((item) => isArticleAllowed(item));
+
+  // Deduplica imagens no feed: se houver repetição de URL, seleciona segunda imagem da matéria e incorpora ao conteúdo
+  const items = deduplicateFeedImages(rawItems);
 
   return { feed, items };
 }
@@ -679,42 +906,45 @@ export async function fetchSourceContent(
       }
 
       const items: ContentItem[] = Array.isArray(rawPosts)
-        ? rawPosts.map((post: any) => {
-            const featuredMedia = post._embedded?.['wp:featuredmedia']?.[0]?.source_url;
-            const rawTitle = cleanText(post.title?.rendered || post.title || 'Sem título');
-            const title = removeG1Sentences(rawTitle);
-            const slug = post.slug ? String(post.slug).trim() : slugify(title);
+        ? rawPosts
+            .map((post: any) => {
+              const featuredMedia = post._embedded?.['wp:featuredmedia']?.[0]?.source_url;
+              const rawTitle = cleanText(post.title?.rendered || post.title || 'Sem título');
+              const title = removeG1Sentences(rawTitle);
+              const slug = post.slug ? String(post.slug).trim() : slugify(title);
 
-            const img = resolveBestPostImage(post, featuredMedia, feedImageMap);
+              const allAvailableImages = extractAllWordPressImages(post, featuredMedia, feedImageMap);
+              const img = allAvailableImages[0] || resolveBestPostImage(post, featuredMedia, feedImageMap);
 
-            const rawId = typeof post.id === 'number' ? post.id : parseInt(String(post.id), 10);
-            const numericId = !isNaN(rawId) && rawId > 0 ? rawId : generate6DigitId(slug || title);
+              const rawId = typeof post.id === 'number' ? post.id : parseInt(String(post.id), 10);
+              const numericId = !isNaN(rawId) && rawId > 0 ? rawId : generate6DigitId(slug || title);
 
-            const fullContentText = stripHtmlToParagraphs(post.content?.rendered);
-            const excerptText = stripHtmlToParagraphs(post.excerpt?.rendered);
-            const completeText = fullContentText && fullContentText.length > 50
-              ? fullContentText
-              : (excerptText || fullContentText || '');
+              const fullContentText = stripHtmlToParagraphs(post.content?.rendered);
+              const excerptText = stripHtmlToParagraphs(post.excerpt?.rendered);
+              const completeText = fullContentText && fullContentText.length > 50
+                ? fullContentText
+                : (excerptText || fullContentText || '');
 
-            const cleanedDescription = preCleanText(excerptText || completeText || '');
-            const cleanedContent = preCleanText(completeText || '');
+              const cleanedDescription = preCleanText(excerptText || completeText || '');
+              const cleanedContent = preCleanText(completeText || '');
 
-            return {
-              id: numericId,
-              title,
-              slug,
-              alt: title,
-              description: cleanedDescription,
-              content: cleanedContent,
-              pubDate: post.date || post.date_gmt,
-              author: post.author ? String(post.author) : undefined,
-              imageUrl: img || undefined,
-            };
-          })
-          .filter((item) => !isVideoBroadcastWithoutContent(item.title, item.content, item.description))
+              return {
+                id: numericId,
+                title,
+                slug,
+                alt: title,
+                description: cleanedDescription,
+                content: cleanedContent,
+                pubDate: post.date || post.date_gmt,
+                author: post.author ? String(post.author) : undefined,
+                imageUrl: img || undefined,
+                availableImages: allAvailableImages,
+              };
+            })
+            .filter((item) => isArticleAllowed(item))
         : [];
 
-      const dedupedItems = deduplicateImages(items);
+      const dedupedItems = deduplicateFeedImages(items);
 
       return {
         source,
@@ -811,27 +1041,21 @@ export async function fetchMediaContent(
       const feedData = await fetchSourceContent(mediaSource, { page: 1, limit: 100, search, bypassCache });
       clearTimeout(timeoutId);
 
-      const uniqueRssMediaItems: ContentItem[] = [];
-      const seenRssImages = new Set<string>();
+      const mediaCandidates: ContentItem[] = feedData.items
+        .filter((item) => Boolean(item.imageUrl) && isArticleAllowed(item))
+        .map((item) => ({
+          id: item.id,
+          title: item.title,
+          slug: item.slug || slugify(item.title),
+          alt: item.title,
+          description: item.description,
+          content: item.content || item.description,
+          pubDate: item.pubDate,
+          imageUrl: item.imageUrl,
+          availableImages: item.availableImages,
+        }));
 
-      for (const item of feedData.items) {
-        if (item.imageUrl) {
-          const norm = item.imageUrl.trim().toLowerCase();
-          if (!seenRssImages.has(norm)) {
-            seenRssImages.add(norm);
-            uniqueRssMediaItems.push({
-              id: item.id,
-              title: item.title,
-              slug: item.slug || slugify(item.title),
-              alt: item.title,
-              description: item.description,
-              content: item.content || item.description,
-              pubDate: item.pubDate,
-              imageUrl: item.imageUrl,
-            });
-          }
-        }
-      }
+      const uniqueRssMediaItems = deduplicateFeedImages(mediaCandidates);
 
       const total = uniqueRssMediaItems.length;
       const totalPages = Math.ceil(total / limit) || 1;
@@ -951,7 +1175,9 @@ export async function fetchMediaContent(
             const newsTitle = cleanText(post.title?.rendered || post.title || 'Sem título');
             const newsSlug = post.slug ? String(post.slug).trim() : slugify(newsTitle);
             const featuredMedia = post._embedded?.['wp:featuredmedia']?.[0]?.source_url;
-            const imageUrl = resolveBestPostImage(post, featuredMedia, feedImageMap);
+
+            const allAvailableImages = extractAllWordPressImages(post, featuredMedia, feedImageMap);
+            const imageUrl = allAvailableImages[0] || resolveBestPostImage(post, featuredMedia, feedImageMap);
 
             const rawId = typeof post.id === 'number' ? post.id : parseInt(String(post.id), 10);
             const numericId = !isNaN(rawId) && rawId > 0 ? rawId : generate6DigitId(newsSlug || newsTitle);
@@ -971,24 +1197,14 @@ export async function fetchMediaContent(
               content: completeText,
               pubDate: post.date || post.date_gmt,
               imageUrl: imageUrl || undefined,
+              availableImages: allAvailableImages,
             };
           })
-          .filter((item) => Boolean(item.imageUrl) && !isVideoBroadcastWithoutContent(item.title, item.content, item.description))
+          .filter((item) => Boolean(item.imageUrl) && isArticleAllowed(item))
       : [];
 
-    // Eliminar repetições de imagens no mesmo endpoint para garantir imagem única por notícia
-    const uniqueMediaItems: ContentItem[] = [];
-    const seenImages = new Set<string>();
-
-    for (const item of items) {
-      if (item.imageUrl) {
-        const norm = item.imageUrl.trim().toLowerCase();
-        if (!seenImages.has(norm)) {
-          seenImages.add(norm);
-          uniqueMediaItems.push(item);
-        }
-      }
-    }
+    // Deduplica imagens no feed: em repetição, utiliza segunda imagem do conteúdo e incorpora; se não houver segunda, mantém a mesma URL
+    const uniqueMediaItems = deduplicateFeedImages(items);
 
     return {
       source: mediaSource,

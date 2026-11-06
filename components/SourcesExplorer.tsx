@@ -30,9 +30,16 @@ interface SourceItem {
 interface SourcesExplorerProps {
   sources: SourceItem[];
   categories: string[];
+  appUrl?: string;
+  appDomain?: string;
 }
 
-export default function SourcesExplorer({ sources, categories }: SourcesExplorerProps) {
+export default function SourcesExplorer({
+  sources,
+  categories,
+  appUrl = '',
+  appDomain = '',
+}: SourcesExplorerProps) {
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [apiKey, setApiKey] = useState<string>('');
@@ -112,8 +119,15 @@ export default function SourcesExplorer({ sources, categories }: SourcesExplorer
               Rotas do Sistema & Monitoramento
             </h3>
           </div>
-          <div className="text-xs text-slate-400">
-            Revalidação ISR: <span className="text-emerald-400 font-mono font-semibold">20 segundos</span>
+          <div className="flex flex-wrap items-center gap-3 text-xs text-slate-400">
+            {appDomain && (
+              <span className="bg-slate-800 px-2.5 py-1 rounded-md border border-slate-700 font-mono text-blue-300">
+                Domínio: <strong className="text-white">{appDomain}</strong>
+              </span>
+            )}
+            <div>
+              Revalidação ISR: <span className="text-emerald-400 font-mono font-semibold">20 segundos</span>
+            </div>
           </div>
         </div>
 
@@ -275,7 +289,7 @@ export default function SourcesExplorer({ sources, categories }: SourcesExplorer
                     {source.category}
                   </span>
                   <h4 className="font-semibold text-slate-900 text-sm flex items-center gap-1.5">
-                    <span>{source.site || source.category}</span>
+                    <span className="truncate">{source.site || appDomain || source.category}</span>
                     {isLudopedio && (
                       <span className="text-[10px] bg-emerald-100 text-emerald-800 px-1.5 py-0.2 rounded font-medium">
                         Feed & Imagens Únicas
@@ -290,65 +304,74 @@ export default function SourcesExplorer({ sources, categories }: SourcesExplorer
               </div>
 
               {/* Endpoint buttons */}
-              <div className="mt-3 pt-3 border-t border-slate-100 space-y-2">
-                {/* News Endpoint */}
-                <div className="flex items-center justify-between text-xs bg-slate-50 p-2 rounded-lg border border-slate-200">
-                  <div className="flex items-center gap-1.5 truncate mr-2">
-                    <Newspaper className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-                    <code className="font-mono text-slate-700 truncate">/api/news/{source.id}</code>
-                  </div>
-                  <div className="flex items-center gap-1 shrink-0">
-                    <button
-                      onClick={() => copyToClipboard(`/api/news/${source.id}`, `news-${source.id}`)}
-                      className="p-1 text-slate-400 hover:text-slate-700 rounded hover:bg-slate-200 transition-colors"
-                      title="Copiar endpoint"
-                    >
-                      {copiedEndpoint === `news-${source.id}` ? (
-                        <Check className="w-3.5 h-3.5 text-emerald-600" />
-                      ) : (
-                        <Copy className="w-3.5 h-3.5" />
-                      )}
-                    </button>
-                    <button
-                      onClick={() => executeQuickTest(`/api/news/${source.id}?limit=2`)}
-                      className="p-1 text-blue-600 hover:text-blue-800 rounded hover:bg-blue-100 transition-colors"
-                      title="Testar consulta ao vivo"
-                    >
-                      <Play className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </div>
+              {(() => {
+                const newsPath = `/api/news/${source.id}`;
+                const fullNewsUrl = appUrl ? `${appUrl}${newsPath}` : newsPath;
+                const imagesPath = `/api/images/${source.id}`;
+                const fullImagesUrl = appUrl ? `${appUrl}${imagesPath}` : imagesPath;
 
-                {/* Media Endpoint if supported */}
-                {hasMedia && (
-                  <div className="flex items-center justify-between text-xs bg-slate-50 p-2 rounded-lg border border-slate-200">
-                    <div className="flex items-center gap-1.5 truncate mr-2">
-                      <ImageIcon className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                      <code className="font-mono text-slate-700 truncate">/api/images/{source.id}</code>
+                return (
+                  <div className="mt-3 pt-3 border-t border-slate-100 space-y-2">
+                    {/* News Endpoint */}
+                    <div className="flex items-center justify-between text-xs bg-slate-50 p-2 rounded-lg border border-slate-200">
+                      <div className="flex items-center gap-1.5 truncate mr-2" title={fullNewsUrl}>
+                        <Newspaper className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                        <code className="font-mono text-slate-700 truncate">{newsPath}</code>
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button
+                          onClick={() => copyToClipboard(fullNewsUrl, `news-${source.id}`)}
+                          className="p-1 text-slate-400 hover:text-slate-700 rounded hover:bg-slate-200 transition-colors"
+                          title={`Copiar URL: ${fullNewsUrl}`}
+                        >
+                          {copiedEndpoint === `news-${source.id}` ? (
+                            <Check className="w-3.5 h-3.5 text-emerald-600" />
+                          ) : (
+                            <Copy className="w-3.5 h-3.5" />
+                          )}
+                        </button>
+                        <button
+                          onClick={() => executeQuickTest(`${newsPath}?limit=2`)}
+                          className="p-1 text-blue-600 hover:text-blue-800 rounded hover:bg-blue-100 transition-colors"
+                          title="Testar consulta ao vivo"
+                        >
+                          <Play className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-1 shrink-0">
-                      <button
-                        onClick={() => copyToClipboard(`/api/images/${source.id}`, `img-${source.id}`)}
-                        className="p-1 text-slate-400 hover:text-slate-700 rounded hover:bg-slate-200 transition-colors"
-                        title="Copiar endpoint"
-                      >
-                        {copiedEndpoint === `img-${source.id}` ? (
-                          <Check className="w-3.5 h-3.5 text-emerald-600" />
-                        ) : (
-                          <Copy className="w-3.5 h-3.5" />
-                        )}
-                      </button>
-                      <button
-                        onClick={() => executeQuickTest(`/api/images/${source.id}?limit=2`)}
-                        className="p-1 text-emerald-600 hover:text-emerald-800 rounded hover:bg-emerald-100 transition-colors"
-                        title="Testar mídias ao vivo"
-                      >
-                        <Play className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
+
+                    {/* Media Endpoint if supported */}
+                    {hasMedia && (
+                      <div className="flex items-center justify-between text-xs bg-slate-50 p-2 rounded-lg border border-slate-200">
+                        <div className="flex items-center gap-1.5 truncate mr-2" title={fullImagesUrl}>
+                          <ImageIcon className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                          <code className="font-mono text-slate-700 truncate">{imagesPath}</code>
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button
+                            onClick={() => copyToClipboard(fullImagesUrl, `img-${source.id}`)}
+                            className="p-1 text-slate-400 hover:text-slate-700 rounded hover:bg-slate-200 transition-colors"
+                            title={`Copiar URL: ${fullImagesUrl}`}
+                          >
+                            {copiedEndpoint === `img-${source.id}` ? (
+                              <Check className="w-3.5 h-3.5 text-emerald-600" />
+                            ) : (
+                              <Copy className="w-3.5 h-3.5" />
+                            )}
+                          </button>
+                          <button
+                            onClick={() => executeQuickTest(`${imagesPath}?limit=2`)}
+                            className="p-1 text-emerald-600 hover:text-emerald-800 rounded hover:bg-emerald-100 transition-colors"
+                            title="Testar mídias ao vivo"
+                          >
+                            <Play className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
+                );
+              })()}
             </div>
           );
         })}

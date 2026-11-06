@@ -9,9 +9,17 @@ interface HomePageTabsProps {
   sources: any[];
   categories: string[];
   spec: any;
+  appUrl?: string;
+  appDomain?: string;
 }
 
-export default function HomePageTabs({ sources, categories, spec }: HomePageTabsProps) {
+export default function HomePageTabs({
+  sources,
+  categories,
+  spec,
+  appUrl = '',
+  appDomain = '',
+}: HomePageTabsProps) {
   const [activeTab, setActiveTab] = useState<'explorer' | 'swagger'>('explorer');
 
   return (
@@ -67,7 +75,12 @@ export default function HomePageTabs({ sources, categories, spec }: HomePageTabs
 
       {/* Tab Panels */}
       {activeTab === 'explorer' && (
-        <SourcesExplorer sources={sources} categories={categories} />
+        <SourcesExplorer
+          sources={sources}
+          categories={categories}
+          appUrl={appUrl}
+          appDomain={appDomain}
+        />
       )}
 
       {activeTab === 'swagger' && (

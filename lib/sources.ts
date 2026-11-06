@@ -88,8 +88,19 @@ export function getSourcesData(): SourcesData {
   return (rawSourcesData as unknown as SourcesData) || { sources: [] };
 }
 
-export function getAllSources(): Source[] {
-  return getSourcesData().sources;
+export function getAllSources(req?: Request): Source[] {
+  const appDomain = getBaseDomain(req);
+  return getSourcesData().sources.map((source) => {
+    const isLegacyOrVercel =
+      !source.site ||
+      source.site === 'news-sources-api.vercel.app' ||
+      source.site.includes('vercel.app');
+
+    return {
+      ...source,
+      site: isLegacyOrVercel ? appDomain : source.site,
+    };
+  });
 }
 
 export function getSourceById(id: number | string | undefined | null): Source | undefined {
@@ -190,14 +201,12 @@ export function getStats() {
 }
 
 export function getBaseUrl(req?: Request): string {
-  // 1. Explicit environment configurations (custom domain or hosting platform)
+  // 1. Explicit APP_URL or APP_DOMAIN environment configurations
   const envUrl =
     process.env.APP_URL ||
-    getEnv().NEXT_PUBLIC_BASE_URL ||
+    getEnv().APP_URL ||
     process.env.NEXT_PUBLIC_APP_URL ||
-    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined) ||
-    (process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : undefined) ||
-    process.env.RENDER_EXTERNAL_URL;
+    getEnv().NEXT_PUBLIC_APP_URL;
 
   if (envUrl && envUrl.trim()) {
     let clean = envUrl.trim().replace(/\/+$/, '');
@@ -207,7 +216,46 @@ export function getBaseUrl(req?: Request): string {
     return clean;
   }
 
-  // 2. Request headers (X-Forwarded-Host or Host)
+  // If APP_DOMAIN is configured directly (e.g. app.camaraparaiso.gov.br)
+  const envDomain =
+    process.env.APP_DOMAIN ||
+    getEnv().APP_DOMAIN ||
+    process.env.NEXT_PUBLIC_APP_DOMAIN ||
+    getEnv().NEXT_PUBLIC_APP_DOMAIN;
+
+  if (envDomain && envDomain.trim()) {
+    let cleanDomain = envDomain
+      .trim()
+      .replace(/^https?:\/\//i, '')
+      .replace(/\/+$/, '');
+    return `https://${cleanDomain}`;
+  }
+
+  // Fallback to NEXT_PUBLIC_BASE_URL
+  const legacyBaseUrl = getEnv().NEXT_PUBLIC_BASE_URL || process.env.NEXT_PUBLIC_BASE_URL;
+  if (legacyBaseUrl && legacyBaseUrl.trim()) {
+    let clean = legacyBaseUrl.trim().replace(/\/+$/, '');
+    if (!clean.startsWith('http://') && !clean.startsWith('https://')) {
+      clean = `https://${clean}`;
+    }
+    return clean;
+  }
+
+  // 2. Platform environment variables (Vercel, Railway, Render)
+  const platformUrl =
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined) ||
+    (process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : undefined) ||
+    process.env.RENDER_EXTERNAL_URL;
+
+  if (platformUrl && platformUrl.trim()) {
+    let clean = platformUrl.trim().replace(/\/+$/, '');
+    if (!clean.startsWith('http://') && !clean.startsWith('https://')) {
+      clean = `https://${clean}`;
+    }
+    return clean;
+  }
+
+  // 3. Request headers (X-Forwarded-Host or Host)
   if (req) {
     const forwardedHost = req.headers.get('x-forwarded-host') || req.headers.get('host');
     const forwardedProto = req.headers.get('x-forwarded-proto') || 'https';
@@ -222,17 +270,53 @@ export function getBaseUrl(req?: Request): string {
     }
   }
 
-  // 3. Client-side browser runtime
+  // 4. Client-side browser runtime
   if (typeof window !== 'undefined' && window.location?.origin) {
     return window.location.origin;
   }
 
-  // 4. Local development server fallback
+  // 5. Local development server fallback
   const port = getEnv().PORT || 3000;
   return `http://localhost:${port}`;
 }
 
 export function getBaseDomain(req?: Request): string {
+  // 1. Direct APP_DOMAIN environment variable
+  const envDomain =
+    process.env.APP_DOMAIN ||
+    getEnv().APP_DOMAIN ||
+    process.env.NEXT_PUBLIC_APP_DOMAIN ||
+    getEnv().NEXT_PUBLIC_APP_DOMAIN;
+
+  if (envDomain && envDomain.trim()) {
+    return envDomain
+      .trim()
+      .replace(/^https?:\/\//i, '')
+      .replace(/\/.*$/, '')
+      .replace(/:\d+$/, '');
+  }
+
+  // 2. Extract from APP_URL / getBaseUrl
   const url = getBaseUrl(req);
-  return url.replace(/^https?:\/\//, '').replace(/\/.*$/, '') || 'localhost';
+  return url.replace(/^https?:\/\//i, '').replace(/\/.*$/, '') || 'localhost';
 }
+
+/**
+ * Formula URLs da aplicação utilizando a variável APP_URL ou APP_DOMAIN
+ */
+export function formatAppUrl(path: string = '', req?: Request): string {
+  const base = getBaseUrl(req);
+  const cleanPath = path ? (path.startsWith('/') ? path : `/${path}`) : '';
+  return `${base}${cleanPath}`;
+}
+
+/**
+ * Formula endereços de e-mail institucionais utilizando a variável APP_DOMAIN ou APP_URL
+ * Exemplo: formatAppEmail('contato') => 'contato@dominio.com.br'
+ */
+export function formatAppEmail(userPart: string = 'contato', req?: Request): string {
+  const domain = getBaseDomain(req);
+  const cleanUser = userPart.trim().replace(/@.*$/, '') || 'contato';
+  return `${cleanUser}@${domain}`;
+}
+

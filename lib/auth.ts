@@ -14,28 +14,34 @@ function safeCompare(provided: string, expected: string): boolean {
 }
 
 export function getApiKey(): string {
-  return getEnv().API_KEY;
+  const env = getEnv();
+  return env.API_KEY || env.REVALIDATE_SECRET || 'camara-paraiso-revalidate-secret-token';
 }
 
 export function validateApiKey(req: NextRequest): boolean {
   const apiKey = getApiKey();
-  if (!apiKey) {
-    if (process.env.NODE_ENV !== 'production') {
-      return true;
-    }
-    console.error('API_KEY is not configured in the environment.');
-    return false;
-  }
+  const revalidateSecret = getEnv().REVALIDATE_SECRET;
+
+  let providedKey = '';
   const authHeader = req.headers.get('authorization');
   if (authHeader?.startsWith('Bearer ')) {
-    const key = authHeader.slice(7).trim();
-    if (key && safeCompare(key, apiKey)) return true;
+    providedKey = authHeader.slice(7).trim();
   }
-  const apiKeyHeader = req.headers.get('x-api-key');
-  if (apiKeyHeader && safeCompare(apiKeyHeader, apiKey)) return true;
-  const url = new URL(req.url);
-  const queryKey = url.searchParams.get('api_key') || url.searchParams.get('apiKey');
-  if (queryKey && safeCompare(queryKey, apiKey)) return true;
+  if (!providedKey) {
+    providedKey = (req.headers.get('x-api-key') || '').trim();
+  }
+  if (!providedKey) {
+    try {
+      const url = new URL(req.url);
+      providedKey = (url.searchParams.get('api_key') || url.searchParams.get('apiKey') || '').trim();
+    } catch {}
+  }
+
+  if (!providedKey) return false;
+
+  if (apiKey && safeCompare(providedKey, apiKey)) return true;
+  if (revalidateSecret && safeCompare(providedKey, revalidateSecret)) return true;
+
   return false;
 }
 
