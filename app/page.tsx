@@ -92,11 +92,16 @@ export default async function Home() {
             title: { type: 'string', example: 'Título da matéria jornalística' },
             slug: { type: 'string', example: 'titulo-da-materia-jornalistica' },
             alt: { type: 'string', example: 'Título da matéria jornalística' },
+            category: { type: 'string', example: 'Mundo', description: 'Categoria da notícia' },
+            categories: { type: 'array', items: { type: 'string' }, example: ['Mundo'] },
+            source: { type: 'string', example: 'Mundo', description: 'Nome/identificação da fonte' },
+            sourceId: { type: 'integer', example: 2431124818641, description: 'ID numérico da fonte' },
             description: { type: 'string', example: 'Resumo da matéria jornalística limpo...' },
-            content: { type: 'string', example: 'Parágrafos jornalísticos completos revisados e limpos por IA.' },
+            content: { type: 'string', example: '<p><img src="https://site.com/uploads/imagem.jpg" alt="Título" /></p>\n\nParágrafos completos revisados.' },
             pubDate: { type: 'string', format: 'date-time', example: '2026-09-16T19:12:25Z' },
             author: { type: 'string', example: 'Redação' },
             imageUrl: { type: 'string', example: 'https://site.com/uploads/imagem.jpg', description: 'URL direta única para incorporação' },
+            image: { type: 'string', example: 'https://site.com/uploads/imagem.jpg', description: 'Alias idêntico a imageUrl' },
             _links: {
               type: 'object',
               properties: {

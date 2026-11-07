@@ -34,6 +34,12 @@ export async function GET(req: NextRequest) {
 
       const itemsWithHateoas = data.items.map((item) => ({
         ...item,
+        category: item.category || source.category,
+        categories: item.categories || (source.category ? [source.category] : ['Geral']),
+        source: item.source || source.category,
+        sourceId: item.sourceId || source.id,
+        imageUrl: item.imageUrl || item.image,
+        image: item.image || item.imageUrl,
         _links: {
           self: { href: `${baseUrl}/api/images/${source.id}?page=${page}` },
           news: { href: `${baseUrl}/api/news/${source.id}` },

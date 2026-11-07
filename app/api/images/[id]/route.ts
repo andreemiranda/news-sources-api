@@ -40,9 +40,15 @@ export async function GET(
   try {
     const data = await getCachedMediaContent(String(source.id), page, limit, search);
 
-    // Vincular links HATEOAS a cada imagem/mídia
+    // Vincular links HATEOAS e garantir campos de imagem, categoria e fonte a cada imagem/mídia
     const itemsWithHateoas = data.items.map((item) => ({
       ...item,
+      category: item.category || source.category,
+      categories: item.categories || (source.category ? [source.category] : ['Geral']),
+      source: item.source || source.category,
+      sourceId: item.sourceId || source.id,
+      imageUrl: item.imageUrl || item.image,
+      image: item.image || item.imageUrl,
       _links: {
         self: { href: `${baseUrl}/api/images/${source.id}?page=${page}` },
         news: { href: `${baseUrl}/api/news/${source.id}` },

@@ -12,8 +12,12 @@ export interface ContentItem {
   content?: string;
   pubDate?: string;
   author?: string;
+  category?: string;
   categories?: string[];
+  source?: string;
+  sourceId?: number | string;
   imageUrl?: string;
+  image?: string;
   availableImages?: string[];
   _links?: Record<string, { href: string | null }>;
 }
@@ -321,7 +325,7 @@ export function incorporateImageIntoContent(
  *    - Somente em caso se não houver uma segunda imagem dentro da notícia, mantém e incorpora a mesma URL de imagem.
  * 2. Se for a primeira ocorrência, utiliza a imagem primária e a incorpora ao conteúdo.
  */
-export function deduplicateFeedImages(items: ContentItem[]): ContentItem[] {
+export function deduplicateFeedImages(items: ContentItem[], preserveAvailableImages: boolean = false): ContentItem[] {
   const seenImageUrls = new Set<string>();
 
   return items.map((item) => {
@@ -330,7 +334,7 @@ export function deduplicateFeedImages(items: ContentItem[]): ContentItem[] {
     );
 
     // Candidata primária: imageUrl definida no parsing ou a primeira das imagens disponíveis
-    const primaryImg = item.imageUrl || available[0];
+    const primaryImg = item.imageUrl || item.image || available[0];
 
     let chosenImage: string | undefined = undefined;
 
@@ -367,13 +371,17 @@ export function deduplicateFeedImages(items: ContentItem[]): ContentItem[] {
       item.alt || item.title
     );
 
-    // Remover propriedade temporária availableImages do objeto final
     const cleanItem = { ...item };
-    delete cleanItem.availableImages;
+    if (!preserveAvailableImages) {
+      delete cleanItem.availableImages;
+    }
+
+    const finalImg = chosenImage || item.imageUrl || item.image || undefined;
 
     return {
       ...cleanItem,
-      imageUrl: chosenImage || undefined,
+      imageUrl: finalImg,
+      image: finalImg,
       content: updatedContent,
     };
   });
@@ -579,7 +587,7 @@ export function extractAllRssImages(block: string, content?: string, description
 
   const add = (u?: string | null) => {
     if (!u) return;
-    const clean = u.trim();
+    const clean = u.trim().replace(/&amp;/g, '&');
     if (clean.startsWith('http')) {
       const lower = clean.toLowerCase();
       if (!seen.has(lower) && !isGenericBanner(lower)) {
@@ -590,33 +598,45 @@ export function extractAllRssImages(block: string, content?: string, description
   };
 
   // 1. itunes:image
-  const itunesMatch = block.match(/<itunes:image[^>]+href=["']([^"']+)["']/i);
+  const itunesMatch = block.match(/<itunes:image\b[^>]+href=["']([^"']+)["']/i);
   if (itunesMatch) add(itunesMatch[1]);
 
   // 2. enclosures
-  const encMatches = block.match(/<enclosure[^>]+url=["']([^"']+)["'][^>]*>/gi) || [];
+  const encMatches = block.match(/<enclosure\b[^>]*\burl=["']([^"']+)["'][^>]*>/gi) || [];
   for (const enc of encMatches) {
-    const url = enc.match(/url=["']([^"']+)["']/i)?.[1];
-    if (url && /\.(?:jpg|jpeg|png|webp|gif)(?:\?.*)?$/i.test(url)) {
+    const url = enc.match(/\burl=["']([^"']+)["']/i)?.[1];
+    if (url) {
       add(url);
     }
   }
 
   // 3. media:content tags
-  const mediaMatches = block.match(/<media:content[^>]+url=["']([^"']+)["'][^>]*>/gi) || [];
+  const mediaMatches = block.match(/<media:content\b[^>]*\burl=["']([^"']+)["'][^>]*>/gi) || [];
   for (const m of mediaMatches) {
-    const url = m.match(/url=["']([^"']+)["']/i)?.[1];
+    const url = m.match(/\burl=["']([^"']+)["']/i)?.[1];
     add(url);
   }
 
   // 4. media:thumbnail tags
-  const thumbMatches = block.match(/<media:thumbnail[^>]+url=["']([^"']+)["'][^>]*>/gi) || [];
+  const thumbMatches = block.match(/<media:thumbnail\b[^>]*\burl=["']([^"']+)["'][^>]*>/gi) || [];
   for (const m of thumbMatches) {
-    const url = m.match(/url=["']([^"']+)["']/i)?.[1];
+    const url = m.match(/\burl=["']([^"']+)["']/i)?.[1];
     add(url);
   }
 
-  // 5. Imagens dentro de content e description
+  // 5. atom:link enclosure
+  const atomEncMatches = block.match(/<atom:link\b[^>]*\bhref=["']([^"']+)["'][^>]*>/gi) || [];
+  for (const atom of atomEncMatches) {
+    if (/rel=["']enclosure["']/i.test(atom) || /type=["']image\//i.test(atom)) {
+      const url = atom.match(/\bhref=["']([^"']+)["']/i)?.[1];
+      add(url);
+    }
+  }
+
+  // 6. Imagens dentro de tags <img> do próprio bloco XML (ex.: CDATA da description ou content)
+  for (const img of extractContentImages(block)) add(img);
+
+  // 7. Imagens dentro de content e description
   if (content) {
     for (const img of extractContentImages(content)) add(img);
   }
@@ -627,7 +647,11 @@ export function extractAllRssImages(block: string, content?: string, description
   return list;
 }
 
-export function parseRssFeed(xml: string): { feed: any; items: ContentItem[] } {
+export function parseRssFeed(
+  xml: string,
+  defaultCategory?: string,
+  defaultSourceId?: string | number
+): { feed: any; items: ContentItem[] } {
   let feedTitle = extractTagValue(xml, 'title');
   if (feedTitle && feedTitle.trim().toLowerCase() === 'g1') {
     feedTitle = '';
@@ -655,7 +679,7 @@ export function parseRssFeed(xml: string): { feed: any; items: ContentItem[] } {
     const guid = extractTagValue(block, 'guid') || String(index + 1);
 
     const catMatches = block.match(/<category[^>]*>([\s\S]*?)<\/category>/gi) || [];
-    const categories = catMatches
+    const xmlCategories = catMatches
       .map((c) =>
         cleanText(
           c
@@ -665,6 +689,9 @@ export function parseRssFeed(xml: string): { feed: any; items: ContentItem[] } {
         )
       )
       .filter((c) => Boolean(c) && !/\bg1\b/i.test(c.trim()));
+
+    const effectiveCategory = xmlCategories.length > 0 ? xmlCategories[0] : (defaultCategory || 'Geral');
+    const effectiveCategories = xmlCategories.length > 0 ? xmlCategories : (defaultCategory ? [defaultCategory] : ['Geral']);
 
     // Extrair todas as imagens disponíveis na notícia do feed
     const availableImages = extractAllRssImages(block, content, description);
@@ -685,19 +712,23 @@ export function parseRssFeed(xml: string): { feed: any; items: ContentItem[] } {
       title: itemTitle,
       slug: itemSlug,
       alt: itemTitle,
+      category: effectiveCategory,
+      categories: effectiveCategories,
+      source: defaultCategory || feedTitle || 'Notícias',
+      sourceId: defaultSourceId || undefined,
       description: completeText,
       content: completeText,
       pubDate,
       author: author || undefined,
-      categories: categories.length > 0 ? categories : undefined,
       imageUrl: imageUrl || undefined,
+      image: imageUrl || undefined,
       availableImages,
     };
   })
   .filter((item) => isArticleAllowed(item));
 
-  // Deduplica imagens no feed: se houver repetição de URL, seleciona segunda imagem da matéria e incorpora ao conteúdo
-  const items = deduplicateFeedImages(rawItems);
+  // Deduplica imagens no feed: preservamos availableImages para enriquecimento posterior
+  const items = deduplicateFeedImages(rawItems, true);
 
   return { feed, items };
 }
@@ -844,7 +875,7 @@ export async function fetchSourceContent(
           if (feedRes.ok) {
             clearTimeout(timeoutId);
             const xmlText = await feedRes.text();
-            const { feed, items: allItems } = parseRssFeed(xmlText);
+            const { feed, items: allItems } = parseRssFeed(xmlText, source.category, source.id);
             let filtered = allItems;
             if (search) {
               const lower = search.toLowerCase();
@@ -873,6 +904,10 @@ export async function fetchSourceContent(
                 }
                 return {
                   ...item,
+                  category: item.category || source.category,
+                  categories: item.categories || (source.category ? [source.category] : ['Geral']),
+                  source: item.source || source.category,
+                  sourceId: item.sourceId || source.id,
                   description: item.description && item.description !== item.content
                     ? (cleanContent.length > 200 ? cleanContent.slice(0, 200) : cleanContent)
                     : cleanContent,
@@ -881,7 +916,7 @@ export async function fetchSourceContent(
               })
             );
 
-            const dedupedItems = deduplicateImages(cleanedSlice);
+            const dedupedItems = deduplicateImages(cleanedSlice, false);
 
             return {
               source,
@@ -946,18 +981,23 @@ export async function fetchSourceContent(
                 title,
                 slug,
                 alt: title,
+                category: source.category,
+                categories: [source.category],
+                source: source.category,
+                sourceId: source.id,
                 description: cleanedDescription,
                 content: cleanedContent,
                 pubDate: post.date || post.date_gmt,
                 author: post.author ? String(post.author) : undefined,
                 imageUrl: img || undefined,
+                image: img || undefined,
                 availableImages: allAvailableImages,
               };
             })
             .filter((item) => isArticleAllowed(item))
         : [];
 
-      const dedupedItems = deduplicateFeedImages(items);
+      const dedupedItems = deduplicateFeedImages(items, false);
 
       return {
         source,
@@ -979,7 +1019,7 @@ export async function fetchSourceContent(
       }
 
       const xmlText = await response.text();
-      const { feed, items: allItems } = parseRssFeed(xmlText);
+      const { feed, items: allItems } = parseRssFeed(xmlText, source.category, source.id);
 
       let filteredItems = allItems;
       if (search) {
@@ -1012,6 +1052,10 @@ export async function fetchSourceContent(
           }
           return {
             ...item,
+            category: item.category || source.category,
+            categories: item.categories || (source.category ? [source.category] : ['Geral']),
+            source: item.source || source.category,
+            sourceId: item.sourceId || source.id,
             description: item.description && item.description !== item.content
               ? (cleanContent.length > 200 ? cleanContent.slice(0, 200) : cleanContent)
               : cleanContent,
@@ -1024,7 +1068,8 @@ export async function fetchSourceContent(
         (item) => !isVideoBroadcastWithoutContent(item.title, item.content, item.description)
       );
 
-      const dedupedItems = deduplicateImages(validAiItems);
+      // Deduplica imagens e incorpora <p><img src="..." /></p> diretamente ao conteúdo APÓS a limpeza de texto
+      const dedupedItems = deduplicateImages(validAiItems, false);
 
       return {
         source,
@@ -1062,20 +1107,25 @@ export async function fetchMediaContent(
       clearTimeout(timeoutId);
 
       const mediaCandidates: ContentItem[] = feedData.items
-        .filter((item) => Boolean(item.imageUrl) && isArticleAllowed(item))
+        .filter((item) => Boolean(item.imageUrl || item.image) && isArticleAllowed(item))
         .map((item) => ({
           id: item.id,
           title: item.title,
           slug: item.slug || slugify(item.title),
           alt: item.title,
+          category: item.category || mediaSource.category,
+          categories: item.categories || [mediaSource.category],
+          source: item.source || mediaSource.category,
+          sourceId: item.sourceId || mediaSource.id,
           description: item.description,
           content: item.content || item.description,
           pubDate: item.pubDate,
-          imageUrl: item.imageUrl,
+          imageUrl: item.imageUrl || item.image,
+          image: item.imageUrl || item.image,
           availableImages: item.availableImages,
         }));
 
-      const uniqueRssMediaItems = deduplicateFeedImages(mediaCandidates);
+      const uniqueRssMediaItems = deduplicateFeedImages(mediaCandidates, false);
 
       const total = uniqueRssMediaItems.length;
       const totalPages = Math.ceil(total / limit) || 1;
@@ -1213,18 +1263,23 @@ export async function fetchMediaContent(
               title: newsTitle,
               slug: newsSlug, // slug da matéria
               alt: newsTitle, // alt com o título da matéria
+              category: mediaSource.category,
+              categories: [mediaSource.category],
+              source: mediaSource.category,
+              sourceId: mediaSource.id,
               description: completeText,
               content: completeText,
               pubDate: post.date || post.date_gmt,
               imageUrl: imageUrl || undefined,
+              image: imageUrl || undefined,
               availableImages: allAvailableImages,
             };
           })
-          .filter((item) => Boolean(item.imageUrl) && isArticleAllowed(item))
+          .filter((item) => Boolean(item.imageUrl || item.image) && isArticleAllowed(item))
       : [];
 
     // Deduplica imagens no feed: em repetição, utiliza segunda imagem do conteúdo e incorpora; se não houver segunda, mantém a mesma URL
-    const uniqueMediaItems = deduplicateFeedImages(items);
+    const uniqueMediaItems = deduplicateFeedImages(items, false);
 
     return {
       source: mediaSource,
