@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { getSourceById, getBaseUrl } from '@/lib/sources';
-import { fetchSourceContent } from '@/lib/content';
+import { getCachedSourceContent } from '@/lib/content';
 import { validateApiKey, unauthorizedResponse } from '@/lib/auth';
 import { toCleanSource, paginateWithHateoas } from '@/lib/hateoas';
 
@@ -33,12 +33,12 @@ export async function GET(
 
   const page = parseInt(url.searchParams.get('page') || '1', 10);
   const limitParam = url.searchParams.get('limit') || url.searchParams.get('per_page') || '10';
-  const limit = parseInt(limitParam, 10);
-  const search = url.searchParams.get('search') || undefined;
+  const limit = Math.min(30, Math.max(1, parseInt(limitParam, 10) || 10));
+  const search = url.searchParams.get('search') || '';
   const format = url.searchParams.get('format');
 
   try {
-    const data = await fetchSourceContent(source, { page, limit, search });
+    const data = await getCachedSourceContent(String(source.id), page, limit, search);
 
     // Vincular links HATEOAS a cada matéria individual
     const itemsWithHateoas = data.items.map((item) => ({

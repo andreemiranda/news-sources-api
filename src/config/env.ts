@@ -105,7 +105,7 @@ export function getEnv(): EnvConfig {
     SOURCE_OWNER_REPLACEMENTS:
       parseReplacementMap(process.env.SOURCE_OWNER_REPLACEMENTS) ||
       parseReplacementMap(process.env.SOURCE_NAME_REPLACEMENTS),
-    REVALIDATE_SECRET: process.env.REVALIDATE_SECRET?.trim() || 'camara-paraiso-revalidate-secret-token',
+    REVALIDATE_SECRET: process.env.REVALIDATE_SECRET?.trim() || '',
     WP_API_URL: (process.env.WP_API_URL || process.env.WORDPRESS_API_URL)?.trim(),
   };
 }

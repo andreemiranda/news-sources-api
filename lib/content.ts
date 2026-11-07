@@ -1,6 +1,7 @@
 import he from 'he';
-import { Source, generate6DigitId } from './sources';
-import { processarEConfigurarNoticia, preCleanText, removeG1Sentences } from './ai-cleaner';
+import { unstable_cache } from 'next/cache';
+import { Source, generate6DigitId, getSourceById, getMediaSourceById } from './sources';
+import { processarEConfigurarNoticia, preCleanText, removeG1Sentences, isAiConfigured } from './ai-cleaner';
 
 export interface ContentItem {
   id: number;
@@ -701,6 +702,8 @@ export function parseRssFeed(xml: string): { feed: any; items: ContentItem[] } {
   return { feed, items };
 }
 
+const fallbackAttemptedSources = new Set<string>();
+
 /**
  * Resilient HTTP fetcher with multi-tier bypass against 403 Forbidden
  */
@@ -737,21 +740,20 @@ async function resilientFetch(
         next: { revalidate: 20, tags: ['news', 'sources', 'wordpress', 'content'] },
       };
 
-  try {
-    const res = await fetch(url, fetchInit);
+  const res = await fetch(url, fetchInit);
 
-    if (res.ok) {
-      return res;
-    }
+  // Tentar o segundo e terceiro user-agent apenas quando o primeiro retornar 401, 403 ou 503, e no máximo uma vez por fonte
+  const isTargetError = res.status === 401 || res.status === 403 || res.status === 503;
+  const sourceKey = (site || refererUrl || url).toLowerCase();
 
-    if (res.status === 403 || res.status === 401 || res.status === 503) {
-      console.warn(`Upstream returned HTTP ${res.status} for ${url}. Attempting crawler bypass...`);
-    } else {
-      return res;
-    }
-  } catch (err) {
-    console.warn(`Primary fetch failed for ${url}:`, err);
+  if (!isTargetError || fallbackAttemptedSources.has(sourceKey)) {
+    return res;
   }
+
+  if (fallbackAttemptedSources.size > 500) {
+    fallbackAttemptedSources.clear();
+  }
+  fallbackAttemptedSources.add(sourceKey);
 
   // Tier 2: Googlebot News Crawler
   const crawlerHeaders: Record<string, string> = {
@@ -776,23 +778,25 @@ async function resilientFetch(
       return res2;
     }
 
-    // Tier 3: Facebook External Hit
-    if (res2.status === 403 || res2.status === 401 || res2.status === 503) {
+    // Tier 3: Facebook External Hit (apenas quando 401, 403 ou 503)
+    if (res2.status === 401 || res2.status === 403 || res2.status === 503) {
       const fbHeaders: Record<string, string> = {
         'User-Agent': 'facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)',
         'Accept': isJson ? 'application/json, */*' : '*/*',
         'Referer': refererUrl,
       };
-      const res3 = await fetch(url, bypassCache
-        ? { headers: fbHeaders, signal, cache: 'no-store' }
-        : { headers: fbHeaders, signal, next: { revalidate: 20, tags: ['news', 'sources', 'wordpress', 'content'] } }
+      const res3 = await fetch(
+        url,
+        bypassCache
+          ? { headers: fbHeaders, signal, cache: 'no-store' }
+          : { headers: fbHeaders, signal, next: { revalidate: 20, tags: ['news', 'sources', 'wordpress', 'content'] } }
       );
       return res3;
     }
 
     return res2;
-  } catch (err: any) {
-    throw new Error(`Fetch failed after all retry attempts for ${url}: ${err.message || err}`);
+  } catch {
+    return res;
   }
 }
 
@@ -801,7 +805,7 @@ export async function fetchSourceContent(
   options: FetchOptions = {}
 ): Promise<ContentResponse> {
   const page = Math.max(1, options.page || 1);
-  const limit = Math.min(100, Math.max(1, options.limit || 10));
+  const limit = Math.min(30, Math.max(1, options.limit || 10));
   const search = options.search?.trim();
 
   const controller = new AbortController();
@@ -853,18 +857,25 @@ export async function fetchSourceContent(
             const startIndex = (page - 1) * limit;
             const rawSlice = filtered.slice(startIndex, startIndex + limit);
 
-            // Limpeza com IA para itens de feed RSS
+            // Limpeza com IA para itens de feed RSS (apenas se AI_ENDPOINT e AI_API_KEY configurados)
+            const hasAi = isAiConfigured();
             const cleanedSlice = await Promise.all(
               rawSlice.map(async (item) => {
-                let cleanContent = item.content || item.description || '';
-                try {
-                  cleanContent = await processarEConfigurarNoticia(cleanContent);
-                } catch {
-                  cleanContent = preCleanText(cleanContent);
+                const rawContent = item.content || item.description || '';
+                const preCleaned = preCleanText(rawContent);
+                let cleanContent = preCleaned;
+                if (hasAi) {
+                  try {
+                    cleanContent = await processarEConfigurarNoticia(preCleaned);
+                  } catch {
+                    cleanContent = preCleaned;
+                  }
                 }
                 return {
                   ...item,
-                  description: preCleanText(item.description || ''),
+                  description: item.description && item.description !== item.content
+                    ? (cleanContent.length > 200 ? cleanContent.slice(0, 200) : cleanContent)
+                    : cleanContent,
                   content: cleanContent,
                 };
               })
@@ -925,8 +936,10 @@ export async function fetchSourceContent(
                 ? fullContentText
                 : (excerptText || fullContentText || '');
 
-              const cleanedDescription = preCleanText(excerptText || completeText || '');
               const cleanedContent = preCleanText(completeText || '');
+              const cleanedDescription = excerptText && excerptText !== completeText
+                ? (cleanedContent.length > 200 ? cleanedContent.slice(0, 200) : cleanedContent)
+                : cleanedContent;
 
               return {
                 id: numericId,
@@ -983,18 +996,25 @@ export async function fetchSourceContent(
       const startIndex = (page - 1) * limit;
       const paginatedItems = filteredItems.slice(startIndex, startIndex + limit);
 
-      // Processar e limpar notícias de feed RSS com a IA (Pollinations / privada)
+      // Processar e limpar notícias de feed RSS com a IA (apenas se AI_ENDPOINT e AI_API_KEY configurados)
+      const hasAi = isAiConfigured();
       const itemsWithAiClean = await Promise.all(
         paginatedItems.map(async (item) => {
-          let cleanContent = item.content || item.description || '';
-          try {
-            cleanContent = await processarEConfigurarNoticia(cleanContent);
-          } catch {
-            cleanContent = preCleanText(cleanContent);
+          const rawContent = item.content || item.description || '';
+          const preCleaned = preCleanText(rawContent);
+          let cleanContent = preCleaned;
+          if (hasAi) {
+            try {
+              cleanContent = await processarEConfigurarNoticia(preCleaned);
+            } catch {
+              cleanContent = preCleaned;
+            }
           }
           return {
             ...item,
-            description: preCleanText(item.description || ''),
+            description: item.description && item.description !== item.content
+              ? (cleanContent.length > 200 ? cleanContent.slice(0, 200) : cleanContent)
+              : cleanContent,
             content: cleanContent,
           };
         })
@@ -1029,7 +1049,7 @@ export async function fetchMediaContent(
   options: FetchOptions = {}
 ): Promise<ContentResponse> {
   const page = Math.max(1, options.page || 1);
-  const limit = Math.min(100, Math.max(1, options.limit || 10));
+  const limit = Math.min(30, Math.max(1, options.limit || 10));
   const search = options.search?.trim();
 
   const controller = new AbortController();
@@ -1038,7 +1058,7 @@ export async function fetchMediaContent(
 
   try {
     if (mediaSource.type === 'rss') {
-      const feedData = await fetchSourceContent(mediaSource, { page: 1, limit: 100, search, bypassCache });
+      const feedData = await fetchSourceContent(mediaSource, { page: 1, limit: 30, search, bypassCache });
       clearTimeout(timeoutId);
 
       const mediaCandidates: ContentItem[] = feedData.items
@@ -1221,3 +1241,33 @@ export async function fetchMediaContent(
     throw new Error(`Failed to fetch media content from ${mediaSource.site}: ${err.message || err}`);
   }
 }
+
+export const getCachedSourceContent = unstable_cache(
+  async (id: string, page: number, limit: number, search: string = '') => {
+    const source = getSourceById(id);
+    if (!source) {
+      throw new Error(`News source with id '${id}' not found.`);
+    }
+    return fetchSourceContent(source, { page, limit, search: search || undefined });
+  },
+  ['source-content'],
+  {
+    revalidate: 300,
+    tags: ['news', 'content'],
+  }
+);
+
+export const getCachedMediaContent = unstable_cache(
+  async (id: string, page: number, limit: number, search: string = '') => {
+    const source = getMediaSourceById(id);
+    if (!source) {
+      throw new Error(`Image source with id '${id}' not found.`);
+    }
+    return fetchMediaContent(source, { page, limit, search: search || undefined });
+  },
+  ['media-content'],
+  {
+    revalidate: 300,
+    tags: ['news', 'content'],
+  }
+);

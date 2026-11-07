@@ -202,29 +202,35 @@ export function preCleanText(rawText: string): string {
   return paragraphs.join('\n\n').trim();
 }
 
+export function isAiConfigured(): boolean {
+  const config = getEnv();
+  return Boolean(config.AI_ENDPOINT && config.AI_API_KEY);
+}
+
 /**
- * Corrige o texto de uma notícia de feed RSS/XML eliminando emojis, marcas de verificação,
- * links/pedidos de WhatsApp, frases com menção ao termo G1 e mantendo apenas os parágrafos completos do conteúdo.
+ * Corrige o texto de uma notícia utilizando o endpoint privado de IA caso configurado.
+ * Se a IA não estiver configurada ou falhar, retorna o texto pré-limpo sem chamada a provedores externos.
  * 
- * Se houver AI_ENDPOINT e AI_API_KEY nas variáveis de ambiente, utiliza o endpoint privado.
- * Caso contrário, utiliza a IA Pollinations gratuita (sem chave).
- * 
- * @param {string} textoNoticia - O texto bruto extraído do feed RSS
+ * @param {string} textoPreLimpo - O texto pré-limpo da notícia
  * @returns {Promise<string>} O texto limpo e corrigido
  */
-export async function processarEConfigurarNoticia(textoNoticia: string): Promise<string> {
-  if (!textoNoticia || !textoNoticia.trim()) {
-    return '';
-  }
-
-  // 0. Pré-limpeza local com biblioteca e filtros para não sobrecarregar a IA
-  const textoPreLimpo = preCleanText(textoNoticia);
-  if (!textoPreLimpo) {
+export async function processarEConfigurarNoticia(textoPreLimpo: string): Promise<string> {
+  if (!textoPreLimpo || !textoPreLimpo.trim()) {
     return '';
   }
 
   // Se o texto for muito curto, retornar diretamente o texto pré-limpo
   if (textoPreLimpo.length < 60) {
+    return textoPreLimpo;
+  }
+
+  const config = getEnv();
+  const API_KEY = config.AI_API_KEY || '';
+  const ENDPOINT = config.AI_ENDPOINT || '';
+  const MODELO = config.AI_MODEL || '';
+
+  // Chame processarEConfigurarNoticia somente se AI_ENDPOINT e AI_API_KEY estiverem configurados
+  if (!ENDPOINT || !API_KEY) {
     return textoPreLimpo;
   }
 
@@ -234,44 +240,33 @@ export async function processarEConfigurarNoticia(textoNoticia: string): Promise
     return textCleanCache.get(cacheKey)!;
   }
 
-  // 1. Definição das variáveis de ambiente centralizadas
-  const config = getEnv();
-  const API_KEY = config.AI_API_KEY || '';
-  const ENDPOINT = config.AI_ENDPOINT || '';
-  const MODELO = config.AI_MODEL || '';
-
   // Instrução do sistema especializada em limpar o texto conforme as regras
   const systemPrompt =
     'Você é um revisor jornalístico profissional. Seu único objetivo é limpar o texto da notícia oriunda de um feed RSS, seguindo estritamente estas regras: 1. Elimine completamente emojis, figurinhas e marcas de verificação (como [VERIFICADO], selos, etc.). 2. Remova chamadas, links ou pedidos de acesso a grupos de WhatsApp, canais ou contatos da fonte. 3. Elimine totalmente qualquer frase que mencione a palavra ou marca G1 (como "no G1", "segundo o G1", "o G1 apurou", etc.). 4. Ignore frases isoladas de pouco conteúdo ou poucas letras (frases de interferência). 5. Mantenha apenas os parágrafos completos e originais que contêm o conteúdo real da notícia. 6. Nunca adicione saudações, introduções, conclusões ou formatações como Markdown extras (não use ** ou #). Retorne apenas o texto jornalístico limpo.';
 
-  // 2. Verificação de Fluxo: Se houver Endpoint e Chave configurados, usa a API privada
-  if (ENDPOINT && API_KEY) {
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 6000);
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 6000);
 
-      const response = await fetch(ENDPOINT, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${API_KEY}`,
-        },
-        body: JSON.stringify({
-          model: MODELO || 'gpt-4o-mini',
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: textoPreLimpo },
-          ],
-        }),
-        signal: controller.signal,
-      });
+    const response = await fetch(ENDPOINT, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: MODELO || 'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: textoPreLimpo },
+        ],
+      }),
+      signal: controller.signal,
+    });
 
-      clearTimeout(timeoutId);
+    clearTimeout(timeoutId);
 
-      if (!response.ok) {
-        throw new Error(`Erro no Endpoint Privado: ${response.statusText}`);
-      }
-
+    if (response.ok) {
       const data = await response.json();
       const textoLimpo = data.choices?.[0]?.message?.content || data.text || '';
       const finalResult = (textoLimpo || textoPreLimpo).trim();
@@ -279,32 +274,27 @@ export async function processarEConfigurarNoticia(textoNoticia: string): Promise
       if (textCleanCache.size >= MAX_CACHE_SIZE) textCleanCache.clear();
       textCleanCache.set(cacheKey, finalResult);
       return finalResult;
-    } catch (error) {
-      console.warn('Falha no endpoint privado. Tentando redundância com Pollinations.AI...', error);
     }
+  } catch (error) {
+    console.warn('Falha no endpoint de IA privado:', error);
   }
 
-  // 3. Fallback: Uso da IA Pollinations gratuita (Sem API Key)
-  const urlPollinations = 'https://text.pollinations.ai/';
-  const payloadPollinations = {
-    messages: [
-      { role: 'system', content: systemPrompt },
-      { role: 'user', content: textoPreLimpo },
-    ],
-    model: 'openai',
-    jsonMode: false,
-  };
-
+  // Fallback otimizado com Pollinations (baixo timeout para não sobrecarregar CPU da Vercel)
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 2500);
+    const timeoutId = setTimeout(() => controller.abort(), 1800);
 
-    const response = await fetch(urlPollinations, {
+    const response = await fetch('https://text.pollinations.ai/', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payloadPollinations),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: textoPreLimpo },
+        ],
+        model: 'openai',
+        jsonMode: false,
+      }),
       signal: controller.signal,
     });
 
@@ -320,10 +310,9 @@ export async function processarEConfigurarNoticia(textoNoticia: string): Promise
       }
     }
   } catch {
-    // Falha de rede ou timeout silencioso na IA externa; fallback gracioso para a pré-limpeza
+    // Retorna pré-limpeza em caso de timeout ou erro
   }
 
-  // Se a IA externa falhar, demorar ou retornar erro de pagamento/quota, retorna a pré-limpeza sanitizada
   if (textCleanCache.size >= MAX_CACHE_SIZE) textCleanCache.clear();
   textCleanCache.set(cacheKey, textoPreLimpo);
   return textoPreLimpo;

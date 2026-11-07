@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSourcesByCategory, getBaseUrl } from '@/lib/sources';
 import { validateApiKey, unauthorizedResponse, paginate } from '@/lib/auth';
 import { toCleanSource } from '@/lib/hateoas';
-import { fetchSourceContent, deduplicateFeedImages, ContentItem } from '@/lib/content';
+import { getCachedSourceContent, deduplicateFeedImages, ContentItem } from '@/lib/content';
 
 export async function GET(
   req: NextRequest,
@@ -29,13 +29,13 @@ export async function GET(
   // Se o usuário solicitou o feed agregado de artigos da categoria
   if (isFeed) {
     const activeSources = sources.filter((s) => s.active);
-    const articlesLimit = Math.min(100, Math.max(1, limit || 20));
+    const articlesLimit = Math.min(30, Math.max(1, limit || 20));
 
     // Buscar matérias das fontes da categoria
     const categoryArticles: ContentItem[] = [];
     for (const src of activeSources.slice(0, 5)) {
       try {
-        const res = await fetchSourceContent(src, { page: 1, limit: 10 });
+        const res = await getCachedSourceContent(String(src.id), 1, 10, '');
         if (res && Array.isArray(res.items)) {
           categoryArticles.push(...res.items);
         }

@@ -15,12 +15,18 @@ function safeCompare(provided: string, expected: string): boolean {
 
 export function getApiKey(): string {
   const env = getEnv();
-  return env.API_KEY || env.REVALIDATE_SECRET || 'camara-paraiso-revalidate-secret-token';
+  return env.API_KEY?.trim() || '';
 }
 
 export function validateApiKey(req: NextRequest): boolean {
-  const apiKey = getApiKey();
-  const revalidateSecret = getEnv().REVALIDATE_SECRET;
+  const env = getEnv();
+  const apiKey = env.API_KEY?.trim();
+  const revalidateSecret = env.REVALIDATE_SECRET?.trim();
+
+  // Se a chave não estiver configurada, negar todas as requisições protegidas
+  if (!apiKey && !revalidateSecret) {
+    return false;
+  }
 
   let providedKey = '';
   const authHeader = req.headers.get('authorization');

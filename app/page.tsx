@@ -1,5 +1,3 @@
-export const dynamic = 'force-dynamic';
-
 import { getAllSources, getAllMediaSources, getCategories, getTypes, getBaseUrl, getBaseDomain, formatAppEmail, formatAppUrl } from '@/lib/sources';
 import Link from 'next/link';
 import { BookOpen, KeyRound } from 'lucide-react';
@@ -447,8 +445,8 @@ export default async function Home() {
               name: 'secret',
               in: 'query',
               required: true,
-              description: 'Token secreto de revalidação (ex: camara-paraiso-revalidate-secret-token)',
-              schema: { type: 'string', example: 'camara-paraiso-revalidate-secret-token' },
+              description: 'Token secreto de revalidação configurado via variável REVALIDATE_SECRET',
+              schema: { type: 'string' },
             },
             {
               name: 'all',

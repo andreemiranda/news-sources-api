@@ -4,9 +4,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { revalidatePath, revalidateTag } from 'next/cache';
 import { getEnv } from '@/src/config/env';
 
-const EXPECTED_SECRET = getEnv().REVALIDATE_SECRET || 'camara-paraiso-revalidate-secret-token';
-
 function isAuthorized(req: NextRequest, bodySecret?: string): boolean {
+  const expectedSecret = getEnv().REVALIDATE_SECRET?.trim();
+  if (!expectedSecret) {
+    return false;
+  }
+
   const url = new URL(req.url);
   const querySecret = url.searchParams.get('secret') || url.searchParams.get('key');
   const headerSecret = req.headers.get('x-revalidate-secret');
@@ -16,15 +19,10 @@ function isAuthorized(req: NextRequest, bodySecret?: string): boolean {
     bearerSecret = authHeader.slice(7).trim();
   }
 
-  const provided = querySecret || headerSecret || bearerSecret || bodySecret;
+  const provided = (querySecret || headerSecret || bearerSecret || bodySecret || '').trim();
   if (!provided) return false;
 
-  const validTokens = [
-    EXPECTED_SECRET,
-    'camara-paraiso-revalidate-secret-token',
-  ];
-
-  return validTokens.includes(provided.trim());
+  return provided === expectedSecret;
 }
 
 async function handleRevalidation(req: NextRequest, body?: any) {
@@ -137,7 +135,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(
       {
         revalidated: false,
-        error: 'Invalid or missing revalidation secret token. Provide ?secret=camara-paraiso-revalidate-secret-token',
+        error: 'Invalid or missing revalidation secret token.',
       },
       { status: 401 }
     );

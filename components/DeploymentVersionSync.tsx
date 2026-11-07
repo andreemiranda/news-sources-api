@@ -13,7 +13,7 @@ const SESSION_RELOAD_KEY = '__app_version_sync_reload__';
 
 export default function DeploymentVersionSync({
   serverBuildId,
-  checkIntervalMs = 60000,
+  checkIntervalMs = 600000,
 }: DeploymentVersionSyncProps) {
   const router = useRouter();
   const currentBuildIdRef = useRef<string | null>(serverBuildId || null);
@@ -97,13 +97,7 @@ export default function DeploymentVersionSync({
       isCheckingRef.current = true;
 
       try {
-        const res = await fetch(`/api/version?_t=${Date.now()}`, {
-          cache: 'no-store',
-          headers: {
-            'Cache-Control': 'no-cache',
-            'Pragma': 'no-cache',
-          },
-        });
+        const res = await fetch('/api/version');
 
         if (res.ok) {
           const data = await res.json();

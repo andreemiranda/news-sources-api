@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { validateApiKey, unauthorizedResponse } from '@/lib/auth';
 import { getAllMediaSources, getMediaSourceById, getBaseUrl } from '@/lib/sources';
-import { fetchMediaContent } from '@/lib/content';
+import { getCachedMediaContent } from '@/lib/content';
 import { toCleanSource, paginateWithHateoas } from '@/lib/hateoas';
 
 export async function GET(req: NextRequest) {
@@ -26,11 +26,11 @@ export async function GET(req: NextRequest) {
     }
     const page = parseInt(url.searchParams.get('page') || '1', 10);
     const limitParam = url.searchParams.get('limit') || url.searchParams.get('per_page') || '10';
-    const limit = parseInt(limitParam, 10);
-    const search = url.searchParams.get('search') || undefined;
+    const limit = Math.min(30, Math.max(1, parseInt(limitParam, 10) || 10));
+    const search = url.searchParams.get('search') || '';
 
     try {
-      const data = await fetchMediaContent(source, { page, limit, search });
+      const data = await getCachedMediaContent(String(source.id), page, limit, search);
 
       const itemsWithHateoas = data.items.map((item) => ({
         ...item,
