@@ -137,23 +137,46 @@ export default function DeploymentVersionSync({
       verifyServerVersion();
     }
 
-    // 5. Check on window focus and tab visibility change (production only)
-    const onVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        verifyServerVersion();
+    // 5. Otimização de CPU e Bateria no dispositivo final:
+    // O polling roda exclusivamente quando a aba está visível. Quando em segundo plano,
+    // o temporizador é pausado, zerando o consumo de CPU/bateria do usuário.
+    let intervalId: NodeJS.Timeout | null = null;
+
+    const startPolling = () => {
+      if (!intervalId) {
+        intervalId = setInterval(verifyServerVersion, checkIntervalMs);
       }
     };
 
+    const stopPolling = () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+        intervalId = null;
+      }
+    };
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        verifyServerVersion();
+        startPolling();
+      } else {
+        stopPolling();
+      }
+    };
+
+    if (document.visibilityState === 'visible') {
+      startPolling();
+    }
+
     window.addEventListener('visibilitychange', onVisibilityChange);
     window.addEventListener('focus', verifyServerVersion);
-    const intervalId = setInterval(verifyServerVersion, checkIntervalMs);
 
     return () => {
       window.removeEventListener('error', errorHandler as any, true);
       window.removeEventListener('unhandledrejection', errorHandler as any);
       window.removeEventListener('visibilitychange', onVisibilityChange);
       window.removeEventListener('focus', verifyServerVersion);
-      clearInterval(intervalId);
+      stopPolling();
     };
   }, [serverBuildId, checkIntervalMs, router]);
 

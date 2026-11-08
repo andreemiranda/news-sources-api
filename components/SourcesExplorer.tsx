@@ -14,6 +14,8 @@ import {
   Newspaper,
   Terminal,
   Activity,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 
 interface SourceItem {
@@ -42,6 +44,7 @@ export default function SourcesExplorer({
 }: SourcesExplorerProps) {
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [currentPage, setCurrentPage] = useState<number>(1);
   const [apiKey, setApiKey] = useState<string>('');
   const [copiedEndpoint, setCopiedEndpoint] = useState<string | null>(null);
   const [testResult, setTestResult] = useState<{
@@ -50,6 +53,8 @@ export default function SourcesExplorer({
     data: any;
     status: number | null;
   } | null>(null);
+
+  const ITEMS_PER_PAGE = 18;
 
   const filteredSources = useMemo(() => {
     return sources.filter((s) => {
@@ -64,6 +69,24 @@ export default function SourcesExplorer({
       return matchesCategory && matchesSearch;
     });
   }, [sources, selectedCategory, search]);
+
+  const totalPages = Math.ceil(filteredSources.length / ITEMS_PER_PAGE) || 1;
+  const safePage = Math.min(currentPage, totalPages);
+
+  const paginatedSources = useMemo(() => {
+    const startIndex = (safePage - 1) * ITEMS_PER_PAGE;
+    return filteredSources.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [filteredSources, safePage]);
+
+  const handleSearchChange = (val: string) => {
+    setSearch(val);
+    setCurrentPage(1);
+  };
+
+  const handleCategoryChange = (val: string) => {
+    setSelectedCategory(val);
+    setCurrentPage(1);
+  };
 
   const copyToClipboard = (text: string, id: string) => {
     try {
@@ -239,7 +262,7 @@ export default function SourcesExplorer({
           <input
             type="text"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => handleSearchChange(e.target.value)}
             placeholder="Buscar por ID, categoria, site ou protocolo..."
             className="w-full pl-10 pr-4 py-2 bg-white border border-slate-300 rounded-lg text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
           />
@@ -257,7 +280,7 @@ export default function SourcesExplorer({
 
           <select
             value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
+            onChange={(e) => handleCategoryChange(e.target.value)}
             className="bg-white border border-slate-300 text-slate-700 text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
           >
             <option value="all">Todas as Categorias ({sources.length})</option>
@@ -272,7 +295,7 @@ export default function SourcesExplorer({
 
       {/* Sources Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredSources.map((source) => {
+        {paginatedSources.map((source) => {
           const hasMedia = Boolean(source.mediaUrl || source.type === 'wp-api');
           const isLudopedio = String(source.id) === '9124882157745';
 
@@ -376,6 +399,47 @@ export default function SourcesExplorer({
           );
         })}
       </div>
+
+      {/* Pagination Controls */}
+      {filteredSources.length > ITEMS_PER_PAGE && (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-slate-200 text-xs text-slate-600">
+          <div>
+            Exibindo{' '}
+            <span className="font-semibold text-slate-900">
+              {(safePage - 1) * ITEMS_PER_PAGE + 1}
+            </span>
+            -
+            <span className="font-semibold text-slate-900">
+              {Math.min(safePage * ITEMS_PER_PAGE, filteredSources.length)}
+            </span>{' '}
+            de <span className="font-semibold text-slate-900">{filteredSources.length}</span> fontes
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={safePage <= 1}
+              className="flex items-center gap-1 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-xs"
+            >
+              <ChevronLeft className="w-3.5 h-3.5" />
+              <span>Anterior</span>
+            </button>
+
+            <span className="px-2 py-1 font-mono text-slate-700 font-medium">
+              {safePage} / {totalPages}
+            </span>
+
+            <button
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              disabled={safePage >= totalPages}
+              className="flex items-center gap-1 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-xs"
+            >
+              <span>Próxima</span>
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {filteredSources.length === 0 && (
         <div className="text-center py-10 bg-white rounded-xl border border-slate-200 text-slate-500">

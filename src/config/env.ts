@@ -91,21 +91,22 @@ export function getEnv(): EnvConfig {
   return {
     PORT: parsePort(process.env.PORT, 3000),
     NODE_ENV: (process.env.NODE_ENV as any) || 'development',
-    API_KEY: apiKey,
+    // Máxima segurança: segredos nunca são expostos no ambiente do cliente (browser)
+    API_KEY: isServer ? apiKey : '',
     APP_URL: (process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_BASE_URL)?.trim(),
     APP_DOMAIN: (process.env.APP_DOMAIN || process.env.NEXT_PUBLIC_APP_DOMAIN)?.trim(),
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL?.trim(),
     NEXT_PUBLIC_APP_DOMAIN: process.env.NEXT_PUBLIC_APP_DOMAIN?.trim(),
     NEXT_PUBLIC_BASE_URL: (process.env.NEXT_PUBLIC_BASE_URL || process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL)?.trim(),
-    AI_API_KEY: process.env.AI_API_KEY?.trim(),
-    AI_ENDPOINT: process.env.AI_ENDPOINT?.trim(),
-    AI_MODEL: process.env.AI_MODEL?.trim(),
-    G1_REPLACEMENT: process.env.G1_REPLACEMENT?.trim(),
-    SOURCE_OWNER_REPLACEMENT: process.env.SOURCE_OWNER_REPLACEMENT?.trim(),
-    SOURCE_OWNER_REPLACEMENTS:
-      parseReplacementMap(process.env.SOURCE_OWNER_REPLACEMENTS) ||
-      parseReplacementMap(process.env.SOURCE_NAME_REPLACEMENTS),
-    REVALIDATE_SECRET: process.env.REVALIDATE_SECRET?.trim() || '',
+    AI_API_KEY: isServer ? process.env.AI_API_KEY?.trim() : undefined,
+    AI_ENDPOINT: isServer ? process.env.AI_ENDPOINT?.trim() : undefined,
+    AI_MODEL: isServer ? process.env.AI_MODEL?.trim() : undefined,
+    G1_REPLACEMENT: isServer ? process.env.G1_REPLACEMENT?.trim() : undefined,
+    SOURCE_OWNER_REPLACEMENT: isServer ? process.env.SOURCE_OWNER_REPLACEMENT?.trim() : undefined,
+    SOURCE_OWNER_REPLACEMENTS: isServer
+      ? (parseReplacementMap(process.env.SOURCE_OWNER_REPLACEMENTS) || parseReplacementMap(process.env.SOURCE_NAME_REPLACEMENTS))
+      : undefined,
+    REVALIDATE_SECRET: isServer ? (process.env.REVALIDATE_SECRET?.trim() || '') : '',
     WP_API_URL: (process.env.WP_API_URL || process.env.WORDPRESS_API_URL)?.trim(),
   };
 }

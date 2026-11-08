@@ -1,16 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
+import crypto from 'crypto';
 import { getEnv } from '@/src/config/env';
 
 function safeCompare(provided: string, expected: string): boolean {
   const cleanProvided = provided.trim();
   const cleanExpected = expected.trim();
   if (!cleanProvided || !cleanExpected) return false;
-  if (cleanProvided.length !== cleanExpected.length) return false;
-  let result = 0;
-  for (let i = 0; i < cleanProvided.length; i++) {
-    result |= cleanProvided.charCodeAt(i) ^ cleanExpected.charCodeAt(i);
+  // Limite razoável para prevenir ataques de DoS por CPU
+  if (cleanProvided.length > 512) return false;
+
+  try {
+    // Normaliza para hashes SHA-256 de 32 bytes para prevenir vazamento de tamanho e timing attacks
+    const hashProvided = crypto.createHash('sha256').update(cleanProvided).digest();
+    const hashExpected = crypto.createHash('sha256').update(cleanExpected).digest();
+    return crypto.timingSafeEqual(hashProvided, hashExpected);
+  } catch {
+    return false;
   }
-  return result === 0;
 }
 
 export function getApiKey(): string {
