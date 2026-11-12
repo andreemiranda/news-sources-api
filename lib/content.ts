@@ -1,6 +1,6 @@
 import he from 'he';
 import { Source, generate6DigitId, getSourceById, getMediaSourceById } from './sources';
-import { processarEConfigurarNoticia, preCleanText, removeG1Sentences, isAiConfigured } from './ai-cleaner';
+import { processarEConfigurarNoticia, preCleanText, removeG1Sentences, isAiConfigured, protectMediaUrlsAndTags } from './ai-cleaner';
 
 export interface ContentItem {
   id: number;
@@ -245,7 +245,11 @@ export function extractPostContextFromLink(link: string | undefined): { postSlug
 
 export function stripHtmlToParagraphs(html: string | undefined | null): string {
   if (!html) return '';
-  let clean = html
+
+  // 1. Proteger elementos de mídia (imagens, vídeos, áudios, iframes, links para arquivos) e URLs antes da remoção de tags comuns
+  const { maskedText, restore } = protectMediaUrlsAndTags(html);
+
+  let clean = maskedText
     .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/gi, '$1')
     .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
   clean = clean.replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '');
@@ -260,7 +264,8 @@ export function stripHtmlToParagraphs(html: string | undefined | null): string {
     .split(/\n+/)
     .map((p) => cleanText(p))
     .filter((p) => p.length > 0);
-  return paragraphs.join('\n\n');
+
+  return restore(paragraphs.join('\n\n'));
 }
 
 function stripHtmlAndClean(html: string | undefined | null): string {

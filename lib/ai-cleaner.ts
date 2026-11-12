@@ -45,11 +45,67 @@ export function getSourceOwnerReplacement(name: string): string | null {
 }
 
 /**
+ * Regras dinâmicas de substituição de termos e marcas configuradas em variáveis de ambiente.
+ * Aplica-se ESTRITAMENTE ao conteúdo de texto e NUNCA a URLs ou links de mídias/arquivos.
+ */
+export function getReplacementRules(): { target: string; replacement: string; regex: RegExp }[] {
+  const config = getEnv();
+  const rulesMap = new Map<string, string>();
+
+  // 1. Mapeamento customizado de proprietários (SOURCE_OWNER_REPLACEMENTS)
+  if (config.SOURCE_OWNER_REPLACEMENTS && typeof config.SOURCE_OWNER_REPLACEMENTS === 'object') {
+    for (const [k, v] of Object.entries(config.SOURCE_OWNER_REPLACEMENTS)) {
+      if (k && typeof v === 'string' && v.trim() && k.toUpperCase() !== 'DEFAULT') {
+        rulesMap.set(k.trim(), v.trim());
+      }
+    }
+  }
+
+  // 2. Variável de ambiente direta G1_REPLACEMENT
+  if (config.G1_REPLACEMENT && config.G1_REPLACEMENT.trim()) {
+    rulesMap.set('G1', config.G1_REPLACEMENT.trim());
+  }
+
+  // 3. Fallback geral de proprietário (SOURCE_OWNER_REPLACEMENT)
+  if (config.SOURCE_OWNER_REPLACEMENT && config.SOURCE_OWNER_REPLACEMENT.trim()) {
+    const general = config.SOURCE_OWNER_REPLACEMENT.trim();
+    const commonTargets = [
+      'G1', 'CNN Brasil', 'CNN', 'Gazeta Esportiva', 'Exame', 'Editora Abril', 'Abril',
+      'Conjur', 'Cleber Toledo', 'Atitude TO', 'PMW Notícias', 'Gazeta do Cerrado',
+      'Voz do Bico', 'Portal do Bico', 'Folha do Bico', 'Bico 24 Horas', 'Guaraiense',
+      'Jornal O Bico', 'Opinião Goiás', 'Portal Notícias Goiás', 'Diário de Goiás',
+      'Nação Jurídica', 'Meu Site Jurídico', 'INW', 'Âmbito Jurídico', 'Justa',
+      'O Direito', 'Rota Jurídica', 'Ludopédio', 'Você S/A', 'Folha Destra',
+      'Minhas Economias', 'Info Educação', 'Santa Catarina em Pauta'
+    ];
+    for (const name of commonTargets) {
+      if (!rulesMap.has(name)) {
+        rulesMap.set(name, general);
+      }
+    }
+  }
+
+  // Ordena termos por tamanho decrescente para que termos mais longos ("CNN Brasil")
+  // sejam substituídos antes de termos mais curtos ("CNN")
+  return Array.from(rulesMap.entries())
+    .sort((a, b) => b[0].length - a[0].length)
+    .map(([target, replacement]) => {
+      const escaped = target.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, '\\s+');
+      const isWord = /^[a-zA-Z0-9]/.test(target) && /[a-zA-Z0-9]$/.test(target);
+      const pattern = isWord ? `\\b${escaped}\\b` : escaped;
+      return {
+        target,
+        replacement,
+        regex: new RegExp(pattern, 'gi'),
+      };
+    });
+}
+
+/**
  * Protege URLs de mídias, links, arquivos e tags HTML de substituições indevidas.
- * Regra estrita: "a regra de troca de nome de 'G1' e demais palavras configuradas nas variaveis
- * não devem ser utilizadas quando estas palavras estiverem presentes em url's de mídias e arquivos
- * que seja ou esteja incorporadas no conteudo pois vai quebrar o link e devem prevalecer unicamente
- * e exclusivamente quando estas palavras aparecerem no conteudo como texto puro".
+ * Regra estrita: as trocas de termos e palavras contidas nas variáveis específicas
+ * devem valer APENAS para o conteúdo de frontend/texto e NUNCA para URLs,
+ * para não quebrar links, imagens, vídeos, áudios e arquivos incorporados.
  */
 export function protectMediaUrlsAndTags(text: string): {
   maskedText: string;
@@ -61,18 +117,23 @@ export function protectMediaUrlsAndTags(text: string): {
 
   const protectedPlaceholders: string[] = [];
 
-  // Padrão que captura:
-  // 1. Tags completas de imagem, mídia e links (<img ...>, <source ...>, <video ...>, <a ...>)
-  // 2. URLs diretas de mídias, arquivos e links (http:// ou https://) suportando parênteses no path como /filters:strip_icc()/
-  // 3. Atributos src="..." ou href="..."
-  const mediaAndTagRegex = /<img\b[^>]*\/?>|<(?:video|audio|source)\b[^>]*\/?>|<a\b[^>]*>[\s\S]*?<\/a>|(?:src|href)=["'][^"']+["']|https?:\/\/[^\s<>"'`]+/gi;
+  // Padrão rigoroso que protege:
+  // 1. Elementos de mídia e incorporação completos (<video ...>...</video>, <audio ...>...</audio>, <iframe ...></iframe>, <figure>, <picture>, <object>, <embed>)
+  // 2. Tags de imagem e mídia autônomas (<img ...>, <source ...>, <video .../>, <audio .../>, <iframe .../>)
+  // 3. Abertura e fechamento de links com URLs (<a href="..."> e </a>)
+  // 4. Qualquer atributo de link ou mídia (src="...", href="...", poster="...", data-src="...", srcset="...")
+  // 5. Chamadas CSS url(...)
+  // 6. URLs absolutas (http://, https://, //)
+  // 7. Caminhos relativos de arquivos de mídia, áudio, vídeo, imagem e documentos
+  const mediaAndTagRegex =
+    /<(?:video|audio|iframe|object|embed)\b[\s\S]*?<\/(?:video|audio|iframe|object|embed)>|<(?:img|video|audio|source|embed|iframe)\b[^>]*\/?>|<a\b[^>]*\bhref=["'][^"']+["'][^>]*>|<\/a>|\b(?:src|data-src|data-lazy-src|data-original|data-orig-file|poster|srcset|href)=["'][^"']*["']|url\(\s*["']?[^"')]+["']?\s*\)|(?:https?:)?\/\/[^\s<>"'`]+|(?:\/|\.\/|\.\.\/)[^\s<>"'`]+\.(?:jpg|jpeg|png|webp|gif|svg|avif|bmp|tiff|mp4|webm|ogv|avi|mov|mkv|mp3|wav|ogg|m4a|aac|flac|wma|pdf|doc|docx|xls|xlsx|ppt|pptx|zip|rar)(?:\?[^\s<>"'`]*)?/gi;
 
   const maskedText = text.replace(mediaAndTagRegex, (matched) => {
     let urlOrTag = matched;
     let trailing = '';
 
     // Se for URL http/https crua, separa pontuação final de frase não pertencente à URL
-    if (urlOrTag.startsWith('http://') || urlOrTag.startsWith('https://')) {
+    if (urlOrTag.startsWith('http://') || urlOrTag.startsWith('https://') || urlOrTag.startsWith('//')) {
       while (urlOrTag.length > 0) {
         const last = urlOrTag[urlOrTag.length - 1];
         if (['.', ',', ';', '!', '?', ':'].includes(last)) {
@@ -112,41 +173,29 @@ export function protectMediaUrlsAndTags(text: string): {
 }
 
 /**
- * Em caso de citação do nome do direto proprietário da fonte dentro de parágrafos longos,
- * substitui o nome por outro para adequação à integração externa caso haja variável configurada,
- * preservando a continuidade e o entendimento da notícia sem quebrar o parágrafo longo.
- * NUNCA altera URLs de mídias e arquivos incorporados.
+ * Em caso de citação de proprietários/marcas configuradas no texto de frontend,
+ * substitui o termo pelo valor da variável preservando integralmente o entendimento da notícia.
+ * NUNCA altera URLs de mídias, arquivos, áudios, vídeos ou imagens.
  */
 export function replaceSourceOwnerInLongParagraphs(text: string): string {
   if (!text) return '';
 
   const { maskedText, restore } = protectMediaUrlsAndTags(text);
-
-  const knownOwners = [
-    { target: 'G1', regex: /\bG1\b/g },
-    { target: 'CNN Brasil', regex: /\bCNN\s+Brasil\b/gi },
-    { target: 'CNN', regex: /\bCNN\b/g },
-    { target: 'Gazeta Esportiva', regex: /\bGazeta\s+Esportiva\b/gi },
-    { target: 'Exame', regex: /\bExame\b/gi },
-    { target: 'Abril', regex: /\bEditora\s+Abril\b|\bAbril\b/gi },
-  ];
+  const rules = getReplacementRules();
 
   let result = maskedText;
-  for (const { target, regex } of knownOwners) {
-    const replacement = getSourceOwnerReplacement(target);
-    if (replacement) {
-      result = result.replace(regex, replacement);
-    }
+  for (const { regex, replacement } of rules) {
+    result = result.replace(regex, replacement);
   }
 
   return restore(result);
 }
 
 /**
- * Remove qualquer frase isolada que contenha a menção ao termo G1 ou marcas de fontes no texto puro.
- * Em parágrafos longos e conectados, caso haja uma variável de substituição configurada,
- * substitui o termo para não quebrar o entendimento da notícia.
- * URLs de mídias e arquivos são preservadas intactas e nunca removidas.
+ * Remove menções a G1 ou substitui o termo conforme variáveis configuradas.
+ * Se houver G1_REPLACEMENT ou SOURCE_OWNER_REPLACEMENTS, substitui o termo no texto puro.
+ * Se não houver substituição configurada, elimina sentenças isoladas com menção a G1.
+ * URLs de mídias, fotos, vídeos e arquivos são 100% preservadas e nunca modificadas.
  */
 export function removeG1Sentences(text: string): string {
   if (!text) return '';
@@ -157,41 +206,35 @@ export function removeG1Sentences(text: string): string {
   // 2. Limpeza rápida de sufixos/prefixos comuns de títulos ou chamadas curtas
   let cleaned = maskedText
     .replace(/\s*[-–—|•·]\s*(?:G1|Portal G1|Globo G1|G1 Notícias)\s*$/i, '')
-    .replace(/^(?:G1|Portal G1|Globo G1|G1 Notícias)\s*[-–—|•·:]\s*/i, '')
-    .replace(/\s*\(Foto:\s*[^)]*G1[^)]*\)/gi, '')
-    .replace(/\s*\(Vídeo:\s*[^)]*G1[^)]*\)/gi, '');
+    .replace(/^(?:G1|Portal G1|Globo G1|G1 Notícias)\s*[-–—|•·:]\s*/i, '');
 
   const g1Replacement = getSourceOwnerReplacement('G1');
 
-  // 3. Divisão e filtragem por parágrafos
+  // Se existe variável de substituição para G1, substitui o termo no texto puro
+  if (g1Replacement) {
+    cleaned = cleaned.replace(/\bG1\b/gi, g1Replacement);
+    return restore(cleaned.trim());
+  }
+
+  // Se NÃO houver substituição configurada, elimina frases isoladas que mencionam G1
   const paragraphs = cleaned.split(/\n+/);
   const cleanedParagraphs = paragraphs
     .map((paragraph) => {
-      // Se não contém G1 no texto puro, mantém o parágrafo intacto
       if (!/\bG1\b/i.test(paragraph)) {
         return paragraph.trim();
       }
 
-      // Parágrafo longo (mais de 140 caracteres) e existe variável de substituição:
-      // Mantém a coesão substituindo o termo pelo valor da variável configurada no texto puro
-      if (g1Replacement && paragraph.length >= 140) {
-        return paragraph.replace(/\bG1\b/g, g1Replacement).trim();
-      }
-
-      // Caso contrário, divide em frases/sentenças por pontuação (. ! ? e quebras) e elimina as sentenças que citam G1
       const sentences = paragraph.match(/[^.!?]+(?:[.!?]+|$)/g) || [paragraph];
       const keptSentences = sentences
         .map((s) => s.trim())
         .filter((s) => {
           if (s.length === 0) return false;
-          // Se contém token de mídia protegida (ex.: tag de imagem), sempre manter
           if (/__SAFE_MEDIA_TOKEN_\d+__/.test(s) && !/\bG1\b/i.test(s.replace(/__SAFE_MEDIA_TOKEN_\d+__/g, ''))) {
             return true;
           }
           return !/\bG1\b/i.test(s);
         });
 
-      // Se todas as frases tinham G1 ou não sobrou conteúdo substancial
       if (keptSentences.length === 0) {
         return '';
       }
