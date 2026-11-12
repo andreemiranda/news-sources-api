@@ -1,0 +1,251 @@
+2026-11-12T02:36:29.682Z	Initializing build environment...
+2026-11-12T02:36:32.197Z	Success: Finished initializing build environment
+2026-11-12T02:36:32.922Z	Cloning repository...
+2026-11-12T02:36:34.621Z	Restoring from dependencies cache
+2026-11-12T02:36:34.623Z	Restoring from build output cache
+2026-11-12T02:36:35.389Z	Detected the following tools from environment: nodejs@22.23.4, npm@10.9.2
+2026-11-12T02:36:35.389Z	Installing nodejs 22.23.4
+2026-11-12T02:36:35.657Z	Installing project dependencies: npm clean-install --progress=false
+2026-11-12T02:36:41.219Z	npm warn deprecated @humanwhocodes/object-schema@2.0.3: Use @eslint/object-schema instead
+2026-11-12T02:36:41.308Z	npm warn deprecated @humanwhocodes/config-array@0.13.0: Use @eslint/config-array instead
+2026-11-12T02:36:42.313Z	npm warn deprecated glob@10.5.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-11-12T02:36:44.541Z	npm warn deprecated eslint@8.57.1: This version is no longer supported. Please see https://eslint.org/version-support for other options.
+2026-11-12T02:36:52.575Z	
+2026-11-12T02:36:52.576Z	added 501 packages in 16s
+2026-11-12T02:36:52.576Z	
+2026-11-12T02:36:52.576Z	170 packages are looking for funding
+2026-11-12T02:36:52.576Z	  run `npm fund` for details
+2026-11-12T02:36:52.924Z	Executing user build command: npm run build
+2026-11-12T02:36:53.226Z	
+2026-11-12T02:36:53.226Z	> nextjs@0.1.0 build
+2026-11-12T02:36:53.226Z	> next build
+2026-11-12T02:36:53.227Z	
+2026-11-12T02:36:53.813Z	⚠ No build cache found. Please configure build caching for faster rebuilds. Read more: https://nextjs.org/docs/messages/no-cache
+2026-11-12T02:36:53.821Z	Attention: Next.js now collects completely anonymous telemetry regarding usage.
+2026-11-12T02:36:53.824Z	This information is used to shape Next.js' roadmap and prioritize features.
+2026-11-12T02:36:53.825Z	You can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:
+2026-11-12T02:36:53.825Z	https://nextjs.org/telemetry
+2026-11-12T02:36:53.825Z	
+2026-11-12T02:36:53.889Z	  ▲ Next.js 14.2.35
+2026-11-12T02:36:53.889Z	
+2026-11-12T02:36:53.937Z	   Creating an optimized production build ...
+2026-11-12T02:37:10.126Z	 ✓ Compiled successfully
+2026-11-12T02:37:10.130Z	   Linting and checking validity of types ...
+2026-11-12T02:37:16.382Z	   Collecting page data ...
+2026-11-12T02:37:16.709Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:17.990Z	   Generating static pages (0/7) ...
+2026-11-12T02:37:18.149Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.150Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.151Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.151Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.151Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.151Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.151Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.151Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.151Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.152Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.152Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.152Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.152Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.153Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.156Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.156Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.156Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.156Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.156Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.156Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.156Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.312Z	   Generating static pages (1/7) 
+2026-11-12T02:37:18.372Z	   Generating static pages (3/7) 
+2026-11-12T02:37:18.479Z	   Generating static pages (5/7) 
+2026-11-12T02:37:18.503Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.504Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.504Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.504Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.505Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.505Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.505Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.505Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.505Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.505Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.505Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.505Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.505Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.505Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.505Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.505Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.505Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.505Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.506Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.506Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.508Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.508Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.508Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.508Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.509Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.509Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.509Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.509Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.509Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.509Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.509Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.509Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.509Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.509Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.509Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.509Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.509Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.509Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.509Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.509Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.509Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.510Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.510Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.510Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.510Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.510Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.510Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.510Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.510Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.510Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.510Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.511Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.512Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.512Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.512Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.512Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.513Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.513Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.513Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.513Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.513Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.513Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.513Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.513Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.515Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.515Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.515Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.515Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.515Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.516Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.520Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.520Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.520Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.521Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.521Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.521Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.521Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.521Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.521Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.521Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.521Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.521Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.521Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.521Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.521Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.521Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.521Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.521Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.521Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.521Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.522Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.522Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.522Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.522Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.522Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.522Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.522Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.522Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.522Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.522Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.522Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.522Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.524Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.524Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.526Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.526Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.526Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.526Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.526Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.527Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.527Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.527Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.527Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.527Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.527Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.532Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.532Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.533Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.533Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.533Z	[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.
+2026-11-12T02:37:18.716Z	 ✓ Generating static pages (7/7)
+2026-11-12T02:37:19.360Z	   Finalizing page optimization ...
+2026-11-12T02:37:19.361Z	   Collecting build traces ...
+2026-11-12T02:37:33.813Z	
+2026-11-12T02:37:33.817Z	Route (app)                              Size     First Load JS
+2026-11-12T02:37:33.817Z	┌ ○ /                                    5.48 kB         102 kB
+2026-11-12T02:37:33.817Z	├ ○ /_not-found                          142 B          87.5 kB
+2026-11-12T02:37:33.818Z	├ ƒ /api/categories                      0 B                0 B
+2026-11-12T02:37:33.818Z	├ ○ /api/health                          0 B                0 B
+2026-11-12T02:37:33.818Z	├ ƒ /api/images                          0 B                0 B
+2026-11-12T02:37:33.818Z	├ ƒ /api/images/[id]                     0 B                0 B
+2026-11-12T02:37:33.818Z	├ ƒ /api/news                            0 B                0 B
+2026-11-12T02:37:33.818Z	├ ƒ /api/news/[id]                       0 B                0 B
+2026-11-12T02:37:33.818Z	├ ƒ /api/news/category/[category]        0 B                0 B
+2026-11-12T02:37:33.818Z	├ ƒ /api/openapi.json                    0 B                0 B
+2026-11-12T02:37:33.818Z	├ ƒ /api/revalidate                      0 B                0 B
+2026-11-12T02:37:33.818Z	├ ƒ /api/stats                           0 B                0 B
+2026-11-12T02:37:33.818Z	├ ƒ /api/sync                            0 B                0 B
+2026-11-12T02:37:33.818Z	├ ƒ /api/types                           0 B                0 B
+2026-11-12T02:37:33.818Z	├ ƒ /api/version                         0 B                0 B
+2026-11-12T02:37:33.818Z	└ ○ /docs                                4.43 kB         101 kB
+2026-11-12T02:37:33.818Z	+ First Load JS shared by all            87.3 kB
+2026-11-12T02:37:33.818Z	  ├ chunks/117-8429d5d5fe70e57c.js       31.7 kB
+2026-11-12T02:37:33.818Z	  ├ chunks/fd9d1056-e70a490eb02719dc.js  53.6 kB
+2026-11-12T02:37:33.818Z	  └ other shared chunks (total)          1.95 kB
+2026-11-12T02:37:33.818Z	
+2026-11-12T02:37:33.818Z	
+2026-11-12T02:37:33.818Z	○  (Static)   prerendered as static content
+2026-11-12T02:37:33.818Z	ƒ  (Dynamic)  server-rendered on demand
+2026-11-12T02:37:33.818Z	
+2026-11-12T02:37:33.881Z	Success: Build command completed
+2026-11-12T02:37:34.069Z	Executing user deploy command: npx wrangler deploy
+2026-11-12T02:37:35.916Z	npm warn exec The following package was not found and will be installed: wrangler@4.160.1
+2026-11-12T02:37:45.900Z	
+2026-11-12T02:37:45.901Z	 ⛅️ wrangler 4.160.1
+2026-11-12T02:37:45.901Z	────────────────────
+2026-11-12T02:37:45.988Z	▲ [WARNING] Processing wrangler.toml configuration:
+2026-11-12T02:37:45.988Z	
+2026-11-12T02:37:45.988Z	    - Unexpected fields found in top-level field: "pages"
+2026-11-12T02:37:45.989Z	
+2026-11-12T02:37:45.989Z	
+2026-11-12T02:37:46.028Z	
+2026-11-12T02:37:46.028Z	Cloudflare collects anonymous telemetry about your usage of Wrangler. Learn more at https://github.com/cloudflare/workers-sdk/tree/main/packages/wrangler/telemetry.md
+2026-11-12T02:37:46.028Z	
+2026-11-12T02:37:46.032Z	✘ [ERROR] Missing entry-point to Worker script or to assets directory
+2026-11-12T02:37:46.033Z	
+2026-11-12T02:37:46.033Z	  
+2026-11-12T02:37:46.033Z	  If there is code to deploy, you can either:
+2026-11-12T02:37:46.034Z	  - Specify an entry-point to your Worker script via the command line (ex: `npx wrangler deploy src/index.ts`)
+2026-11-12T02:37:46.034Z	  - Or add the following to your "wrangler.toml" file:
+2026-11-12T02:37:46.034Z	  
+2026-11-12T02:37:46.034Z	  ```
+2026-11-12T02:37:46.035Z	  main = "src/index.ts"
+2026-11-12T02:37:46.036Z	  
+2026-11-12T02:37:46.036Z	  ```
+2026-11-12T02:37:46.036Z	  
+2026-11-12T02:37:46.036Z	  
+2026-11-12T02:37:46.036Z	  If are uploading a directory of assets, you can either:
+2026-11-12T02:37:46.036Z	  - Specify the path to the directory of assets via the command line: (ex: `npx wrangler deploy --assets=./dist`)
+2026-11-12T02:37:46.036Z	  - Or add the following to your "wrangler.toml" file:
+2026-11-12T02:37:46.036Z	  
+2026-11-12T02:37:46.036Z	  ```
+2026-11-12T02:37:46.036Z	  [assets]
+2026-11-12T02:37:46.038Z	  directory = "./dist"
+2026-11-12T02:37:46.039Z	  
+2026-11-12T02:37:46.039Z	  ```
+2026-11-12T02:37:46.039Z	  
+2026-11-12T02:37:46.039Z	
+2026-11-12T02:37:46.039Z	
+2026-11-12T02:37:46.079Z	🪵  Logs were written to "/opt/buildhome/.config/.wrangler/logs/wrangler-2026-11-12_02-37-45_455.log"
+2026-11-12T02:37:46.156Z	Failed: error occurred while running deploy command

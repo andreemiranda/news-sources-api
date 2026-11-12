@@ -1,9 +1,14 @@
 # Cloudflare Workers / Pages configuration
 name = "news-sources-api"
+main = "worker.js"
 compatibility_date = "2024-09-23"
 compatibility_flags = ["nodejs_compat"]
 
-# Cloudflare Pages Build Settings
-[pages]
-build_command = "npm run build"
-output_dir = ".next"
+[assets]
+directory = ".next"
+binding = "ASSETS"
+
+# Variáveis padrão (podem ser cadastradas também no painel Cloudflare em Settings > Variables and Secrets)
+[vars]
+# API_KEY = ""
+

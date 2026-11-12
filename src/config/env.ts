@@ -77,14 +77,32 @@ function parseReplacementMap(raw: string | undefined): Record<string, string> | 
   };
 }
 
+let hasWarnedApiKey = false;
+
 export function getEnv(): EnvConfig {
   const isServer = typeof window === 'undefined';
-  const apiKey = (process.env.API_KEY || '').trim();
+  const isBuildTime =
+    process.env.NEXT_PHASE === 'phase-production-build' ||
+    process.env.npm_lifecycle_event === 'build' ||
+    process.env.NEXT_IS_EXPORTING === 'true';
 
-  // Warn gracefully in server environment if API_KEY is missing
-  if (isServer && !apiKey && process.env.NODE_ENV === 'production') {
+  // Suporte abrangente para API_KEY em múltiplos provedores (Vercel, Netlify, Cloudflare Workers/Pages, cPanel)
+  const apiKey = (
+    process.env.API_KEY ||
+    process.env.CLOUDFLARE_API_KEY ||
+    process.env.CF_API_KEY ||
+    process.env.api_key ||
+    process.env.NEXT_PUBLIC_API_KEY ||
+    (typeof globalThis !== 'undefined' && (globalThis as any).API_KEY) ||
+    (typeof globalThis !== 'undefined' && (globalThis as any).env?.API_KEY) ||
+    ''
+  ).trim();
+
+  // Alerta amigável apenas em tempo de execução no servidor se a chave estiver ausente (nunca polui o log durante o build)
+  if (isServer && !isBuildTime && !apiKey && process.env.NODE_ENV === 'production' && !hasWarnedApiKey) {
+    hasWarnedApiKey = true;
     console.warn(
-      '[Env Warning] API_KEY environment variable is not defined. Secure endpoints will reject requests until API_KEY is configured in your hosting platform dashboard.'
+      '[Env Info] API_KEY não detectada nas variáveis de ambiente. Endpoints protegidos exigirão a chave cadastrada no dashboard da sua plataforma.'
     );
   }
 
@@ -120,7 +138,15 @@ export function getEnv(): EnvConfig {
     SOURCE_OWNER_REPLACEMENTS: isServer
       ? (parseReplacementMap(process.env.SOURCE_OWNER_REPLACEMENTS) || parseReplacementMap(process.env.SOURCE_NAME_REPLACEMENTS))
       : undefined,
-    REVALIDATE_SECRET: isServer ? (process.env.REVALIDATE_SECRET?.trim() || '') : '',
+    REVALIDATE_SECRET: isServer
+      ? (
+          process.env.REVALIDATE_SECRET ||
+          process.env.revalidate_secret ||
+          (typeof globalThis !== 'undefined' && (globalThis as any).REVALIDATE_SECRET) ||
+          (typeof globalThis !== 'undefined' && (globalThis as any).env?.REVALIDATE_SECRET) ||
+          ''
+        ).trim()
+      : '',
     WP_API_URL: (process.env.WP_API_URL || process.env.WORDPRESS_API_URL)?.trim(),
   };
 }

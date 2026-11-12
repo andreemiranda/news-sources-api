@@ -26,8 +26,8 @@ export function getApiKey(): string {
 
 export function validateApiKey(req: NextRequest): boolean {
   const env = getEnv();
-  const apiKey = env.API_KEY?.trim();
-  const revalidateSecret = env.REVALIDATE_SECRET?.trim();
+  const apiKey = (env.API_KEY || process.env.API_KEY || process.env.CLOUDFLARE_API_KEY || process.env.api_key || '').trim();
+  const revalidateSecret = (env.REVALIDATE_SECRET || process.env.REVALIDATE_SECRET || process.env.revalidate_secret || '').trim();
 
   // Se a chave não estiver configurada, negar todas as requisições protegidas
   if (!apiKey && !revalidateSecret) {

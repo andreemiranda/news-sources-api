@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
 
 interface DeploymentVersionSyncProps {
   serverBuildId?: string;
@@ -15,7 +14,6 @@ export default function DeploymentVersionSync({
   serverBuildId,
   checkIntervalMs = 600000,
 }: DeploymentVersionSyncProps) {
-  const router = useRouter();
   const currentBuildIdRef = useRef<string | null>(serverBuildId || null);
   const isCheckingRef = useRef<boolean>(false);
 
@@ -118,9 +116,6 @@ export default function DeploymentVersionSync({
 
               if (!isTyping) {
                 safelySynchronizeWithServer('Deployment build mismatch detected');
-              } else {
-                // If typing, refresh next-router state softly first
-                router.refresh();
               }
             }
           }
@@ -178,7 +173,7 @@ export default function DeploymentVersionSync({
       window.removeEventListener('focus', verifyServerVersion);
       stopPolling();
     };
-  }, [serverBuildId, checkIntervalMs, router]);
+  }, [serverBuildId, checkIntervalMs]);
 
   return null;
 }
