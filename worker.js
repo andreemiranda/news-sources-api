@@ -7,6 +7,7 @@ import {
   getTypes,
   getStats,
   getSourceById,
+  getMediaSourceById,
   getSourcesByCategory,
   getBaseUrl,
   getBaseDomain,
@@ -478,45 +479,118 @@ const worker = {
     if (pathname === '/api/categories' || pathname === '/categories') {
       if (!validateKey(request, env)) return unauthorizedResponse();
       const categories = getCategories(request);
-      return jsonResponse(categories);
+      return jsonResponse({
+        success: true,
+        data: categories,
+        meta: { total: categories.length },
+      });
     }
 
     // 10. ENDPOINT: Tipos de protocolo (/api/types ou /types)
     if (pathname === '/api/types' || pathname === '/types') {
       if (!validateKey(request, env)) return unauthorizedResponse();
       const types = getTypes(request);
-      return jsonResponse(types);
+      return jsonResponse({
+        success: true,
+        data: types,
+        meta: { total: types.length },
+      });
     }
 
     // 11. ENDPOINT: Estatísticas (/api/stats ou /stats)
     if (pathname === '/api/stats' || pathname === '/stats') {
       if (!validateKey(request, env)) return unauthorizedResponse();
       const stats = getStats(request);
-      return jsonResponse(stats);
+      return jsonResponse({
+        success: true,
+        status: 'ok',
+        timestamp: new Date().toISOString(),
+        data: stats,
+      });
     }
 
     // 12. ENDPOINT: Lista de Mídias (/api/images ou /images)
     if (pathname === '/api/images' || pathname === '/images') {
       if (!validateKey(request, env)) return unauthorizedResponse();
 
-      const page = parseInt(url.searchParams.get('page') || '1', 10);
-      const limit = parseInt(url.searchParams.get('limit') || url.searchParams.get('per_page') || '100', 10);
+      const format = url.searchParams.get('format');
       const idParam = url.searchParams.get('id');
 
       // Se for consulta com ?id=, busca conteúdo da fonte
       if (idParam) {
-        const source = getSourceById(idParam);
+        const source = getMediaSourceById(idParam) || getSourceById(idParam);
         if (!source) {
-          return jsonResponse({ success: false, error: `Media source ${idParam} not found` }, 404);
+          return jsonResponse({ success: false, error: `Image source with id '${idParam}' not found.` }, 404);
         }
-        const data = await fetchMediaContent(source, { page, limit, search: url.searchParams.get('search') || undefined });
-        return jsonResponse(data, 200, {
-          'X-WP-Total': String(data.meta?.total || 0),
-          'X-WP-TotalPages': String(data.meta?.totalPages || 1),
-        });
+        const metaOnly = url.searchParams.get('meta') === 'true';
+        if (metaOnly) {
+          return jsonResponse(toCleanSource(source, baseUrl));
+        }
+
+        const page = parseInt(url.searchParams.get('page') || '1', 10);
+        const limitParam = url.searchParams.get('limit') || url.searchParams.get('per_page') || '10';
+        const limit = Math.min(30, Math.max(1, parseInt(limitParam, 10) || 10));
+        const search = url.searchParams.get('search') || '';
+
+        try {
+          const data = await fetchMediaContent(source, { page, limit, search: search || undefined });
+
+          const itemsWithHateoas = (data.items || []).map((item) => ({
+            ...item,
+            category: item.category || source.category,
+            categories: item.categories || (source.category ? [source.category] : ['Geral']),
+            source: item.source || source.category,
+            sourceId: item.sourceId || source.id,
+            imageUrl: item.imageUrl || item.image,
+            image: item.image || item.imageUrl,
+            _links: {
+              self: { href: `${baseUrl}/api/images/${source.id}?page=${page}` },
+              news: { href: `${baseUrl}/api/news/${source.id}` },
+              source: { href: `${baseUrl}/api/images/${source.id}` },
+            },
+          }));
+
+          const hateoasResult = paginateWithHateoas(
+            itemsWithHateoas,
+            data.pagination.total,
+            data.pagination.page,
+            data.pagination.limit,
+            `${baseUrl}/api/images/${source.id}`,
+            { search },
+            {
+              images: { href: `${baseUrl}/api/images` },
+              news: { href: `${baseUrl}/api/news/${source.id}` },
+            }
+          );
+
+          const headers = {
+            'X-WP-Total': data.pagination.total.toString(),
+            'X-WP-TotalPages': data.pagination.totalPages.toString(),
+          };
+
+          if (format === 'array') {
+            return jsonResponse(hateoasResult.items, 200, headers);
+          }
+          return jsonResponse(hateoasResult, 200, headers);
+        } catch (error) {
+          return jsonResponse(
+            { success: false, error: error.message, sourceId: source.id },
+            502
+          );
+        }
       }
 
-      const mediaSources = getAllMediaSources(request);
+      const page = parseInt(url.searchParams.get('page') || '1', 10);
+      const limitParam = url.searchParams.get('limit') || url.searchParams.get('per_page') || '100';
+      const limit = parseInt(limitParam, 10);
+      const activeParam = url.searchParams.get('active');
+      let mediaSources = getAllMediaSources(request);
+
+      if (activeParam !== null && activeParam !== undefined && activeParam !== '') {
+        const isActive = activeParam.toLowerCase() === 'true';
+        mediaSources = mediaSources.filter((s) => s.active === isActive);
+      }
+
       const cleanSources = mediaSources.map((s) => toCleanSource(s, baseUrl));
       const total = cleanSources.length;
       const safePage = Math.max(1, page || 1);
@@ -530,7 +604,9 @@ const worker = {
         safePage,
         safeLimit,
         `${baseUrl}/api/images`,
-        {},
+        {
+          active: activeParam || undefined,
+        },
         {
           news: { href: `${baseUrl}/api/news` },
           categories: { href: `${baseUrl}/api/categories` },
@@ -538,10 +614,15 @@ const worker = {
         }
       );
 
-      return jsonResponse(hateoas, 200, {
+      const headers = {
         'X-WP-Total': String(hateoas.meta.totalItems),
         'X-WP-TotalPages': String(hateoas.meta.totalPages),
-      });
+      };
+
+      if (format === 'array') {
+        return jsonResponse(hateoas.items, 200, headers);
+      }
+      return jsonResponse(hateoas, 200, headers);
     }
 
     // 13. ENDPOINT: Mídias por ID (/api/images/:id ou /images/:id)
@@ -549,19 +630,68 @@ const worker = {
     if (imagesMatch) {
       if (!validateKey(request, env)) return unauthorizedResponse();
       const id = imagesMatch[1];
-      const source = getSourceById(id);
+      const source = getMediaSourceById(id) || getSourceById(id);
       if (!source) {
-        return jsonResponse({ success: false, error: `Media source ${id} not found` }, 404);
+        return jsonResponse({ success: false, error: `Image source with id '${id}' not found.` }, 404);
       }
-      const page = parseInt(url.searchParams.get('page') || '1', 10);
-      const limit = parseInt(url.searchParams.get('limit') || '10', 10);
-      const search = url.searchParams.get('search') || undefined;
+      const metaOnly = url.searchParams.get('meta') === 'true';
+      if (metaOnly) {
+        return jsonResponse(toCleanSource(source, baseUrl));
+      }
 
-      const data = await fetchMediaContent(source, { page, limit, search });
-      return jsonResponse(data, 200, {
-        'X-WP-Total': String(data.meta?.total || 0),
-        'X-WP-TotalPages': String(data.meta?.totalPages || 1),
-      });
+      const page = parseInt(url.searchParams.get('page') || '1', 10);
+      const limitParam = url.searchParams.get('limit') || url.searchParams.get('per_page') || '10';
+      const limit = Math.min(30, Math.max(1, parseInt(limitParam, 10) || 10));
+      const search = url.searchParams.get('search') || '';
+      const format = url.searchParams.get('format');
+
+      try {
+        const data = await fetchMediaContent(source, { page, limit, search: search || undefined });
+
+        const itemsWithHateoas = (data.items || []).map((item) => ({
+          ...item,
+          category: item.category || source.category,
+          categories: item.categories || (source.category ? [source.category] : ['Geral']),
+          source: item.source || source.category,
+          sourceId: item.sourceId || source.id,
+          imageUrl: item.imageUrl || item.image,
+          image: item.image || item.imageUrl,
+          _links: {
+            self: { href: `${baseUrl}/api/images/${source.id}?page=${page}` },
+            news: { href: `${baseUrl}/api/news/${source.id}` },
+            source: { href: `${baseUrl}/api/images/${source.id}` },
+          },
+        }));
+
+        const hateoasResult = paginateWithHateoas(
+          itemsWithHateoas,
+          data.pagination.total,
+          data.pagination.page,
+          data.pagination.limit,
+          `${baseUrl}/api/images/${source.id}`,
+          { search },
+          {
+            images: { href: `${baseUrl}/api/images` },
+            news: { href: `${baseUrl}/api/news/${source.id}` },
+            source: { href: `${baseUrl}/api/images/${source.id}` },
+          }
+        );
+
+        const headers = {
+          'X-WP-Total': data.pagination.total.toString(),
+          'X-WP-TotalPages': data.pagination.totalPages.toString(),
+        };
+
+        if (format === 'array') {
+          return jsonResponse(hateoasResult.items, 200, headers);
+        }
+        return jsonResponse(hateoasResult, 200, headers);
+      } catch (error) {
+        return jsonResponse(
+          { success: false, error: error.message, sourceId: source.id },
+          502
+        );
+      }
     }
 
     // 14. ENDPOINT: Notícias por Categoria (/api/news/category/:category)
@@ -570,8 +700,46 @@ const worker = {
       if (!validateKey(request, env)) return unauthorizedResponse();
       const cat = decodeURIComponent(newsCatMatch[1]);
       const sources = getSourcesByCategory(cat, request);
-      const cleanSources = sources.map((s) => toCleanSource(s, baseUrl));
-      return jsonResponse(cleanSources);
+      const page = parseInt(url.searchParams.get('page') || '1', 10);
+      const limitParam = url.searchParams.get('limit') || url.searchParams.get('per_page') || '100';
+      const limit = parseInt(limitParam, 10);
+      const isFeed = url.searchParams.get('feed') === 'true' || url.searchParams.get('articles') === 'true';
+
+      if (isFeed) {
+        const activeSources = sources.filter((s) => s.active);
+        const articlesLimit = Math.min(30, Math.max(1, limit || 20));
+        const categoryArticles = [];
+        for (const src of activeSources.slice(0, 5)) {
+          try {
+            const res = await fetchSourceContent(src, { page: 1, limit: 10, search: '' });
+            if (res && Array.isArray(res.items)) {
+              categoryArticles.push(...res.items);
+            }
+          } catch {}
+        }
+        const safePage = Math.max(1, page || 1);
+        const start = (safePage - 1) * articlesLimit;
+        const paged = categoryArticles.slice(start, start + articlesLimit);
+        const total = categoryArticles.length;
+        const totalPages = Math.ceil(total / articlesLimit) || 1;
+        return jsonResponse(paged, 200, {
+          'X-WP-Total': String(total),
+          'X-WP-TotalPages': String(totalPages),
+        });
+      }
+
+      const mappedSources = sources.map((s) => toCleanSource(s, baseUrl, true));
+      const safePage = Math.max(1, page || 1);
+      const safeLimit = Math.max(1, limit || 100);
+      const start = (safePage - 1) * safeLimit;
+      const paged = mappedSources.slice(start, start + safeLimit);
+      const total = mappedSources.length;
+      const totalPages = Math.ceil(total / safeLimit) || 1;
+
+      return jsonResponse(paged, 200, {
+        'X-WP-Total': String(total),
+        'X-WP-TotalPages': String(totalPages),
+      });
     }
 
     // 15. ENDPOINT: Notícias por ID (/api/news/:id ou /news/:id)
@@ -581,17 +749,67 @@ const worker = {
       const id = newsIdMatch[1];
       const source = getSourceById(id);
       if (!source) {
-        return jsonResponse({ success: false, error: `News source ${id} not found` }, 404);
+        return jsonResponse({ success: false, error: `News source with id '${id}' not found.` }, 404);
       }
-      const page = parseInt(url.searchParams.get('page') || '1', 10);
-      const limit = parseInt(url.searchParams.get('limit') || '10', 10);
-      const search = url.searchParams.get('search') || undefined;
+      const metaOnly = url.searchParams.get('meta') === 'true';
+      if (metaOnly) {
+        return jsonResponse(toCleanSource(source, baseUrl));
+      }
 
-      const data = await fetchSourceContent(source, { page, limit, search });
-      return jsonResponse(data, 200, {
-        'X-WP-Total': String(data.meta?.total || 0),
-        'X-WP-TotalPages': String(data.meta?.totalPages || 1),
-      });
+      const page = parseInt(url.searchParams.get('page') || '1', 10);
+      const limitParam = url.searchParams.get('limit') || url.searchParams.get('per_page') || '10';
+      const limit = Math.min(30, Math.max(1, parseInt(limitParam, 10) || 10));
+      const search = url.searchParams.get('search') || '';
+      const format = url.searchParams.get('format');
+
+      try {
+        const data = await fetchSourceContent(source, { page, limit, search: search || undefined });
+
+        // Vincular links HATEOAS e garantir campos de imagem, categoria e fonte a cada matéria individual
+        const itemsWithHateoas = (data.items || []).map((item) => ({
+          ...item,
+          category: item.category || source.category,
+          categories: item.categories || (source.category ? [source.category] : ['Geral']),
+          source: item.source || source.category,
+          sourceId: item.sourceId || source.id,
+          imageUrl: item.imageUrl || item.image,
+          image: item.image || item.imageUrl,
+          _links: {
+            self: { href: `${baseUrl}/api/news/${source.id}?page=${page}` },
+            source: { href: `${baseUrl}/api/news/${source.id}` },
+            images: { href: `${baseUrl}/api/images/${source.id}` },
+          },
+        }));
+
+        const hateoasResult = paginateWithHateoas(
+          itemsWithHateoas,
+          data.pagination.total,
+          data.pagination.page,
+          data.pagination.limit,
+          `${baseUrl}/api/news/${source.id}`,
+          { search },
+          {
+            news: { href: `${baseUrl}/api/news` },
+            source: { href: `${baseUrl}/api/news/${source.id}` },
+            images: { href: `${baseUrl}/api/images/${source.id}` },
+          }
+        );
+
+        const headers = {
+          'X-WP-Total': data.pagination.total.toString(),
+          'X-WP-TotalPages': data.pagination.totalPages.toString(),
+        };
+
+        if (format === 'array') {
+          return jsonResponse(hateoasResult.items, 200, headers);
+        }
+        return jsonResponse(hateoasResult, 200, headers);
+      } catch (error) {
+        return jsonResponse(
+          { success: false, error: error.message, sourceId: source.id },
+          502
+        );
+      }
     }
 
     // 16. ENDPOINT: Lista de Notícias/Fontes (/api/news ou /news)
