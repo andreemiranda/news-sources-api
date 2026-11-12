@@ -387,7 +387,8 @@ function renderDocsPage(baseUrl, baseDomain) {
 
 const worker = {
   async fetch(request, env, ctx) {
-    // 1. Injetar variáveis do Cloudflare Worker no process.env e globalThis
+    try {
+      // 1. Injetar variáveis do Cloudflare Worker no process.env e globalThis
     if (env && typeof env === 'object') {
       try {
         if (typeof globalThis !== 'undefined') {
@@ -684,7 +685,46 @@ const worker = {
       return env.ASSETS.fetch(request);
     }
 
-    return jsonResponse({ success: false, error: `Endpoint ${pathname} not found` }, 404);
+      return jsonResponse({ success: false, error: `Endpoint ${pathname} not found` }, 404);
+    } catch (err) {
+      console.error('[Cloudflare Worker Error]', err);
+      const url = new URL(request.url);
+      if (url.pathname.startsWith('/api/') || url.pathname.endsWith('.json')) {
+        return jsonResponse(
+          {
+            success: false,
+            error: err?.message || 'Internal Worker Error',
+            stack: err?.stack || undefined,
+          },
+          500
+        );
+      }
+      return htmlResponse(
+        `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <title>News & Media Sources API - Worker Error</title>
+  <style>
+    body { font-family: system-ui, -apple-system, sans-serif; background: #0f172a; color: #f8fafc; padding: 2rem; }
+    .card { background: #1e293b; border-radius: 12px; padding: 2rem; max-width: 800px; margin: 2rem auto; border: 1px solid #334155; }
+    h1 { color: #f43f5e; margin-top: 0; }
+    pre { background: #020617; padding: 1rem; border-radius: 8px; overflow-x: auto; color: #94a3b8; }
+    a { color: #38bdf8; text-decoration: none; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Erro no Processamento do Worker</h1>
+    <p>${err?.message || 'Ocorreu um erro interno na inicialização da página.'}</p>
+    <pre>${err?.stack || 'Sem rastreamento disponível'}</pre>
+    <p><a href="/">← Voltar para o Início</a> | <a href="/api/health">Status da API</a></p>
+  </div>
+</body>
+</html>`,
+        500
+      );
+    }
   },
 };
 

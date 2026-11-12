@@ -63,28 +63,52 @@ export function isValidId(id: number | string | undefined | null): boolean {
 }
 
 export function getSourcesData(): SourcesData {
-  const possiblePaths = [
-    path.join(process.cwd(), 'app', 'data', 'sources.json'),
-    path.join(process.cwd(), '.next', 'server', 'app', 'data', 'sources.json'),
-    path.join(__dirname, '..', 'app', 'data', 'sources.json'),
-    path.join(__dirname, '..', 'data', 'sources.json'),
-  ];
-
-  for (const filePath of possiblePaths) {
-    try {
-      if (fs.existsSync(filePath)) {
-        const fileContent = fs.readFileSync(filePath, 'utf8');
-        const data = JSON.parse(fileContent) as SourcesData;
-        if (data && Array.isArray(data.sources) && data.sources.length > 0) {
-          return data;
-        }
-      }
-    } catch (e) {
-      // Continue to next path or bundled data
-    }
+  // 1. Preferência imediata pelos dados empacotados (bundle) no build/compile time
+  if (
+    rawSourcesData &&
+    typeof rawSourcesData === 'object' &&
+    Array.isArray((rawSourcesData as any).sources) &&
+    (rawSourcesData as any).sources.length > 0
+  ) {
+    return rawSourcesData as unknown as SourcesData;
   }
 
-  // Fallback direct to bundled rawSourcesData imported at build time
+  // 2. Fallback seguro para ambiente Node.js com acesso a sistema de arquivos em disco
+  try {
+    if (
+      typeof process !== 'undefined' &&
+      typeof process.cwd === 'function' &&
+      typeof fs !== 'undefined' &&
+      typeof fs.existsSync === 'function'
+    ) {
+      const possiblePaths = [
+        path.join(process.cwd(), 'app', 'data', 'sources.json'),
+        path.join(process.cwd(), '.next', 'server', 'app', 'data', 'sources.json'),
+      ];
+
+      // Proteção rigorosa para evitar ReferenceError em ambientes Edge / Cloudflare Workers
+      if (typeof __dirname !== 'undefined') {
+        possiblePaths.push(
+          path.join(__dirname, '..', 'app', 'data', 'sources.json'),
+          path.join(__dirname, '..', 'data', 'sources.json')
+        );
+      }
+
+      for (const filePath of possiblePaths) {
+        if (fs.existsSync(filePath)) {
+          const fileContent = fs.readFileSync(filePath, 'utf8');
+          const data = JSON.parse(fileContent) as SourcesData;
+          if (data && Array.isArray(data.sources) && data.sources.length > 0) {
+            return data;
+          }
+        }
+      }
+    }
+  } catch {
+    // Silencia qualquer erro de leitura de disco em ambiente serverless/edge
+  }
+
+  // 3. Fallback final garantido
   return (rawSourcesData as unknown as SourcesData) || { sources: [] };
 }
 
