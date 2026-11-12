@@ -4,7 +4,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSourcesByCategory, getBaseUrl } from '@/lib/sources';
 import { validateApiKey, unauthorizedResponse, paginate } from '@/lib/auth';
 import { toCleanSource } from '@/lib/hateoas';
-import { getCachedSourceContent, deduplicateFeedImages, ContentItem } from '@/lib/content';
+import { deduplicateFeedImages, ContentItem } from '@/lib/content';
+import { getCachedSourceContent } from '@/lib/next-cache';
 
 export async function GET(
   req: NextRequest,

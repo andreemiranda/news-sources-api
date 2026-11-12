@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { getMediaSourceById, getBaseUrl } from '@/lib/sources';
-import { getCachedMediaContent } from '@/lib/content';
+import { getCachedMediaContent } from '@/lib/next-cache';
 import { validateApiKey, unauthorizedResponse } from '@/lib/auth';
 import { toCleanSource, paginateWithHateoas } from '@/lib/hateoas';
 

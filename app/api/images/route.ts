@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { validateApiKey, unauthorizedResponse } from '@/lib/auth';
 import { getAllMediaSources, getMediaSourceById, getBaseUrl } from '@/lib/sources';
-import { getCachedMediaContent } from '@/lib/content';
+import { getCachedMediaContent } from '@/lib/next-cache';
 import { toCleanSource, paginateWithHateoas } from '@/lib/hateoas';
 
 export async function GET(req: NextRequest) {
