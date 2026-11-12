@@ -84,7 +84,7 @@ A URL correta deve utilizar o caractere `&` para separar os parâmetros da query
 
 **Exemplo com chave preenchida:**
 ```text
-{APP_URL}/api/images/1216294345584?page=1&api_key=your_api_key_here
+{APP_URL}/api/images/1216294345584?page=1&api_key=<sua-chave>
 ```
 
 #### Alternativas recomendadas via Headers (URL limpa):

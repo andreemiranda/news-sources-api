@@ -80,7 +80,7 @@ A URL correta deve utilizar o caractere `&` para separar os parâmetros da query
 
 **Exemplo com chave preenchida:**
 ```text
-{APP_URL}/api/images/1216294345584?page=1&api_key=your_api_key_here
+{APP_URL}/api/images/1216294345584?page=1&api_key=<sua-chave>
 ```
 
 #### Alternativas recomendadas via Headers (URL limpa):
@@ -93,12 +93,12 @@ Para maior segurança e evitar expor a chave de API no histórico do navegador o
 
 **Header (Opção 1 - Bearer):**
 ```http
-Authorization: Bearer <key>
+Authorization: Bearer <sua-chave>
 ```
 
 **Header (Opção 2 - Customizado):**
 ```http
-x-api-key: <key>
+x-api-key: <sua-chave>
 ```
 
 ### Exemplos de Requisição cURL:
@@ -106,13 +106,13 @@ x-api-key: <key>
 **Buscar Notícias:**
 ```bash
 curl -i "{APP_URL}/api/news/6571187291942?page=1&limit=5" \
-  -H "Authorization: Bearer SUA_API_KEY"
+  -H "Authorization: Bearer <sua-chave>"
 ```
 
 **Buscar Imagens / Mídias:**
 ```bash
 curl -i "{APP_URL}/api/images/6571187291942?page=1&limit=5" \
-  -H "Authorization: Bearer SUA_API_KEY"
+  -H "Authorization: Bearer <sua-chave>"
 ```
 
 ---
@@ -164,7 +164,7 @@ Aceita requisições **GET** e **POST** autenticadas pelo secret token:
 
 - **Revalidação Geral de Todos os Caches:**
   ```text
-  GET /api/revalidate?secret=camara-paraiso-revalidate-secret-token&all=true
+  GET /api/revalidate?secret=<SEU_REVALIDATE_SECRET>&all=true
   ```
 
 - **Revalidação Específica por Matéria / Slug (compatível com WP Webhooks):**
@@ -172,7 +172,7 @@ Aceita requisições **GET** e **POST** autenticadas pelo secret token:
   curl -X POST "{APP_URL}/api/revalidate" \
     -H "Content-Type: application/json" \
     -d '{
-      "secret": "camara-paraiso-revalidate-secret-token",
+      "secret": "<SEU_REVALIDATE_SECRET>",
       "slug": "titulo-da-materia",
       "type": "post"
     }'
