@@ -93,11 +93,25 @@ export function getEnv(): EnvConfig {
     NODE_ENV: (process.env.NODE_ENV as any) || 'development',
     // Máxima segurança: segredos nunca são expostos no ambiente do cliente (browser)
     API_KEY: isServer ? apiKey : '',
-    APP_URL: (process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_BASE_URL)?.trim(),
-    APP_DOMAIN: (process.env.APP_DOMAIN || process.env.NEXT_PUBLIC_APP_DOMAIN)?.trim(),
+    APP_URL: (
+      process.env.APP_URL ||
+      process.env.NEXT_PUBLIC_APP_URL ||
+      process.env.NEXT_PUBLIC_BASE_URL ||
+      process.env.CF_PAGES_URL
+    )?.trim(),
+    APP_DOMAIN: (
+      process.env.APP_DOMAIN ||
+      process.env.NEXT_PUBLIC_APP_DOMAIN ||
+      (process.env.CF_PAGES_URL ? process.env.CF_PAGES_URL.replace(/^https?:\/\//, '').split('/')[0] : undefined)
+    )?.trim(),
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL?.trim(),
     NEXT_PUBLIC_APP_DOMAIN: process.env.NEXT_PUBLIC_APP_DOMAIN?.trim(),
-    NEXT_PUBLIC_BASE_URL: (process.env.NEXT_PUBLIC_BASE_URL || process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL)?.trim(),
+    NEXT_PUBLIC_BASE_URL: (
+      process.env.NEXT_PUBLIC_BASE_URL ||
+      process.env.APP_URL ||
+      process.env.NEXT_PUBLIC_APP_URL ||
+      process.env.CF_PAGES_URL
+    )?.trim(),
     AI_API_KEY: isServer ? process.env.AI_API_KEY?.trim() : undefined,
     AI_ENDPOINT: isServer ? process.env.AI_ENDPOINT?.trim() : undefined,
     AI_MODEL: isServer ? process.env.AI_MODEL?.trim() : undefined,

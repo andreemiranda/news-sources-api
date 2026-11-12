@@ -117,6 +117,26 @@ curl -i "{APP_URL}/api/images/6571187291942?page=1&limit=5" \
 
 ---
 
+## Implantação no Cloudflare Pages / Workers
+
+A aplicação está totalmente configurada e otimizada para implantação no Cloudflare Pages e Workers:
+
+1. **Conectar Repositório:** Conecte o repositório Git no dashboard do Cloudflare Pages (**Workers & Pages > Create application > Pages > Connect to Git**).
+2. **Configurações de Build:**
+   - **Framework preset:** `Next.js`
+   - **Build command:** `npm run build` (ou `npm run pages:build`)
+   - **Build output directory:** `.next`
+   - **Root directory:** `/` (raiz do projeto)
+3. **Variáveis de Ambiente (Environment Variables):**
+   - `NODE_VERSION`: `22` (ou `20`)
+   - `API_KEY`: Sua chave secreta para proteger os endpoints da API.
+   - `REVALIDATE_SECRET`: Token para revalidação via webhook.
+   - Opcionalmente `NEXT_PUBLIC_BASE_URL` ou `APP_URL` (se não preenchido, detecta automaticamente a URL `*.pages.dev`).
+4. **Flags de Compatibilidade:**
+   - O arquivo `wrangler.toml` já inclui `compatibility_flags = ["nodejs_compat"]` e `compatibility_date = "2024-09-23"` garantindo suporte pleno ao runtime Node.js.
+
+---
+
 ## Implantação no Netlify (Serverless)
 
 A aplicação está configurada para deploy contínuo e sem servidor no Netlify:
@@ -129,7 +149,7 @@ A aplicação está configurada para deploy contínuo e sem servidor no Netlify:
 3. **Variáveis de Ambiente:**
    - Cadastre `API_KEY` com a senha desejada para proteger os endpoints.
    - Opcionalmente cadastre `NEXT_PUBLIC_BASE_URL` caso utilize domínio personalizado.
-   - Opcionalmente cadastre `REVALIDATE_SECRET` (padrão: `camara-paraiso-revalidate-secret-token`).
+   - Opcionalmente cadastre `REVALIDATE_SECRET`.
 
 ---
 
