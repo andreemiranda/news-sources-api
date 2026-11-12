@@ -31,12 +31,22 @@ function parsePort(val: string | undefined, defaultPort = 3000): number {
 
 function parseReplacementMap(raw: string | undefined): Record<string, string> | undefined {
   if (!raw || !raw.trim()) return undefined;
-  const trimmed = raw.trim();
+  let trimmed = raw.trim();
+
+  // Strip wrapping single or double quotes if present (e.g. from environment files or TOML)
+  if (
+    (trimmed.startsWith("'") && trimmed.endsWith("'")) ||
+    (trimmed.startsWith('"') && trimmed.endsWith('"'))
+  ) {
+    trimmed = trimmed.slice(1, -1).trim();
+  }
 
   // 1. JSON format: {"G1": "NormaJurídica", "CNN": "Outro"}
   if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
     try {
-      const parsed = JSON.parse(trimmed);
+      // Fix potential missing quote before comma in JSON values if present
+      const normalizedJson = trimmed.replace(/([^\\])"?,(?=\s*"[^"]+":)/g, '$1",');
+      const parsed = JSON.parse(normalizedJson);
       if (typeof parsed === 'object' && parsed !== null) {
         const result: Record<string, string> = {};
         for (const [k, v] of Object.entries(parsed)) {
@@ -45,7 +55,18 @@ function parseReplacementMap(raw: string | undefined): Record<string, string> | 
         return result;
       }
     } catch {
-      // Continue to key-value or plain string fallback
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (typeof parsed === 'object' && parsed !== null) {
+          const result: Record<string, string> = {};
+          for (const [k, v] of Object.entries(parsed)) {
+            if (typeof v === 'string') result[k.trim().toUpperCase()] = v;
+          }
+          return result;
+        }
+      } catch {
+        // Continue to key-value fallback
+      }
     }
   }
 
