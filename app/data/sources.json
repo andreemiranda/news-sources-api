@@ -1,6 +1,28 @@
 {
   "sources": [
     {
+      "id": 8193975452621,
+      "category": "Tocantins",
+      "site": "",
+      "type": "wp-api",
+      "url": "https://f5noticias.com.br//wp-json/wp/v2/posts",
+      "active": true,
+      "mediaUrl": "https://f5noticias.com.br//wp-json/wp/v2/media"
+    },
+{
+  "sources": [
+    {
+      "id": 2754168962593,
+      "category": "Tocantins",
+      "site": "",
+      "type": "wp-api",
+      "url": "https://soudepalmas.com.br/wp-json/wp/v2/posts",
+      "active": true,
+      "mediaUrl": "https://soudepalmas.com.br/wp-json/wp/v2/media"
+    },
+{
+  "sources": [
+    {
       "id": 6571187291942,
       "category": "Tocantins",
       "site": "",
