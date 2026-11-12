@@ -1,6 +1,17 @@
 {
   "sources": [
     {
+      "id": 8742125891673,
+      "category": "Tocantins",
+      "site": "",
+      "type": "wp-api",
+      "url": "https://ojornal.net/wp-json/wp/v2/posts",
+      "active": true,
+      "mediaUrl": "https://ojornal.net/wp-json/wp/v2/media"
+    },
+{
+  "sources": [
+    {
       "id": 8193975452621,
       "category": "Brasil",
       "site": "",
