@@ -128,6 +128,9 @@ function renderHomePage(baseUrl, baseDomain, sources, categories) {
         </div>
       </div>
       <div class="flex items-center gap-2">
+        <a href="/api" target="_blank" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-medium text-cyan-300 transition-colors">
+          API JSON (/api)
+        </a>
         <a href="/docs" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-200 transition-colors">
           RapiDoc UI
         </a>
@@ -157,7 +160,7 @@ function renderHomePage(baseUrl, baseDomain, sources, categories) {
       </p>
       <div class="flex flex-wrap gap-4 pt-2 text-xs text-slate-300">
         <div class="bg-slate-800/80 px-3.5 py-2 rounded-lg border border-slate-700">
-          <span class="text-slate-400">Autenticação:</span> <strong class="text-white">Bearer &lt;key&gt;</strong> ou <strong class="text-white">x-api-key</strong>
+          <span class="text-slate-400">Autenticação:</span> <strong class="text-white">Bearer &lt;key&gt;</strong>, <strong class="text-white">x-api-key</strong> ou <strong class="text-white">?ref=&lt;key&gt;</strong>
         </div>
         <div class="bg-slate-800/80 px-3.5 py-2 rounded-lg border border-slate-700">
           <span class="text-slate-400">Domínio Base:</span> <code class="text-blue-300 font-mono">${baseUrl || baseDomain}</code>

@@ -36,7 +36,7 @@ Todas as fontes e endpoints de conteúdo estão centralizados exclusivamente no 
 
 ## 2. Autenticação Global
 
-Com exceção única da rota de verificação de saúde (`{APP_URL}/api/health`), todos os endpoints exigem validação de chave de acesso.
+Com exceção das rotas públicas (`{APP_URL}/api`, `{APP_URL}/api/health`, `{APP_URL}/api/version`, `{APP_URL}/api/openapi.json` e `{APP_URL}/api/sync`), todos os endpoints exigem validação de chave de acesso.
 
 A autenticação pode ser enviada por qualquer uma das três formas abaixo:
 
@@ -48,12 +48,12 @@ A autenticação pode ser enviada por qualquer uma das três formas abaixo:
    ```http
    x-api-key: <sua-chave>
    ```
-3. **Query Parameter na URL:**
+3. **Query Parameter (`ref`) na URL:**
    ```http
    {APP_URL}/api/news?ref=<sua-chave>
    ```
 
-> **Segurança:** A chave de API nunca é exposta no código-fonte. Em produção no Netlify, ela é lida diretamente da variável de ambiente `API_KEY`.
+> **Segurança:** A credencial de acesso nunca é exposta no código-fonte. Em produção, ela é lida diretamente da variável de ambiente `API_KEY`.
 
 ---
 
@@ -160,7 +160,17 @@ Cada item retornado inclui as tags **`slug`** (contendo o slug exato da notícia
 - **`alt`**: O título integral da matéria jornalística (ex.: `Quais os clubes mais prejudicados com a mudança da regra de estrangeiros no Brasileirão`) para facilitar a associação automática de título/imagem em integrações com outros apps.
 - **`imageUrl` / `mediaUrl`**: Link direto da fotografia destacada em alta resolução associada à notícia.
 
-### 4.3. Metadados e Uptime
+### 4.3. Página Inicial da API (`GET /api`), Estatísticas (`GET /api/stats/news`) e Uptime
+
+- **Página Inicial da API em JSON (Público):**
+  ```http
+  GET {APP_URL}/api
+  ```
+  Retorna o catálogo de endpoints, visão geral do sistema (total de fontes, categorias e tipos), métodos de autenticação e links HATEOAS de navegação.
+
+  ```bash
+  curl -s "{APP_URL}/api"
+  ```
 
 - **Categorias Disponíveis:**
   ```http
@@ -170,18 +180,63 @@ Cada item retornado inclui as tags **`slug`** (contendo o slug exato da notícia
   ```http
   GET {APP_URL}/api/types
   ```
-- **Página Inicial da API em JSON (Público):**
-  ```http
-  GET {APP_URL}/api
-  ```
-- **Estatísticas Globais:**
+- **Estatísticas Cadastrais (Rápido):**
   ```http
   GET {APP_URL}/api/stats
   ```
+  *Aceita `?detailed=true` (ou `?full=true` / `?live=true`) para retornar o relatório completo de notícias e páginas.*
+
 - **Relatório Completo de Notícias e Páginas por Fonte e Categoria:**
   ```http
   GET {APP_URL}/api/stats/news?limit=10
   ```
+  *(Também acessível via `{APP_URL}/stats/news` ou passando a query string `?ref=<sua-chave>`, ex.: `{APP_URL}/api/stats/news?limit=10&ref=<sua-chave>`).*
+
+  Consulta todas as fontes e categorias cadastradas para documentar em tempo real o volume total de notícias e páginas da API, retornando os blocos `meta` e `page` no nível global, por categoria e por fonte:
+
+  | Parâmetro | Tipo | Padrão | Descrição |
+  |---|---|---|---|
+  | `limit` / `per_page` | integer | `10` | Quantidade de itens por página usada para calcular `totalPages` (1 a 30) |
+  | `category` | string | - | Filtra o relatório por categoria (nome ou slug) |
+  | `type` | string | - | Filtra o relatório por protocolo (`wp-api` ou `rss`) |
+  | `refresh` | boolean | `false` | Se `true`, ignora o cache temporário e reconsulta todas as fontes |
+
+  **Exemplo de Resposta (`GET /api/stats/news`):**
+  ```json
+  {
+    "success": true,
+    "status": "ok",
+    "itemsPerPage": 10,
+    "meta": {
+      "itemCount": 10,
+      "totalItems": 17638,
+      "itemsPerPage": 10,
+      "totalPages": 1764,
+      "currentPage": 1
+    },
+    "page": {
+      "size": 10,
+      "totalElements": 17638,
+      "totalPages": 1764,
+      "number": 1
+    },
+    "summary": {
+      "totalNews": 17638,
+      "totalPages": 1764,
+      "totalPagesBySourceSum": 1764,
+      "itemsPerPage": 10,
+      "totalSources": 80,
+      "activeSources": 80,
+      "onlineSources": 78,
+      "unavailableSources": 2,
+      "totalMediaSources": 35,
+      "totalCategories": 50
+    },
+    "categories": [ ... ],
+    "sources": [ ... ]
+  }
+  ```
+
 - **Health Check (Público):**
   ```http
   GET {APP_URL}/api/health

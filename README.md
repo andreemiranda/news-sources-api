@@ -9,7 +9,7 @@ API REST para acesso centralizado a fontes de notícias brasileiras, conteúdos 
 
 ## Autenticação
 
-Todos os endpoints (com exceção exclusiva de `/api/health`) exigem autenticação por API Key. A chave pode ser informada de 3 formas:
+Todos os endpoints protegidos exigem autenticação por credencial de acesso (rotas públicas como `/api`, `/api/health`, `/api/version`, `/api/openapi.json` e `/api/sync` não exigem autenticação). A credencial pode ser informada de 3 formas:
 
 1. **Header de Autorização Bearer (Recomendado):**
    ```http
@@ -19,10 +19,15 @@ Todos os endpoints (com exceção exclusiva de `/api/health`) exigem autenticaç
    ```http
    x-api-key: <sua-chave>
    ```
-3. **Query Parameter:**
+3. **Query Parameter (`ref`):**
    ```http
    ?ref=<sua-chave>
    ```
+
+Quando utilizada via query string em URLs que já possuem outros parâmetros (como `page`, `limit` ou `category`), combine-a usando `&`:
+```text
+{APP_URL}/api/news/6571187291942?page=1&limit=10&ref=<sua-chave>
+```
 
 > **Configuração em Produção no Netlify:**
 > Acesse **Site Configuration > Environment Variables** no painel do Netlify e cadastre a variável `API_KEY`. O sistema lê essa variável estritamente em tempo de execução sem expor credenciais no código-fonte.
@@ -115,6 +120,145 @@ curl -i "{APP_URL}/api/news/6571187291942?page=1&limit=5" \
 ```bash
 curl -i "{APP_URL}/api/images/6571187291942?page=1&limit=5" \
   -H "Authorization: Bearer <sua-chave>"
+```
+
+---
+
+## Página Inicial da API em JSON (`GET /api`)
+
+A API disponibiliza uma página inicial estruturada em JSON na rota `/api` (acesso público, sem necessidade de autenticação), exibindo metadados do serviço, visão geral do catálogo, formas de autenticação, mapa de rotas e links HATEOAS.
+
+### Como Acessar:
+
+```bash
+curl -s "{APP_URL}/api"
+```
+
+Ou via query / navegador:
+```text
+{APP_URL}/api
+```
+
+### Exemplo de Resposta:
+```json
+{
+  "success": true,
+  "name": "News & Media Sources API",
+  "version": "1.0.0",
+  "status": "online",
+  "baseUrl": "{APP_URL}",
+  "authentication": {
+    "required": true,
+    "publicRoutes": ["/api", "/api/health", "/api/version", "/api/openapi.json", "/api/sync"],
+    "methods": [
+      "Authorization: Bearer <chave>",
+      "Header: x-api-key: <chave>",
+      "Query parameter: ?ref=<chave>"
+    ]
+  },
+  "overview": {
+    "totalSources": 80,
+    "activeSources": 80,
+    "totalMediaSources": 35,
+    "totalCategories": 50
+  },
+  "endpoints": { ... },
+  "_links": { ... }
+}
+```
+
+---
+
+## Estatísticas Globais de Notícias e Páginas (`GET /api/stats/news`)
+
+Além do resumo cadastral em `GET /api/stats`, a API disponibiliza o relatório consolidado em tempo real em **`/api/stats/news`** (também acessível via `/stats/news` ou `GET /api/stats?detailed=true`), documentando quantas notícias existem atualmente na API e quantas páginas estão disponíveis em cada fonte e em cada categoria.
+
+### Como Acessar:
+
+- **Via Header (Recomendado):**
+  ```bash
+  curl -s "{APP_URL}/api/stats/news?limit=10" \
+    -H "Authorization: Bearer <sua-chave>"
+  ```
+- **Via Query String (`ref`):**
+  ```text
+  {APP_URL}/api/stats/news?limit=10&ref=<sua-chave>
+  ```
+- **Filtrando por Categoria ou Tipo:**
+  ```text
+  {APP_URL}/api/stats/news?category=Tocantins&limit=10&ref=<sua-chave>
+  {APP_URL}/api/stats/news?type=wp-api&refresh=true&ref=<sua-chave>
+  ```
+
+### Parâmetros Suportados:
+| Parâmetro | Tipo | Padrão | Descrição |
+|---|---|---|---|
+| `limit` / `per_page` | integer | `10` | Quantidade de itens por página utilizada no cálculo de páginas (1 a 30) |
+| `category` | string | - | Filtra o relatório para uma categoria específica (nome ou slug) |
+| `type` | string | - | Filtra o relatório por protocolo (`wp-api` ou `rss`) |
+| `refresh` | boolean | `false` | Se `true`, ignora o cache em memória e consulta novamente todas as fontes |
+
+### Estrutura da Resposta:
+O retorno inclui os blocos padronizados **`meta`** e **`page`** no nível global, dentro de cada categoria (`categories`) e em cada fonte (`sources`):
+
+```json
+{
+  "success": true,
+  "status": "ok",
+  "itemsPerPage": 10,
+  "meta": {
+    "itemCount": 10,
+    "totalItems": 17638,
+    "itemsPerPage": 10,
+    "totalPages": 1764,
+    "currentPage": 1
+  },
+  "page": {
+    "size": 10,
+    "totalElements": 17638,
+    "totalPages": 1764,
+    "number": 1
+  },
+  "summary": {
+    "totalNews": 17638,
+    "totalPages": 1764,
+    "totalPagesBySourceSum": 1764,
+    "totalSources": 80,
+    "onlineSources": 78,
+    "unavailableSources": 2,
+    "totalCategories": 50
+  },
+  "categories": [ ... ],
+  "sources": [
+    {
+      "id": 8742125891673,
+      "category": "Tocantins",
+      "type": "wp-api",
+      "active": true,
+      "status": "online",
+      "totalNews": 17638,
+      "totalPages": 1764,
+      "meta": {
+        "itemCount": 10,
+        "totalItems": 17638,
+        "itemsPerPage": 10,
+        "totalPages": 1764,
+        "currentPage": 1
+      },
+      "page": {
+        "size": 10,
+        "totalElements": 17638,
+        "totalPages": 1764,
+        "number": 1
+      },
+      "_links": {
+        "self": { "href": "{APP_URL}/api/news/8742125891673?page=1&limit=10" },
+        "news": { "href": "{APP_URL}/api/news/8742125891673" },
+        "images": { "href": "{APP_URL}/api/images/8742125891673" }
+      }
+    }
+  ]
+}
 ```
 
 ---
