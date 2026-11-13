@@ -742,7 +742,7 @@ const fallbackAttemptedSources = new Set<string>();
 /**
  * Resilient HTTP fetcher with multi-tier bypass against 403 Forbidden
  */
-async function resilientFetch(
+export async function resilientFetch(
   url: string,
   site: string,
   isJson: boolean = true,

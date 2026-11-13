@@ -50,7 +50,7 @@ A autenticação pode ser enviada por qualquer uma das três formas abaixo:
    ```
 3. **Query Parameter na URL:**
    ```http
-   {APP_URL}/api/news?api_key=<sua-chave>
+   {APP_URL}/api/news?ref=<sua-chave>
    ```
 
 > **Segurança:** A chave de API nunca é exposta no código-fonte. Em produção no Netlify, ela é lida diretamente da variável de ambiente `API_KEY`.
@@ -79,12 +79,12 @@ Os endpoints de conteúdo em tempo real retornam uma lista direta de itens (`[ .
 A URL correta deve utilizar o caractere `&` para separar os parâmetros da query string (em vez de um segundo `?`):
 
 ```text
-{APP_URL}/api/images/1216294345584?page=1&api_key=<key>
+{APP_URL}/api/images/1216294345584?page=1&ref=<key>
 ```
 
 **Exemplo com chave preenchida:**
 ```text
-{APP_URL}/api/images/1216294345584?page=1&api_key=<sua-chave>
+{APP_URL}/api/images/1216294345584?page=1&ref=<sua-chave>
 ```
 
 #### Alternativas recomendadas via Headers (URL limpa):
@@ -170,9 +170,17 @@ Cada item retornado inclui as tags **`slug`** (contendo o slug exato da notícia
   ```http
   GET {APP_URL}/api/types
   ```
+- **Página Inicial da API em JSON (Público):**
+  ```http
+  GET {APP_URL}/api
+  ```
 - **Estatísticas Globais:**
   ```http
   GET {APP_URL}/api/stats
+  ```
+- **Relatório Completo de Notícias e Páginas por Fonte e Categoria:**
+  ```http
+  GET {APP_URL}/api/stats/news?limit=10
   ```
 - **Health Check (Público):**
   ```http

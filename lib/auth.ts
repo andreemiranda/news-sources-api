@@ -45,7 +45,7 @@ export function validateApiKey(req: NextRequest): boolean {
   if (!providedKey) {
     try {
       const url = new URL(req.url);
-      providedKey = (url.searchParams.get('api_key') || url.searchParams.get('apiKey') || '').trim();
+      providedKey = (url.searchParams.get('ref') || '').trim();
     } catch {}
   }
 
@@ -61,7 +61,7 @@ export function unauthorizedResponse() {
   return NextResponse.json(
     {
       success: false,
-      error: 'Unauthorized. Provide a valid API key via Authorization header (Bearer <key>), x-api-key header, or api_key query parameter.',
+      error: 'Unauthorized. Provide a valid credential via Authorization header (Bearer <value>), x-api-key header, or ref query parameter.',
     },
     { status: 401 }
   );

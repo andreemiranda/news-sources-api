@@ -11,7 +11,7 @@ function isAuthorized(req: NextRequest, bodySecret?: string): boolean {
   }
 
   const url = new URL(req.url);
-  const querySecret = url.searchParams.get('secret') || url.searchParams.get('key');
+  const queryRef = url.searchParams.get('ref');
   const headerSecret = req.headers.get('x-revalidate-secret');
   const authHeader = req.headers.get('authorization');
   let bearerSecret = '';
@@ -19,7 +19,7 @@ function isAuthorized(req: NextRequest, bodySecret?: string): boolean {
     bearerSecret = authHeader.slice(7).trim();
   }
 
-  const provided = (querySecret || headerSecret || bearerSecret || bodySecret || '').trim();
+  const provided = (queryRef || headerSecret || bearerSecret || bodySecret || '').trim();
   if (!provided) return false;
 
   return provided === expectedSecret;
@@ -158,7 +158,7 @@ export async function POST(req: NextRequest) {
     body = {};
   }
 
-  if (!isAuthorized(req, body?.secret)) {
+  if (!isAuthorized(req, body?.ref || body?.secret)) {
     return NextResponse.json(
       {
         revalidated: false,

@@ -20,7 +20,7 @@ export function getOpenApiSpec(req?: Request) {
     info: {
       title: 'News & Media Sources API',
       description:
-        'REST API for accessing news sources data and live articles/media aggregated from Brazilian news outlets. Endpoints require API Key authentication via header Authorization: Bearer <key>, header x-api-key, or query parameter ?api_key=<key>.',
+        'REST API for accessing news sources data and live articles/media aggregated from Brazilian news outlets. Endpoints require authentication via header Authorization: Bearer <key>, header x-api-key, or query parameter ?ref=<key>.',
       version: '1.0.0',
       contact: {
         name: 'Suporte API',
@@ -49,8 +49,8 @@ export function getOpenApiSpec(req?: Request) {
         QueryApiKey: {
           type: 'apiKey',
           in: 'query',
-          name: 'api_key',
-          description: 'API key in query string (?api_key=<key>)',
+          name: 'ref',
+          description: 'Access credential via URL query parameter (?ref=<valor>)',
         },
       },
       security: [{ ApiKeyAuth: [] }, { BearerAuth: [] }, { QueryApiKey: [] }],
@@ -90,6 +90,18 @@ export function getOpenApiSpec(req?: Request) {
       },
     },
     paths: {
+      '/': {
+        get: {
+          summary: 'Página inicial da API em JSON (/api)',
+          description: 'Retorna o índice geral da API em JSON com metadados, visão geral e links HATEOAS de todos os endpoints.',
+          responses: {
+            '200': {
+              description: 'Índice JSON da API',
+              content: { 'application/json': { schema: { type: 'object' } } },
+            },
+          },
+        },
+      },
       '/health': {
         get: {
           summary: 'Health Check e Status da API',
@@ -143,10 +155,33 @@ export function getOpenApiSpec(req?: Request) {
       '/stats': {
         get: {
           summary: 'Estatísticas consolidadas da API',
+          parameters: [
+            { name: 'detailed', in: 'query', schema: { type: 'boolean', default: false }, description: 'Quando true, retorna o relatório completo de notícias e páginas de todas as fontes e categorias' },
+          ],
           security: [{ ApiKeyAuth: [] }, { BearerAuth: [] }, { QueryApiKey: [] }],
           responses: {
             '200': {
               description: 'Estatísticas da API',
+              content: { 'application/json': { schema: { type: 'object' } } },
+            },
+            '401': { description: 'Não autorizado' },
+          },
+        },
+      },
+      '/stats/news': {
+        get: {
+          summary: 'Relatório detalhado de notícias e páginas por fonte e categoria',
+          description: 'Consulta em tempo real o total de notícias e total de páginas disponíveis em cada fonte e categoria, consolidando o volume global da API com blocos meta e page.',
+          security: [{ ApiKeyAuth: [] }, { BearerAuth: [] }, { QueryApiKey: [] }],
+          parameters: [
+            { name: 'limit', in: 'query', schema: { type: 'integer', default: 10, minimum: 1, maximum: 30 } },
+            { name: 'category', in: 'query', schema: { type: 'string' } },
+            { name: 'type', in: 'query', schema: { type: 'string', enum: ['wp-api', 'rss'] } },
+            { name: 'refresh', in: 'query', schema: { type: 'boolean', default: false } },
+          ],
+          responses: {
+            '200': {
+              description: 'Relatório completo de notícias e páginas por fonte e categoria',
               content: { 'application/json': { schema: { type: 'object' } } },
             },
             '401': { description: 'Não autorizado' },

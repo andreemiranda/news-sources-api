@@ -21,7 +21,7 @@ Todos os endpoints (com exceção exclusiva de `/api/health`) exigem autenticaç
    ```
 3. **Query Parameter:**
    ```http
-   ?api_key=<sua-chave>
+   ?ref=<sua-chave>
    ```
 
 > **Configuração em Produção no Netlify:**
@@ -50,6 +50,7 @@ Todas as fontes de dados e endpoints de mídia estão centralizados em um único
 
 | Método | Endpoint | Descrição |
 |---|---|---|
+| GET | `{APP_URL}/api` | Página inicial da API em JSON (índice, status e links HATEOAS) |
 | GET | `{APP_URL}/api/news` | Lista de fontes de notícias cadastradas (filtros: `category`, `type`, `active`) |
 | GET | `{APP_URL}/api/news/{id}` | Notícias em tempo real da fonte `{id}` |
 | GET | `{APP_URL}/api/news/category/{category}` | Fontes filtradas por categoria |
@@ -57,7 +58,8 @@ Todas as fontes de dados e endpoints de mídia estão centralizados em um único
 | GET | `{APP_URL}/api/images/{id}` | Mídias e imagens em tempo real da fonte `{id}` |
 | GET | `{APP_URL}/api/categories` | Categorias disponíveis com total de fontes |
 | GET | `{APP_URL}/api/types` | Tipos suportados (`wp-api`, `rss`) com totais |
-| GET | `{APP_URL}/api/stats` | Estatísticas gerais da API |
+| GET | `{APP_URL}/api/stats` | Estatísticas gerais da API (`?detailed=true` para relatório completo) |
+| GET | `{APP_URL}/api/stats/news` | Relatório completo de notícias e páginas de todas as fontes e categorias |
 | GET | `{APP_URL}/api/health` | Verificação de integridade e uptime (Público, sem auth) |
 
 > **Nota sobre campos `alt` e `slug`:** As tags `alt` e `slug` foram removidas das listagens iniciais de fontes (`/api/images` e `/api/news`) e estão presentes apenas nos endpoints onde consta cada notícia ou mídia (`/api/news/{id}` e `/api/images/{id}`), identificando o texto alternativo e slug diretamente associados a cada notícia/imagem.
@@ -75,12 +77,12 @@ Os endpoints de conteúdo retornam os dados paginados com suporte a HATEOAS, `ne
 A URL correta deve utilizar o caractere `&` para separar os parâmetros da query string (em vez de um segundo `?`):
 
 ```text
-{APP_URL}/api/images/1216294345584?page=1&api_key=<key>
+{APP_URL}/api/images/1216294345584?page=1&ref=<key>
 ```
 
 **Exemplo com chave preenchida:**
 ```text
-{APP_URL}/api/images/1216294345584?page=1&api_key=<sua-chave>
+{APP_URL}/api/images/1216294345584?page=1&ref=<sua-chave>
 ```
 
 #### Alternativas recomendadas via Headers (URL limpa):
@@ -164,7 +166,7 @@ Aceita requisições **GET** e **POST** autenticadas pelo secret token:
 
 - **Revalidação Geral de Todos os Caches:**
   ```text
-  GET /api/revalidate?secret=<SEU_REVALIDATE_SECRET>&all=true
+  GET /api/revalidate?ref=<SUA_CREDENCIAL>&all=true
   ```
 
 - **Revalidação Específica por Matéria / Slug (compatível com WP Webhooks):**
@@ -172,7 +174,7 @@ Aceita requisições **GET** e **POST** autenticadas pelo secret token:
   curl -X POST "{APP_URL}/api/revalidate" \
     -H "Content-Type: application/json" \
     -d '{
-      "secret": "<SEU_REVALIDATE_SECRET>",
+      "ref": "<SUA_CREDENCIAL>",
       "slug": "titulo-da-materia",
       "type": "post"
     }'

@@ -45,8 +45,8 @@ export default async function Home() {
         QueryApiKey: {
           type: 'apiKey',
           in: 'query',
-          name: 'api_key',
-          description: 'API key via URL query parameter (?api_key=<key>)',
+          name: 'ref',
+          description: 'Access credential via URL query parameter (?ref=<valor>)',
         },
       },
       security: [{ ApiKeyAuth: [] }, { BearerAuth: [] }, { QueryApiKey: [] }],
@@ -392,10 +392,28 @@ export default async function Home() {
         get: {
           tags: ['Metadata'],
           summary: 'Get global API statistics',
-          description: 'Summary statistics of sources, categories, and types.',
+          description: 'Summary statistics of sources, categories, and types. Pass ?detailed=true for full news and page counts.',
           security: [{ ApiKeyAuth: [] }, { BearerAuth: [] }, { QueryApiKey: [] }],
           responses: {
             '200': { description: 'Statistics object' },
+            '401': { description: 'Unauthorized' },
+          },
+        },
+      },
+      '/stats/news': {
+        get: {
+          tags: ['Metadata'],
+          summary: 'Get live news and page count report across all sources and categories',
+          description: 'Relatório completo com o total de notícias e total de páginas em cada fonte e em cada categoria, além do consolidado global com blocos meta e page.',
+          security: [{ ApiKeyAuth: [] }, { BearerAuth: [] }, { QueryApiKey: [] }],
+          parameters: [
+            { name: 'limit', in: 'query', description: 'Itens por página para cálculo de páginas (1 a 30)', schema: { type: 'integer', default: 10, minimum: 1, maximum: 30 } },
+            { name: 'category', in: 'query', description: 'Filtrar relatório por categoria', schema: { type: 'string' } },
+            { name: 'type', in: 'query', description: 'Filtrar por tipo (wp-api ou rss)', schema: { type: 'string' } },
+            { name: 'refresh', in: 'query', description: 'Forçar atualização sem cache', schema: { type: 'boolean', default: false } },
+          ],
+          responses: {
+            '200': { description: 'Relatório completo de notícias e páginas' },
             '401': { description: 'Unauthorized' },
           },
         },
@@ -447,10 +465,10 @@ export default async function Home() {
           description: 'Revalida instantaneamente caches ISR após publicação no WordPress usando secret token.',
           parameters: [
             {
-              name: 'secret',
+              name: 'ref',
               in: 'query',
               required: true,
-              description: 'Token secreto de revalidação configurado via variável REVALIDATE_SECRET',
+              description: 'Credencial de revalidação configurada no servidor',
               schema: { type: 'string' },
             },
             {
@@ -631,7 +649,7 @@ export default async function Home() {
                 <span>Autenticação necessária</span>
               </h2>
               <p className="text-amber-900 text-sm leading-relaxed mb-4 font-medium">
-                Para testar os endpoints no Swagger UI, clique no botão &quot;Authorize&quot; e insira a sua API Key. A chave pode ser enviada via header <code className="bg-amber-200/70 text-amber-950 px-1.5 py-0.5 rounded font-mono text-xs font-semibold">Authorization: Bearer &lt;key&gt;</code>, header <code className="bg-amber-200/70 text-amber-950 px-1.5 py-0.5 rounded font-mono text-xs font-semibold">x-api-key</code>, ou query parameter <code className="bg-amber-200/70 text-amber-950 px-1.5 py-0.5 rounded font-mono text-xs font-semibold">?api_key=&lt;key&gt;</code>.
+                Para testar os endpoints no Swagger UI, clique no botão &quot;Authorize&quot; e insira a sua API Key. A chave pode ser enviada via header <code className="bg-amber-200/70 text-amber-950 px-1.5 py-0.5 rounded font-mono text-xs font-semibold">Authorization: Bearer &lt;key&gt;</code>, header <code className="bg-amber-200/70 text-amber-950 px-1.5 py-0.5 rounded font-mono text-xs font-semibold">x-api-key</code>, ou query parameter <code className="bg-amber-200/70 text-amber-950 px-1.5 py-0.5 rounded font-mono text-xs font-semibold">?ref=&lt;key&gt;</code>.
               </p>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2 border-t border-amber-200/60">
@@ -650,7 +668,7 @@ export default async function Home() {
                 <div className="bg-white/80 rounded-lg p-3 border border-amber-200 text-xs">
                   <span className="font-semibold text-slate-800 block mb-1">Opção 3 (Query String)</span>
                   <code className="text-blue-700 bg-blue-50 px-2 py-1 rounded block font-mono">
-                    ?api_key=&lt;key&gt;
+                    ?ref=&lt;key&gt;
                   </code>
                 </div>
               </div>

@@ -15,6 +15,7 @@ import {
 import { fetchSourceContent, fetchMediaContent } from './lib/content';
 import { toCleanSource, paginateWithHateoas } from './lib/hateoas';
 import { getOpenApiSpec } from './lib/openapi-spec';
+import { getApiIndexPayload, getDetailedNewsStats } from './lib/stats';
 
 function safeCompare(a, b) {
   if (!a || !b) return false;
@@ -52,7 +53,7 @@ function validateKey(request, env) {
   if (!provided) {
     try {
       const u = new URL(request.url);
-      provided = (u.searchParams.get('api_key') || u.searchParams.get('apiKey') || '').trim();
+      provided = (u.searchParams.get('ref') || '').trim();
     } catch {}
   }
   if (!provided) return false;
@@ -89,7 +90,7 @@ function unauthorizedResponse() {
   return jsonResponse(
     {
       success: false,
-      error: 'Unauthorized. Provide a valid API key via Authorization header (Bearer <key>), x-api-key header, or api_key query parameter.',
+      error: 'Unauthorized. Provide a valid credential via Authorization header (Bearer <value>), x-api-key header, or ref query parameter.',
     },
     401
   );
@@ -448,6 +449,11 @@ const worker = {
       return htmlResponse(renderDocsPage(baseUrl, baseDomain));
     }
 
+    // 5.1. ENDPOINT: Página Inicial da API em JSON (/api ou /api/)
+    if (pathname === '/api' || pathname === '/api/') {
+      return jsonResponse(getApiIndexPayload(request));
+    }
+
     // 6. ENDPOINT: Health Check (/api/health)
     if (pathname === '/api/health') {
       return jsonResponse({
@@ -497,15 +503,58 @@ const worker = {
       });
     }
 
-    // 11. ENDPOINT: Estatísticas (/api/stats ou /stats)
+    // 11. ENDPOINT: Relatório de Notícias e Páginas (/api/stats/news ou /stats/news)
+    if (pathname === '/api/stats/news' || pathname === '/stats/news') {
+      if (!validateKey(request, env)) return unauthorizedResponse();
+      const limitParam = url.searchParams.get('limit') || url.searchParams.get('per_page') || '10';
+      const itemsPerPage = Math.min(30, Math.max(1, parseInt(limitParam, 10) || 10));
+      const category = url.searchParams.get('category') || undefined;
+      const type = url.searchParams.get('type') || undefined;
+      const refresh = url.searchParams.get('refresh') === 'true';
+
+      const report = await getDetailedNewsStats({ itemsPerPage, category, type, refresh }, request);
+      return jsonResponse(report, 200, {
+        'X-WP-Total': String(report.meta.totalItems),
+        'X-WP-TotalPages': String(report.meta.totalPages),
+      });
+    }
+
+    // 11.1. ENDPOINT: Estatísticas (/api/stats ou /stats)
     if (pathname === '/api/stats' || pathname === '/stats') {
       if (!validateKey(request, env)) return unauthorizedResponse();
+
+      const isDetailed =
+        url.searchParams.get('detailed') === 'true' ||
+        url.searchParams.get('full') === 'true' ||
+        url.searchParams.get('live') === 'true';
+
+      if (isDetailed) {
+        const limitParam = url.searchParams.get('limit') || url.searchParams.get('per_page') || '10';
+        const itemsPerPage = Math.min(30, Math.max(1, parseInt(limitParam, 10) || 10));
+        const category = url.searchParams.get('category') || undefined;
+        const type = url.searchParams.get('type') || undefined;
+        const refresh = url.searchParams.get('refresh') === 'true';
+
+        const report = await getDetailedNewsStats({ itemsPerPage, category, type, refresh }, request);
+        return jsonResponse(report, 200, {
+          'X-WP-Total': String(report.meta.totalItems),
+          'X-WP-TotalPages': String(report.meta.totalPages),
+        });
+      }
+
       const stats = getStats(request);
       return jsonResponse({
         success: true,
         status: 'ok',
         timestamp: new Date().toISOString(),
         data: stats,
+        _links: {
+          self: { href: `${baseUrl}/api/stats` },
+          report: { href: `${baseUrl}/api/stats/news` },
+          news: { href: `${baseUrl}/api/news` },
+          images: { href: `${baseUrl}/api/images` },
+          categories: { href: `${baseUrl}/api/categories` },
+        },
       });
     }
 
@@ -869,7 +918,7 @@ const worker = {
         (typeof process !== 'undefined' && process.env?.REVALIDATE_SECRET) ||
         ''
       ).trim();
-      let providedSecret = url.searchParams.get('secret') || url.searchParams.get('key') || '';
+      let providedSecret = url.searchParams.get('ref') || '';
       const authHeader = request.headers.get('authorization') || '';
       if (authHeader.startsWith('Bearer ')) providedSecret = authHeader.slice(7).trim();
       if (!providedSecret) providedSecret = (request.headers.get('x-revalidate-secret') || '').trim();
@@ -878,7 +927,9 @@ const worker = {
       if (request.method === 'POST') {
         try {
           body = await request.json();
-          if (!providedSecret && body?.secret) providedSecret = String(body.secret).trim();
+          if (!providedSecret && (body?.ref || body?.secret)) {
+            providedSecret = String(body.ref || body.secret).trim();
+          }
         } catch {}
       }
 

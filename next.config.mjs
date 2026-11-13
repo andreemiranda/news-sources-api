@@ -61,6 +61,10 @@ const nextConfig = {
         destination: '/api/types',
       },
       {
+        source: '/stats/news',
+        destination: '/api/stats/news',
+      },
+      {
         source: '/stats',
         destination: '/api/stats',
       },

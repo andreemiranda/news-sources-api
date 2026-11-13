@@ -237,7 +237,7 @@ export default function DocsPage() {
             <form onSubmit={handleAuthSubmit}>
               <div className="p-6 space-y-4">
                 <p className="text-sm text-slate-600 leading-relaxed">
-                  Para testar os endpoints no RapiDoc / Swagger UI, insira a sua API Key. A chave pode ser enviada via header <code className="bg-slate-100 text-slate-800 px-1 py-0.5 rounded font-mono text-xs">Authorization: Bearer &lt;key&gt;</code>, header <code className="bg-slate-100 text-slate-800 px-1 py-0.5 rounded font-mono text-xs">x-api-key</code>, ou query parameter <code className="bg-slate-100 text-slate-800 px-1 py-0.5 rounded font-mono text-xs">?api_key=&lt;key&gt;</code>.
+                  Para testar os endpoints no RapiDoc / Swagger UI, insira a sua API Key. A chave pode ser enviada via header <code className="bg-slate-100 text-slate-800 px-1 py-0.5 rounded font-mono text-xs">Authorization: Bearer &lt;key&gt;</code>, header <code className="bg-slate-100 text-slate-800 px-1 py-0.5 rounded font-mono text-xs">x-api-key</code>, ou query parameter <code className="bg-slate-100 text-slate-800 px-1 py-0.5 rounded font-mono text-xs">?ref=&lt;key&gt;</code>.
                 </p>
 
                 {errorMessage && (

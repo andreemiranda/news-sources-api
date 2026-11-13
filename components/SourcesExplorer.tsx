@@ -154,7 +154,21 @@ export default function SourcesExplorer({
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          <div className="bg-slate-800/70 p-3 rounded-lg border border-slate-700/60 flex items-center justify-between">
+            <div>
+              <span className="text-[11px] text-slate-400 uppercase tracking-wider block">Índice JSON da API</span>
+              <code className="text-xs text-cyan-300 font-mono font-semibold">/api</code>
+            </div>
+            <button
+              onClick={() => executeQuickTest('/api')}
+              className="p-1.5 bg-cyan-600 hover:bg-cyan-500 rounded text-white transition-colors"
+              title="Testar endpoint"
+            >
+              <Play className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
           <div className="bg-slate-800/70 p-3 rounded-lg border border-slate-700/60 flex items-center justify-between">
             <div>
               <span className="text-[11px] text-slate-400 uppercase tracking-wider block">Status da Conexão</span>
@@ -205,6 +219,20 @@ export default function SourcesExplorer({
             <button
               onClick={() => executeQuickTest('/api/stats')}
               className="p-1.5 bg-amber-600 hover:bg-amber-500 rounded text-white transition-colors"
+              title="Testar endpoint"
+            >
+              <Play className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+          <div className="bg-slate-800/70 p-3 rounded-lg border border-slate-700/60 flex items-center justify-between">
+            <div>
+              <span className="text-[11px] text-slate-400 uppercase tracking-wider block">Notícias &amp; Páginas</span>
+              <code className="text-xs text-rose-300 font-mono font-semibold">/api/stats/news</code>
+            </div>
+            <button
+              onClick={() => executeQuickTest('/api/stats/news')}
+              className="p-1.5 bg-rose-600 hover:bg-rose-500 rounded text-white transition-colors"
               title="Testar endpoint"
             >
               <Play className="w-3.5 h-3.5" />
