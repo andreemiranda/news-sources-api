@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { revalidatePath, revalidateTag } from 'next/cache';
 import { getEnv } from '@/src/config/env';
+import { clearStatsCache } from '@/lib/stats';
 
 function isAuthorized(req: NextRequest, bodySecret?: string): boolean {
   const expectedSecret = getEnv().REVALIDATE_SECRET?.trim();
@@ -61,12 +62,13 @@ async function handleRevalidation(req: NextRequest, body?: any) {
   const revalidatedTargets: string[] = [];
 
   try {
-    // 1. Revalidate common core tags
+    // 1. Revalidate common core tags and in-memory stats cache
+    clearStatsCache();
     revalidateTag('news');
     revalidateTag('sources');
     revalidateTag('wordpress');
     revalidateTag('content');
-    revalidatedTargets.push('tags: news, sources, wordpress, content');
+    revalidatedTargets.push('tags: news, sources, wordpress, content', 'stats-memory-cache');
 
     // 2. Revalidate main page and general endpoints
     revalidatePath('/');

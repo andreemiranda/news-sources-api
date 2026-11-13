@@ -651,11 +651,39 @@ export function extractAllRssImages(block: string, content?: string, description
   return list;
 }
 
+export interface ParsedRssFeedResult {
+  feed: any;
+  items: ContentItem[];
+  rawItemCount: number;
+  filteredOutCount: number;
+  isValidFeed: boolean;
+}
+
+export function isValidFeedXml(xml: string | undefined | null): boolean {
+  if (!xml || typeof xml !== 'string') return false;
+  const trimmed = xml.trim();
+  if (!trimmed) return false;
+  const hasFeedStructure = /<(?:rss|feed|rdf:rdf|channel)\b/i.test(trimmed) || /<(?:item|entry)\b/i.test(trimmed);
+  if (!hasFeedStructure) return false;
+  return true;
+}
+
 export function parseRssFeed(
   xml: string,
   defaultCategory?: string,
   defaultSourceId?: string | number
-): { feed: any; items: ContentItem[] } {
+): ParsedRssFeedResult {
+  const isValidFeed = isValidFeedXml(xml);
+  if (!isValidFeed) {
+    return {
+      feed: { title: '', description: '', language: '', lastBuildDate: '' },
+      items: [],
+      rawItemCount: 0,
+      filteredOutCount: 0,
+      isValidFeed: false,
+    };
+  }
+
   let feedTitle = extractTagValue(xml, 'title');
   if (feedTitle && feedTitle.trim().toLowerCase() === 'g1') {
     feedTitle = '';
@@ -663,24 +691,57 @@ export function parseRssFeed(
 
   const feed: any = {
     title: feedTitle,
-    description: extractTagValue(xml, 'description'),
+    description: extractTagValue(xml, 'description') || extractTagValue(xml, 'subtitle'),
     language: extractTagValue(xml, 'language'),
-    lastBuildDate: extractTagValue(xml, 'lastBuildDate') || extractTagValue(xml, 'pubDate'),
+    lastBuildDate:
+      extractTagValue(xml, 'lastBuildDate') ||
+      extractTagValue(xml, 'pubDate') ||
+      extractTagValue(xml, 'updated'),
   };
 
-  const itemBlocks = xml.match(/<item[\s\S]*?<\/item>/gi) || [];
-  const rawItems: ContentItem[] = itemBlocks.map((block, index) => {
+  const rssBlocks = xml.match(/<item\b[\s\S]*?<\/item>/gi) || [];
+  const isAtom = rssBlocks.length === 0;
+  const entryBlocks = isAtom ? (xml.match(/<entry\b[\s\S]*?<\/entry>/gi) || []) : rssBlocks;
+
+  const parsedRawItems: ContentItem[] = entryBlocks.map((block, index) => {
     const rawTitle = extractTagValue(block, 'title');
     const title = cleanText(removeG1Sentences(rawTitle || ''));
-    const link = extractTagValue(block, 'link') || extractTagValue(block, 'guid');
-    const description = extractTagValue(block, 'description');
-    const content = extractTagValue(block, 'content:encoded') || description;
-    const pubDate = extractTagValue(block, 'pubDate');
+
+    let link = extractTagValue(block, 'link');
+    if (!link && isAtom) {
+      link =
+        extractAttribute(block, 'link', 'href') ||
+        extractTagValue(block, 'id');
+    }
+    if (!link) {
+      link = extractTagValue(block, 'guid');
+    }
+
+    const description =
+      extractTagValue(block, 'description') ||
+      (isAtom ? extractTagValue(block, 'summary') : '');
+    const content =
+      extractTagValue(block, 'content:encoded') ||
+      (isAtom ? extractTagValue(block, 'content') : '') ||
+      description;
+    const pubDate =
+      extractTagValue(block, 'pubDate') ||
+      (isAtom ? extractTagValue(block, 'published') || extractTagValue(block, 'updated') : '');
+
     let author = extractTagValue(block, 'author') || extractTagValue(block, 'dc:creator');
+    if (isAtom) {
+      const atomAuthorName = extractTagValue(block, 'name');
+      if (atomAuthorName) author = atomAuthorName;
+    }
     if (author && (/\bg1\b/i.test(author.trim()) || /^(por\s+)?g1$/i.test(author.trim()))) {
       author = '';
     }
-    const guid = extractTagValue(block, 'guid') || String(index + 1);
+
+    const guid =
+      extractTagValue(block, 'guid') ||
+      (isAtom ? extractTagValue(block, 'id') : '') ||
+      link ||
+      String(index + 1);
 
     const catMatches = block.match(/<category[^>]*>([\s\S]*?)<\/category>/gi) || [];
     const xmlCategories = catMatches
@@ -693,6 +754,16 @@ export function parseRssFeed(
         )
       )
       .filter((c) => Boolean(c) && !/\bg1\b/i.test(c.trim()));
+
+    if (xmlCategories.length === 0 && isAtom) {
+      const atomCats = block.match(/<category\b[^>]*>/gi) || [];
+      for (const ac of atomCats) {
+        const term = ac.match(/\b(?:label|term)=["']([^"']+)["']/i)?.[1];
+        if (term && !/\bg1\b/i.test(term.trim())) {
+          xmlCategories.push(cleanText(term));
+        }
+      }
+    }
 
     const effectiveCategory = xmlCategories.length > 0 ? xmlCategories[0] : (defaultCategory || 'Geral');
     const effectiveCategories = xmlCategories.length > 0 ? xmlCategories : (defaultCategory ? [defaultCategory] : ['Geral']);
@@ -728,111 +799,435 @@ export function parseRssFeed(
       image: imageUrl || undefined,
       availableImages,
     };
-  })
-  .filter((item) => isArticleAllowed(item));
+  });
+
+  const allowedItems = parsedRawItems.filter((item) => isArticleAllowed(item));
+  const rawItemCount = parsedRawItems.length;
+  const filteredOutCount = rawItemCount - allowedItems.length;
 
   // Deduplica imagens no feed: preservamos availableImages para enriquecimento posterior
-  const items = deduplicateFeedImages(rawItems, true);
+  const items = deduplicateFeedImages(allowedItems, true);
 
-  return { feed, items };
+  return { feed, items, rawItemCount, filteredOutCount, isValidFeed: true };
 }
 
-const fallbackAttemptedSources = new Set<string>();
+type UserAgentTier = 'chrome' | 'googlebot' | 'facebookbot';
+
+const preferredTierByHost = new Map<string, { tier: UserAgentTier; expiresAt: number }>();
+const PREFERRED_TIER_TTL_MS = 5 * 60 * 1000;
+
+export function clearPreferredHostTiers(): void {
+  preferredTierByHost.clear();
+}
+
+export function isCloudflareWorkersRuntime(): boolean {
+  try {
+    if (typeof (globalThis as any).WebSocketPair !== 'undefined') return true;
+    if (typeof navigator !== 'undefined' && navigator.userAgent === 'Cloudflare-Workers') return true;
+  } catch {
+    // fallback false
+  }
+  return false;
+}
+
+function buildPlatformFetchInit(
+  headers: Record<string, string>,
+  signal: AbortSignal,
+  bypassCache: boolean
+): RequestInit {
+  if (isCloudflareWorkersRuntime()) {
+    // Cloudflare Workers pode lançar TypeError ao receber `cache: 'no-store'` sem flag específica
+    return { headers, signal };
+  }
+
+  return bypassCache
+    ? { headers, signal, cache: 'no-store' }
+    : {
+        headers,
+        signal,
+        next: { revalidate: 20, tags: ['news', 'sources', 'wordpress', 'content'] },
+      };
+}
+
+export async function fetchWithIndependentTimeout(
+  url: string,
+  createInit: (attemptSignal: AbortSignal) => RequestInit,
+  externalSignal?: AbortSignal,
+  attemptTimeoutMs: number = 9000,
+  onSubrequest?: () => void
+): Promise<Response> {
+  if (externalSignal?.aborted) {
+    throw externalSignal.reason || new DOMException('The operation was aborted.', 'AbortError');
+  }
+
+  const attemptController = new AbortController();
+  let timedOut = false;
+  const timeoutId = setTimeout(() => {
+    timedOut = true;
+    attemptController.abort(new DOMException(`Request timeout after ${attemptTimeoutMs}ms`, 'TimeoutError'));
+  }, attemptTimeoutMs);
+
+  const onExternalAbort = () => {
+    attemptController.abort(externalSignal?.reason || new DOMException('Aborted', 'AbortError'));
+  };
+
+  if (externalSignal) {
+    externalSignal.addEventListener('abort', onExternalAbort, { once: true });
+  }
+
+  try {
+    onSubrequest?.();
+    return await fetch(url, createInit(attemptController.signal));
+  } catch (err: any) {
+    if (timedOut && err && typeof err === 'object' && !err.isTimeoutError) {
+      const timeoutErr = new Error(`Timeout after ${attemptTimeoutMs}ms fetching ${url}`);
+      (timeoutErr as any).name = 'TimeoutError';
+      (timeoutErr as any).isTimeoutError = true;
+      (timeoutErr as any).cause = err;
+      throw timeoutErr;
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeoutId);
+    if (externalSignal) {
+      externalSignal.removeEventListener('abort', onExternalAbort);
+    }
+  }
+}
+
+export interface ResilientFetchOptions {
+  perAttemptTimeoutMs?: number;
+  onSubrequest?: () => void;
+  shouldContinue?: () => boolean;
+}
 
 /**
- * Resilient HTTP fetcher with multi-tier bypass against 403 Forbidden
+ * Resilient HTTP fetcher with multi-tier bypass against 401/403/503,
+ * keyed strictly by upstream target hostname (never appDomain) and independent timeouts per attempt.
  */
 export async function resilientFetch(
   url: string,
   site: string,
   isJson: boolean = true,
   signal?: AbortSignal,
-  bypassCache: boolean = false
+  bypassCache: boolean = false,
+  fetchOptions?: ResilientFetchOptions
 ): Promise<Response> {
   let refererUrl: string;
+  let targetHost: string;
   try {
-    refererUrl = new URL(url).origin;
+    const parsed = new URL(url);
+    refererUrl = parsed.origin;
+    targetHost = parsed.hostname.toLowerCase();
   } catch {
     refererUrl = site.startsWith('http') ? site : `https://${site}/`;
+    targetHost = (refererUrl || url).toLowerCase();
   }
 
-  const standardHeaders: Record<string, string> = {
-    'User-Agent':
-      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
-    'Accept': isJson ? 'application/json, text/plain, */*' : 'application/rss+xml, application/xml, text/xml, */*',
-    'Accept-Language': 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7',
-    'Referer': refererUrl,
-    'sec-ch-ua': '"Google Chrome";v="131", "Chromium";v="131", "Not_A Brand";v="24"',
-    'sec-ch-ua-mobile': '?0',
-    'sec-ch-ua-platform': '"Windows"',
-  };
+  const perAttemptTimeoutMs = fetchOptions?.perAttemptTimeoutMs ?? 9000;
+  const onSubrequest = fetchOptions?.onSubrequest;
+  const shouldContinue = fetchOptions?.shouldContinue;
 
-  const fetchInit: RequestInit = bypassCache
-    ? { headers: standardHeaders, signal, cache: 'no-store' }
-    : {
-        headers: standardHeaders,
-        signal,
-        next: { revalidate: 20, tags: ['news', 'sources', 'wordpress', 'content'] },
+  const getHeadersForTier = (tier: UserAgentTier): Record<string, string> => {
+    if (tier === 'googlebot') {
+      return {
+        'User-Agent': 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
+        'Accept': isJson ? 'application/json, */*' : 'application/rss+xml, application/xml, text/xml, */*',
+        'Accept-Language': 'pt-BR,pt;q=0.9',
+        'Referer': refererUrl,
       };
-
-  const res = await fetch(url, fetchInit);
-
-  // Tentar o segundo e terceiro user-agent apenas quando o primeiro retornar 401, 403 ou 503, e no máximo uma vez por fonte
-  const isTargetError = res.status === 401 || res.status === 403 || res.status === 503;
-  const sourceKey = (site || refererUrl || url).toLowerCase();
-
-  if (!isTargetError || fallbackAttemptedSources.has(sourceKey)) {
-    return res;
-  }
-
-  if (fallbackAttemptedSources.size > 500) {
-    fallbackAttemptedSources.clear();
-  }
-  fallbackAttemptedSources.add(sourceKey);
-
-  // Tier 2: Googlebot News Crawler
-  const crawlerHeaders: Record<string, string> = {
-    'User-Agent': 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
-    'Accept': isJson ? 'application/json, */*' : 'application/rss+xml, application/xml, text/xml, */*',
-    'Accept-Language': 'pt-BR,pt;q=0.9',
-    'Referer': refererUrl,
-  };
-
-  const crawlerInit: RequestInit = bypassCache
-    ? { headers: crawlerHeaders, signal, cache: 'no-store' }
-    : {
-        headers: crawlerHeaders,
-        signal,
-        next: { revalidate: 20, tags: ['news', 'sources', 'wordpress', 'content'] },
-      };
-
-  try {
-    const res2 = await fetch(url, crawlerInit);
-
-    if (res2.ok) {
-      return res2;
     }
-
-    // Tier 3: Facebook External Hit (apenas quando 401, 403 ou 503)
-    if (res2.status === 401 || res2.status === 403 || res2.status === 503) {
-      const fbHeaders: Record<string, string> = {
+    if (tier === 'facebookbot') {
+      return {
         'User-Agent': 'facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)',
         'Accept': isJson ? 'application/json, */*' : '*/*',
         'Referer': refererUrl,
       };
-      const res3 = await fetch(
-        url,
-        bypassCache
-          ? { headers: fbHeaders, signal, cache: 'no-store' }
-          : { headers: fbHeaders, signal, next: { revalidate: 20, tags: ['news', 'sources', 'wordpress', 'content'] } }
-      );
-      return res3;
+    }
+    return {
+      'User-Agent':
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+      'Accept': isJson ? 'application/json, text/plain, */*' : 'application/rss+xml, application/xml, text/xml, */*',
+      'Accept-Language': 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7',
+      'Referer': refererUrl,
+      'sec-ch-ua': '"Google Chrome";v="131", "Chromium";v="131", "Not_A Brand";v="24"',
+      'sec-ch-ua-mobile': '?0',
+      'sec-ch-ua-platform': '"Windows"',
+    };
+  };
+
+  // Monta sequência de tentativas por hostname (sem bloqueio global entre domínios)
+  const cachedTierEntry = preferredTierByHost.get(targetHost);
+  const baseOrder: UserAgentTier[] = ['chrome', 'googlebot', 'facebookbot'];
+  let tierOrder: UserAgentTier[] = baseOrder;
+  if (cachedTierEntry && cachedTierEntry.expiresAt > Date.now() && cachedTierEntry.tier !== 'chrome') {
+    tierOrder = [cachedTierEntry.tier, ...baseOrder.filter((t) => t !== cachedTierEntry.tier)];
+  }
+
+  let lastResponse: Response | undefined;
+  let lastError: any;
+
+  for (let i = 0; i < tierOrder.length; i++) {
+    const tier = tierOrder[i];
+    if (i > 0 && shouldContinue && !shouldContinue()) {
+      break;
     }
 
-    return res2;
-  } catch {
-    return res;
+    try {
+      const res = await fetchWithIndependentTimeout(
+        url,
+        (attemptSignal) => buildPlatformFetchInit(getHeadersForTier(tier), attemptSignal, bypassCache),
+        signal,
+        perAttemptTimeoutMs,
+        onSubrequest
+      );
+
+      if (res.ok) {
+        if (preferredTierByHost.size > 500) {
+          preferredTierByHost.clear();
+        }
+        preferredTierByHost.set(targetHost, {
+          tier,
+          expiresAt: Date.now() + PREFERRED_TIER_TTL_MS,
+        });
+        return res;
+      }
+
+      lastResponse = res;
+      const isAuthOrBlockError = res.status === 401 || res.status === 403 || res.status === 503;
+      if (!isAuthOrBlockError) {
+        return res;
+      }
+    } catch (err: any) {
+      lastError = err;
+      // Se o cancelamento veio do caller externo, propaga imediatamente
+      if (signal?.aborted) {
+        throw err;
+      }
+      // Se falhou na primeira tentativa (ex.: timeout ou bloqueio de socket por UA), continua para próximo tier
+    }
   }
+
+  if (lastResponse) {
+    return lastResponse;
+  }
+  throw lastError || new Error(`Failed to fetch ${url}`);
+}
+
+export interface WpCountResolution {
+  total: number;
+  totalPages: number;
+  usedFallbackPagination: boolean;
+  subrequestsUsed: number;
+}
+
+/**
+ * Resolve o total real de notícias de uma fonte WP-API a partir dos cabeçalhos
+ * x-wp-total / x-wp-totalpages, com fallback confiável quando os cabeçalhos estiverem ausentes.
+ * Nunca assume automaticamente o tamanho de 1 página como total se houver páginas seguintes.
+ */
+export async function resolveWpTotalCount(
+  baseUrlStr: string,
+  firstResponse: Response,
+  firstPosts: any[],
+  site: string,
+  requestedLimit: number,
+  itemsPerPage: number,
+  bypassCache: boolean = false,
+  options?: {
+    perAttemptTimeoutMs?: number;
+    onSubrequest?: () => void;
+    shouldContinue?: () => boolean;
+  }
+): Promise<WpCountResolution> {
+  let subrequestsUsed = 0;
+  const trackSubrequest = () => {
+    subrequestsUsed += 1;
+    options?.onSubrequest?.();
+  };
+
+  const totalHeader = firstResponse.headers.get('x-wp-total');
+  if (totalHeader !== null && totalHeader.trim() !== '') {
+    const parsedTotal = parseInt(totalHeader, 10);
+    if (!isNaN(parsedTotal) && parsedTotal >= 0) {
+      return {
+        total: parsedTotal,
+        totalPages: parsedTotal > 0 ? Math.ceil(parsedTotal / itemsPerPage) : 0,
+        usedFallbackPagination: false,
+        subrequestsUsed,
+      };
+    }
+  }
+
+  // Fallback 1: utilizar x-wp-totalpages + consulta na última página quando disponível
+  const totalPagesHeader = firstResponse.headers.get('x-wp-totalpages');
+  if (totalPagesHeader !== null && totalPagesHeader.trim() !== '') {
+    const headerTotalPages = parseInt(totalPagesHeader, 10);
+    if (!isNaN(headerTotalPages) && headerTotalPages >= 0) {
+      if (headerTotalPages === 0) {
+        return { total: 0, totalPages: 0, usedFallbackPagination: true, subrequestsUsed };
+      }
+      if (headerTotalPages === 1) {
+        const count = firstPosts.length;
+        return {
+          total: count,
+          totalPages: count > 0 ? Math.ceil(count / itemsPerPage) : 0,
+          usedFallbackPagination: true,
+          subrequestsUsed,
+        };
+      }
+
+      if (!options?.shouldContinue || options.shouldContinue()) {
+        try {
+          const lastPageUrl = new URL(baseUrlStr);
+          lastPageUrl.searchParams.set('page', String(headerTotalPages));
+          lastPageUrl.searchParams.set('per_page', String(requestedLimit));
+          lastPageUrl.searchParams.set('_fields', 'id');
+          const lastRes = await resilientFetch(lastPageUrl.toString(), site, true, undefined, bypassCache, {
+            perAttemptTimeoutMs: options?.perAttemptTimeoutMs ?? 9000,
+            onSubrequest: trackSubrequest,
+            shouldContinue: options?.shouldContinue,
+          });
+          if (lastRes.ok) {
+            const lastJson = await lastRes.json().catch(() => null);
+            if (Array.isArray(lastJson)) {
+              const total = (headerTotalPages - 1) * requestedLimit + lastJson.length;
+              return {
+                total,
+                totalPages: total > 0 ? Math.ceil(total / itemsPerPage) : 0,
+                usedFallbackPagination: true,
+                subrequestsUsed,
+              };
+            }
+          }
+        } catch {
+          // fallback para estimativa segura abaixo
+        }
+      }
+
+      const fallbackMinTotal = (headerTotalPages - 1) * requestedLimit + Math.min(requestedLimit, firstPosts.length || 1);
+      return {
+        total: fallbackMinTotal,
+        totalPages: fallbackMinTotal > 0 ? Math.ceil(fallbackMinTotal / itemsPerPage) : 0,
+        usedFallbackPagination: true,
+        subrequestsUsed,
+      };
+    }
+  }
+
+  // Fallback 2: sem x-wp-total e sem x-wp-totalpages
+  if (firstPosts.length < requestedLimit) {
+    const count = firstPosts.length;
+    return {
+      total: count,
+      totalPages: count > 0 ? Math.ceil(count / itemsPerPage) : 0,
+      usedFallbackPagination: true,
+      subrequestsUsed,
+    };
+  }
+
+  // A primeira página veio cheia; tentar per_page=100 e busca exponencial/binária limitada
+  if (options?.shouldContinue && !options.shouldContinue()) {
+    return {
+      total: firstPosts.length,
+      totalPages: firstPosts.length > 0 ? Math.ceil(firstPosts.length / itemsPerPage) : 0,
+      usedFallbackPagination: true,
+      subrequestsUsed,
+    };
+  }
+
+  const probePage = async (pageNum: number, perPage: number): Promise<any[] | null> => {
+    if (options?.shouldContinue && !options.shouldContinue()) return null;
+    try {
+      const pUrl = new URL(baseUrlStr);
+      pUrl.searchParams.set('page', String(pageNum));
+      pUrl.searchParams.set('per_page', String(perPage));
+      pUrl.searchParams.set('_fields', 'id');
+      const r = await resilientFetch(pUrl.toString(), site, true, undefined, bypassCache, {
+        perAttemptTimeoutMs: options?.perAttemptTimeoutMs ?? 9000,
+        onSubrequest: trackSubrequest,
+        shouldContinue: options?.shouldContinue,
+      });
+      if (!r.ok) return null;
+      const parsed = await r.json().catch(() => null);
+      return Array.isArray(parsed) ? parsed : null;
+    } catch {
+      return null;
+    }
+  };
+
+  const batch100 = await probePage(1, 100);
+  if (!batch100) {
+    return {
+      total: firstPosts.length,
+      totalPages: firstPosts.length > 0 ? Math.ceil(firstPosts.length / itemsPerPage) : 0,
+      usedFallbackPagination: true,
+      subrequestsUsed,
+    };
+  }
+  if (batch100.length < 100) {
+    const total = batch100.length;
+    return {
+      total,
+      totalPages: total > 0 ? Math.ceil(total / itemsPerPage) : 0,
+      usedFallbackPagination: true,
+      subrequestsUsed,
+    };
+  }
+
+  // Exponencial + busca binária limitada (até 5 sondagens adicionais para evitar excesso de subrequests)
+  let lowPage = 1;
+  let highPage = 2;
+  let lastValidCount = batch100.length;
+  let probesRemaining = 5;
+
+  while (probesRemaining > 0 && (!options?.shouldContinue || options.shouldContinue())) {
+    probesRemaining -= 1;
+    const arr = await probePage(highPage, 100);
+    if (!arr || arr.length === 0) {
+      break;
+    }
+    lowPage = highPage;
+    lastValidCount = arr.length;
+    if (arr.length < 100) {
+      const total = (highPage - 1) * 100 + arr.length;
+      return {
+        total,
+        totalPages: total > 0 ? Math.ceil(total / itemsPerPage) : 0,
+        usedFallbackPagination: true,
+        subrequestsUsed,
+      };
+    }
+    highPage *= 2;
+  }
+
+  // Busca binária entre lowPage e highPage
+  let left = lowPage + 1;
+  let right = highPage - 1;
+  let bestLastPage = lowPage;
+  let bestLastCount = lastValidCount;
+
+  while (left <= right && probesRemaining > 0 && (!options?.shouldContinue || options.shouldContinue())) {
+    probesRemaining -= 1;
+    const mid = Math.floor((left + right) / 2);
+    const arr = await probePage(mid, 100);
+    if (arr && arr.length > 0) {
+      bestLastPage = mid;
+      bestLastCount = arr.length;
+      if (arr.length < 100) break;
+      left = mid + 1;
+    } else {
+      right = mid - 1;
+    }
+  }
+
+  const total = (bestLastPage - 1) * 100 + bestLastCount;
+  return {
+    total,
+    totalPages: total > 0 ? Math.ceil(total / itemsPerPage) : 0,
+    usedFallbackPagination: true,
+    subrequestsUsed,
+  };
 }
 
 export async function fetchSourceContent(
@@ -860,76 +1255,93 @@ export async function fetchSourceContent(
 
       let response: Response | undefined;
       let primaryError: any;
+      let rawPosts: any = null;
       try {
-        response = await resilientFetch(urlObj.toString(), source.site, true, controller.signal, bypassCache);
+        response = await resilientFetch(urlObj.toString(), source.site, true, undefined, bypassCache, {
+          perAttemptTimeoutMs: 12000,
+        });
+        if (response.ok) {
+          const textBody = await response.text();
+          try {
+            const parsed = JSON.parse(textBody);
+            if (!Array.isArray(parsed)) {
+              primaryError = new Error('WP-API returned non-array JSON payload');
+            } else {
+              rawPosts = parsed;
+            }
+          } catch (jsonErr: any) {
+            primaryError = jsonErr;
+          }
+        }
       } catch (e: any) {
         primaryError = e;
       }
 
-      // If WP-API failed or threw an error, attempt fallback to RSS feed
+      // If WP-API failed, returned invalid JSON/HTML, or threw an error, attempt fallback to RSS feed with fresh timeout
       if (primaryError || (response && !response.ok)) {
         const errorMsg = primaryError ? (primaryError.message || primaryError) : `HTTP ${response?.status}`;
-        console.warn(`WP-API failed (${errorMsg}) for ${source.site}. Attempting fallback to RSS feed...`);
+        console.warn(`WP-API failed (${errorMsg}) for ${urlObj.hostname}. Attempting fallback to RSS feed...`);
         const feedUrl = urlObj.origin + '/feed/';
         try {
-          let feedRes = await resilientFetch(feedUrl, source.site, false, controller.signal);
-          if (!feedRes.ok) {
-            feedRes = await fetch(feedUrl, { signal: controller.signal });
-          }
+          const feedRes = await resilientFetch(feedUrl, source.site, false, undefined, bypassCache, {
+            perAttemptTimeoutMs: 10000,
+          });
           if (feedRes.ok) {
             clearTimeout(timeoutId);
             const xmlText = await feedRes.text();
-            const { feed, items: allItems } = parseRssFeed(xmlText, source.category, source.id);
-            let filtered = allItems;
-            if (search) {
-              const lower = search.toLowerCase();
-              filtered = allItems.filter(
-                (i) => i.title.toLowerCase().includes(lower) || (i.description && i.description.toLowerCase().includes(lower))
-              );
-            }
-            const total = filtered.length;
-            const totalPages = Math.ceil(total / limit) || 1;
-            const startIndex = (page - 1) * limit;
-            const rawSlice = filtered.slice(startIndex, startIndex + limit);
+            const { feed, items: allItems, isValidFeed } = parseRssFeed(xmlText, source.category, source.id);
+            if (isValidFeed) {
+              let filtered = allItems;
+              if (search) {
+                const lower = search.toLowerCase();
+                filtered = allItems.filter(
+                  (i) => i.title.toLowerCase().includes(lower) || (i.description && i.description.toLowerCase().includes(lower))
+                );
+              }
+              const total = filtered.length;
+              const totalPages = Math.ceil(total / limit) || 1;
+              const startIndex = (page - 1) * limit;
+              const rawSlice = filtered.slice(startIndex, startIndex + limit);
 
-            // Limpeza com IA para itens de feed RSS (apenas se AI_ENDPOINT e AI_API_KEY configurados)
-            const hasAi = isAiConfigured();
-            const cleanedSlice = await Promise.all(
-              rawSlice.map(async (item) => {
-                const rawContent = item.content || item.description || '';
-                const preCleaned = preCleanText(rawContent);
-                let cleanContent = preCleaned;
-                if (hasAi) {
-                  try {
-                    cleanContent = await processarEConfigurarNoticia(preCleaned);
-                  } catch {
-                    cleanContent = preCleaned;
+              // Limpeza com IA para itens de feed RSS (apenas se AI_ENDPOINT e AI_API_KEY configurados)
+              const hasAi = isAiConfigured();
+              const cleanedSlice = await Promise.all(
+                rawSlice.map(async (item) => {
+                  const rawContent = item.content || item.description || '';
+                  const preCleaned = preCleanText(rawContent);
+                  let cleanContent = preCleaned;
+                  if (hasAi) {
+                    try {
+                      cleanContent = await processarEConfigurarNoticia(preCleaned);
+                    } catch {
+                      cleanContent = preCleaned;
+                    }
                   }
-                }
-                return {
-                  ...item,
-                  category: item.category || source.category,
-                  categories: item.categories || (source.category ? [source.category] : ['Geral']),
-                  source: item.source || source.category,
-                  sourceId: item.sourceId || source.id,
-                  description: item.description && item.description !== item.content
-                    ? (cleanContent.length > 200 ? cleanContent.slice(0, 200) : cleanContent)
-                    : cleanContent,
-                  content: cleanContent,
-                };
-              })
-            );
+                  return {
+                    ...item,
+                    category: item.category || source.category,
+                    categories: item.categories || (source.category ? [source.category] : ['Geral']),
+                    source: item.source || source.category,
+                    sourceId: item.sourceId || source.id,
+                    description: item.description && item.description !== item.content
+                      ? (cleanContent.length > 200 ? cleanContent.slice(0, 200) : cleanContent)
+                      : cleanContent,
+                    content: cleanContent,
+                  };
+                })
+              );
 
-            const dedupedItems = deduplicateImages(cleanedSlice, false);
+              const dedupedItems = deduplicateImages(cleanedSlice, false);
 
-            return {
-              source,
-              feed,
-              pagination: { total, page, limit, totalPages },
-              items: dedupedItems,
-            };
+              return {
+                source,
+                feed,
+                pagination: { total, page, limit, totalPages },
+                items: dedupedItems,
+              };
+            }
           }
-        } catch (feedErr) {
+        } catch {
           // ignore feed fallback error, continue to throw original status
         }
 
@@ -943,12 +1355,17 @@ export async function fetchSourceContent(
 
       clearTimeout(timeoutId);
 
-      const rawPosts = await response!.json();
-      const totalHeader = response!.headers.get('x-wp-total');
-      const totalPagesHeader = response!.headers.get('x-wp-totalpages');
-
-      const total = totalHeader ? parseInt(totalHeader, 10) : Array.isArray(rawPosts) ? rawPosts.length : 0;
-      const totalPages = totalPagesHeader ? parseInt(totalPagesHeader, 10) : Math.ceil(total / limit) || 1;
+      const resolvedCounts = await resolveWpTotalCount(
+        source.url,
+        response!,
+        Array.isArray(rawPosts) ? rawPosts : [],
+        source.site,
+        limit,
+        limit,
+        bypassCache
+      );
+      const total = resolvedCounts.total;
+      const totalPages = resolvedCounts.totalPages || (total > 0 ? Math.ceil(total / limit) : 1);
 
       let feedImageMap: Map<string, string> | undefined;
       if (source.url?.includes('ludopedio') || String(source.id) === '9124882157745') {
@@ -1015,7 +1432,9 @@ export async function fetchSourceContent(
       };
     } else {
       // RSS Feed source
-      const response = await resilientFetch(source.url, source.site, false, controller.signal, bypassCache);
+      const response = await resilientFetch(source.url, source.site, false, undefined, bypassCache, {
+        perAttemptTimeoutMs: 12000,
+      });
       clearTimeout(timeoutId);
 
       if (!response.ok) {
@@ -1023,7 +1442,10 @@ export async function fetchSourceContent(
       }
 
       const xmlText = await response.text();
-      const { feed, items: allItems } = parseRssFeed(xmlText, source.category, source.id);
+      const { feed, items: allItems, isValidFeed } = parseRssFeed(xmlText, source.category, source.id);
+      if (!isValidFeed) {
+        throw new Error(`Upstream returned invalid RSS/Atom payload from ${source.url}`);
+      }
 
       let filteredItems = allItems;
       if (search) {

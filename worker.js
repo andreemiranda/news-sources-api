@@ -16,7 +16,7 @@ import {
 import { fetchSourceContent, fetchMediaContent, cleanText } from './lib/content';
 import { toCleanSource, paginateWithHateoas } from './lib/hateoas';
 import { getOpenApiSpec } from './lib/openapi-spec';
-import { getApiIndexPayload, getDetailedNewsStats } from './lib/stats';
+import { getApiIndexPayload, getDetailedNewsStats, clearStatsCache } from './lib/stats';
 
 const URL_ENV_KEYS = new Set([
   'APP_URL',
@@ -1164,7 +1164,10 @@ const worker = {
       const type = url.searchParams.get('type') || undefined;
       const refresh = url.searchParams.get('refresh') === 'true';
 
-      const report = await getDetailedNewsStats({ itemsPerPage, category, type, refresh }, request);
+      const report = await getDetailedNewsStats(
+        { itemsPerPage, category, type, refresh, workerEnv: env, workerCtx: ctx },
+        request
+      );
       return jsonResponse(report, 200, {
         'X-WP-Total': String(report.meta.totalItems),
         'X-WP-TotalPages': String(report.meta.totalPages),
@@ -1187,7 +1190,10 @@ const worker = {
         const type = url.searchParams.get('type') || undefined;
         const refresh = url.searchParams.get('refresh') === 'true';
 
-        const report = await getDetailedNewsStats({ itemsPerPage, category, type, refresh }, request);
+        const report = await getDetailedNewsStats(
+          { itemsPerPage, category, type, refresh, workerEnv: env, workerCtx: ctx },
+          request
+        );
         return jsonResponse(report, 200, {
           'X-WP-Total': String(report.meta.totalItems),
           'X-WP-TotalPages': String(report.meta.totalPages),
@@ -1591,6 +1597,8 @@ const worker = {
           401
         );
       }
+
+      clearStatsCache();
 
       return jsonResponse({
         revalidated: true,
