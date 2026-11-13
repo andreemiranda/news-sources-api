@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
 
   // 1. Identify primary WordPress REST API source to test
   const env = getEnv();
-  const allSources = getAllSources();
+  const allSources = getAllSources(req);
   const wpSources = allSources.filter((s) => s.type === 'wp-api' && s.active);
 
   const primaryTargetUrl =
@@ -124,7 +124,7 @@ export async function GET(req: NextRequest) {
     latestPost.link = `${baseUrl}/api/news/${latestPost.id || 6571187291942}`;
   }
 
-  const mediaSources = getAllMediaSources();
+  const mediaSources = getAllMediaSources(req);
 
   const responsePayload = {
     status: connectionStatus,

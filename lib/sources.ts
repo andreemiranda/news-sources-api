@@ -127,10 +127,10 @@ export function getAllSources(req?: Request): Source[] {
   });
 }
 
-export function getSourceById(id: number | string | undefined | null): Source | undefined {
+export function getSourceById(id: number | string | undefined | null, req?: Request): Source | undefined {
   if (id === undefined || id === null) return undefined;
   const targetIdStr = String(id).trim();
-  return getAllSources().find((s) => String(s.id).trim() === targetIdStr);
+  return getAllSources(req).find((s) => String(s.id).trim() === targetIdStr);
 }
 
 export interface CategoryItem {
@@ -152,20 +152,20 @@ export function slugifyCategory(text: string | undefined | null): string {
     .replace(/-+/g, '-');
 }
 
-export function getSourcesByCategory(categoryOrSlug: string): Source[] {
+export function getSourcesByCategory(categoryOrSlug: string, req?: Request): Source[] {
   if (!categoryOrSlug) return [];
   const normalizedInput = categoryOrSlug.toLowerCase().trim();
   const slugInput = slugifyCategory(categoryOrSlug);
-  return getAllSources().filter((s) => {
+  return getAllSources(req).filter((s) => {
     const cat = (s.category || '').toLowerCase().trim();
     const slug = slugifyCategory(s.category);
     return cat === normalizedInput || slug === slugInput || slug === normalizedInput;
   });
 }
 
-export function getCategories(): CategoryItem[] {
+export function getCategories(req?: Request): CategoryItem[] {
   const counts = new Map<string, number>();
-  for (const s of getAllSources()) {
+  for (const s of getAllSources(req)) {
     if (s.category) {
       counts.set(s.category, (counts.get(s.category) ?? 0) + 1);
     }
@@ -179,9 +179,9 @@ export function getCategories(): CategoryItem[] {
     .sort((a, b) => a.category.localeCompare(b.category));
 }
 
-export function getTypes(): { type: string; count: number }[] {
+export function getTypes(req?: Request): { type: string; count: number }[] {
   const counts = new Map<string, number>();
-  for (const s of getAllSources()) {
+  for (const s of getAllSources(req)) {
     if (s.type) {
       counts.set(s.type, (counts.get(s.type) ?? 0) + 1);
     }
@@ -191,26 +191,26 @@ export function getTypes(): { type: string; count: number }[] {
     .sort((a, b) => a.type.localeCompare(b.type));
 }
 
-export function getAllMediaSources(): Source[] {
-  return getAllSources().filter(
+export function getAllMediaSources(req?: Request): Source[] {
+  return getAllSources(req).filter(
     (s) => Boolean(s.mediaUrl) || s.type === 'wp-api'
   );
 }
 
-export function getMediaSourceById(id: number | string | undefined | null): Source | undefined {
+export function getMediaSourceById(id: number | string | undefined | null, req?: Request): Source | undefined {
   if (id === undefined || id === null) return undefined;
   const targetIdStr = String(id).trim();
   return (
-    getAllMediaSources().find((s) => String(s.id).trim() === targetIdStr) ||
-    getSourceById(id)
+    getAllMediaSources(req).find((s) => String(s.id).trim() === targetIdStr) ||
+    getSourceById(id, req)
   );
 }
 
-export function getStats() {
-  const sources = getAllSources();
-  const mediaSources = getAllMediaSources();
-  const categories = getCategories();
-  const types = getTypes();
+export function getStats(req?: Request) {
+  const sources = getAllSources(req);
+  const mediaSources = getAllMediaSources(req);
+  const categories = getCategories(req);
+  const types = getTypes(req);
 
   return {
     totalSources: sources.length,
@@ -224,105 +224,144 @@ export function getStats() {
   };
 }
 
+function normalizeCandidateUrl(raw?: string | null): string | undefined {
+  if (!raw) return undefined;
+  let val = raw.trim();
+  if (
+    !val ||
+    val === '/' ||
+    val.startsWith('/') ||
+    ['default', 'null', 'undefined', 'none', 'auto'].includes(val.toLowerCase())
+  ) {
+    return undefined;
+  }
+  val = val.replace(/\/+$/, '');
+  if (!val) return undefined;
+  if (!/^https?:\/\//i.test(val)) {
+    val = `https://${val}`;
+  }
+  try {
+    const parsed = new URL(val);
+    if (!parsed.hostname || (!parsed.hostname.includes('.') && parsed.hostname !== 'localhost')) {
+      return undefined;
+    }
+    return parsed.origin;
+  } catch {
+    return undefined;
+  }
+}
+
+function normalizeCandidateDomain(raw?: string | null): string | undefined {
+  if (!raw) return undefined;
+  let val = raw.trim();
+  if (
+    !val ||
+    val === '/' ||
+    val.startsWith('/') ||
+    ['default', 'null', 'undefined', 'none', 'auto'].includes(val.toLowerCase())
+  ) {
+    return undefined;
+  }
+  val = val
+    .replace(/^https?:\/\//i, '')
+    .replace(/\/.*$/, '')
+    .replace(/:\d+$/, '')
+    .trim();
+  if (!val || (!val.includes('.') && val !== 'localhost')) {
+    return undefined;
+  }
+  return val;
+}
+
 export function getBaseUrl(req?: Request): string {
-  // 1. Explicit APP_URL or APP_DOMAIN environment configurations
-  const envUrl =
-    process.env.APP_URL ||
-    getEnv().APP_URL ||
-    process.env.NEXT_PUBLIC_APP_URL ||
-    getEnv().NEXT_PUBLIC_APP_URL;
+  // 1. Variáveis explícitas de domínio/URL (somente se válidas — ignora "/" ou "default")
+  const envCandidates = [
+    process.env.APP_URL,
+    getEnv().APP_URL,
+    process.env.NEXT_PUBLIC_APP_URL,
+    getEnv().NEXT_PUBLIC_APP_URL,
+    process.env.APP_DOMAIN,
+    getEnv().APP_DOMAIN,
+    process.env.NEXT_PUBLIC_APP_DOMAIN,
+    getEnv().NEXT_PUBLIC_APP_DOMAIN,
+    process.env.NEXT_PUBLIC_BASE_URL,
+    getEnv().NEXT_PUBLIC_BASE_URL,
+  ];
 
-  if (envUrl && envUrl.trim()) {
-    let clean = envUrl.trim().replace(/\/+$/, '');
-    if (!clean.startsWith('http://') && !clean.startsWith('https://')) {
-      clean = `https://${clean}`;
-    }
-    return clean;
+  for (const candidate of envCandidates) {
+    const valid = normalizeCandidateUrl(candidate);
+    if (valid) return valid;
   }
 
-  // If APP_DOMAIN is configured directly (e.g. app.camaraparaiso.gov.br)
-  const envDomain =
-    process.env.APP_DOMAIN ||
-    getEnv().APP_DOMAIN ||
-    process.env.NEXT_PUBLIC_APP_DOMAIN ||
-    getEnv().NEXT_PUBLIC_APP_DOMAIN;
-
-  if (envDomain && envDomain.trim()) {
-    let cleanDomain = envDomain
-      .trim()
-      .replace(/^https?:\/\//i, '')
-      .replace(/\/+$/, '');
-    return `https://${cleanDomain}`;
-  }
-
-  // Fallback to NEXT_PUBLIC_BASE_URL
-  const legacyBaseUrl = getEnv().NEXT_PUBLIC_BASE_URL || process.env.NEXT_PUBLIC_BASE_URL;
-  if (legacyBaseUrl && legacyBaseUrl.trim()) {
-    let clean = legacyBaseUrl.trim().replace(/\/+$/, '');
-    if (!clean.startsWith('http://') && !clean.startsWith('https://')) {
-      clean = `https://${clean}`;
-    }
-    return clean;
-  }
-
-  // 2. Platform environment variables (Vercel, Railway, Render)
-  const platformUrl =
-    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined) ||
-    (process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : undefined) ||
-    process.env.RENDER_EXTERNAL_URL;
-
-  if (platformUrl && platformUrl.trim()) {
-    let clean = platformUrl.trim().replace(/\/+$/, '');
-    if (!clean.startsWith('http://') && !clean.startsWith('https://')) {
-      clean = `https://${clean}`;
-    }
-    return clean;
-  }
-
-  // 3. Request headers (X-Forwarded-Host or Host)
+  // 2. Detecção dinâmica pela requisição HTTP atual (Cloudflare Workers/Pages, Vercel, Netlify, Node.js)
   if (req) {
-    const forwardedHost = req.headers.get('x-forwarded-host') || req.headers.get('host');
-    const forwardedProto = req.headers.get('x-forwarded-proto') || 'https';
-    if (forwardedHost) {
-      return `${forwardedProto}://${forwardedHost}`.replace(/\/+$/, '');
+    const rawForwardedHost = req.headers?.get?.('x-forwarded-host') || req.headers?.get?.('host');
+    const forwardedHost = rawForwardedHost ? rawForwardedHost.split(',')[0].trim() : '';
+    const rawForwardedProto = req.headers?.get?.('x-forwarded-proto') || 'https';
+    const forwardedProto = rawForwardedProto.split(',')[0].trim() || 'https';
+
+    if (forwardedHost && !forwardedHost.startsWith('/')) {
+      const candidate = `${forwardedProto}://${forwardedHost}`.replace(/\/+$/, '');
+      try {
+        const parsed = new URL(candidate);
+        if (parsed.hostname) return parsed.origin;
+      } catch {
+        // continua para req.url
+      }
     }
-    try {
-      const parsed = new URL(req.url);
-      return parsed.origin;
-    } catch {
-      // fallback
+
+    if (req.url) {
+      try {
+        const parsed = new URL(req.url);
+        if (parsed.hostname) return parsed.origin;
+      } catch {
+        // fallback abaixo
+      }
     }
   }
 
-  // 4. Client-side browser runtime
+  // 3. Variáveis automáticas de plataforma (Vercel, Cloudflare Pages, Railway, Render)
+  const platformCandidates = [
+    process.env.CF_PAGES_URL,
+    process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined,
+    process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : undefined,
+    process.env.RENDER_EXTERNAL_URL,
+    process.env.URL, // Netlify deploy URL
+  ];
+
+  for (const candidate of platformCandidates) {
+    const valid = normalizeCandidateUrl(candidate);
+    if (valid) return valid;
+  }
+
+  // 4. Runtime do navegador (client-side)
   if (typeof window !== 'undefined' && window.location?.origin) {
     return window.location.origin;
   }
 
-  // 5. Local development server fallback
+  // 5. Fallback servidor de desenvolvimento local
   const port = getEnv().PORT || 3000;
   return `http://localhost:${port}`;
 }
 
 export function getBaseDomain(req?: Request): string {
-  // 1. Direct APP_DOMAIN environment variable
-  const envDomain =
-    process.env.APP_DOMAIN ||
-    getEnv().APP_DOMAIN ||
-    process.env.NEXT_PUBLIC_APP_DOMAIN ||
-    getEnv().NEXT_PUBLIC_APP_DOMAIN;
+  // 1. Variável direta APP_DOMAIN (somente se válida)
+  const domainCandidates = [
+    process.env.APP_DOMAIN,
+    getEnv().APP_DOMAIN,
+    process.env.NEXT_PUBLIC_APP_DOMAIN,
+    getEnv().NEXT_PUBLIC_APP_DOMAIN,
+  ];
 
-  if (envDomain && envDomain.trim()) {
-    return envDomain
-      .trim()
-      .replace(/^https?:\/\//i, '')
-      .replace(/\/.*$/, '')
-      .replace(/:\d+$/, '');
+  for (const candidate of domainCandidates) {
+    const valid = normalizeCandidateDomain(candidate);
+    if (valid) return valid;
   }
 
-  // 2. Extract from APP_URL / getBaseUrl
+  // 2. Extrair do getBaseUrl (que prioriza requisição e plataforma caso env esteja ausente ou "/")
   const url = getBaseUrl(req);
-  return url.replace(/^https?:\/\//i, '').replace(/\/.*$/, '') || 'localhost';
+  const extracted = url.replace(/^https?:\/\//i, '').replace(/\/.*$/, '').replace(/:\d+$/, '');
+  return extracted || 'localhost';
 }
 
 /**

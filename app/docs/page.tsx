@@ -16,7 +16,17 @@ export default function DocsPage() {
   const envBaseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_APP_DOMAIN || process.env.NEXT_PUBLIC_BASE_URL;
   const [baseDomain, setBaseDomain] = useState(() => {
     if (envBaseUrl && envBaseUrl.trim()) {
-      return envBaseUrl.trim().replace(/^https?:\/\//, '').replace(/\/.*$/, '');
+      const raw = envBaseUrl.trim();
+      if (
+        raw !== '/' &&
+        !raw.startsWith('/') &&
+        !['default', 'null', 'undefined', 'none', 'auto'].includes(raw.toLowerCase())
+      ) {
+        const cleaned = raw.replace(/^https?:\/\//i, '').replace(/\/.*$/, '');
+        if (cleaned && (cleaned.includes('.') || cleaned.startsWith('localhost'))) {
+          return cleaned;
+        }
+      }
     }
     if (typeof window !== 'undefined' && window.location?.host) {
       return window.location.host;

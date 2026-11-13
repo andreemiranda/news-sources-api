@@ -98,6 +98,24 @@ function parseReplacementMap(raw: string | undefined): Record<string, string> | 
   };
 }
 
+function sanitizeUrlValue(val: string | undefined): string | undefined {
+  if (!val) return undefined;
+  const trimmed = val.trim();
+  if (
+    !trimmed ||
+    trimmed === '/' ||
+    trimmed.startsWith('/') ||
+    ['default', 'null', 'undefined', 'none', 'auto'].includes(trimmed.toLowerCase())
+  ) {
+    return undefined;
+  }
+  const withoutProto = trimmed.replace(/^https?:\/\//i, '').replace(/\/.*$/, '');
+  if (!withoutProto || (!withoutProto.includes('.') && !withoutProto.startsWith('localhost'))) {
+    return undefined;
+  }
+  return trimmed.replace(/\/+$/, '');
+}
+
 let hasWarnedApiKey = false;
 
 export function getEnv(): EnvConfig {
@@ -127,30 +145,29 @@ export function getEnv(): EnvConfig {
     );
   }
 
+  const appUrl =
+    sanitizeUrlValue(process.env.APP_URL) ||
+    sanitizeUrlValue(process.env.NEXT_PUBLIC_APP_URL) ||
+    sanitizeUrlValue(process.env.NEXT_PUBLIC_BASE_URL) ||
+    sanitizeUrlValue(process.env.CF_PAGES_URL);
+
+  const rawDomain =
+    sanitizeUrlValue(process.env.APP_DOMAIN) ||
+    sanitizeUrlValue(process.env.NEXT_PUBLIC_APP_DOMAIN) ||
+    sanitizeUrlValue(process.env.CF_PAGES_URL);
+
   return {
     PORT: parsePort(process.env.PORT, 3000),
     NODE_ENV: (process.env.NODE_ENV as any) || 'development',
     // Máxima segurança: segredos nunca são expostos no ambiente do cliente (browser)
     API_KEY: isServer ? apiKey : '',
-    APP_URL: (
-      process.env.APP_URL ||
-      process.env.NEXT_PUBLIC_APP_URL ||
-      process.env.NEXT_PUBLIC_BASE_URL ||
-      process.env.CF_PAGES_URL
-    )?.trim(),
-    APP_DOMAIN: (
-      process.env.APP_DOMAIN ||
-      process.env.NEXT_PUBLIC_APP_DOMAIN ||
-      (process.env.CF_PAGES_URL ? process.env.CF_PAGES_URL.replace(/^https?:\/\//, '').split('/')[0] : undefined)
-    )?.trim(),
-    NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL?.trim(),
-    NEXT_PUBLIC_APP_DOMAIN: process.env.NEXT_PUBLIC_APP_DOMAIN?.trim(),
-    NEXT_PUBLIC_BASE_URL: (
-      process.env.NEXT_PUBLIC_BASE_URL ||
-      process.env.APP_URL ||
-      process.env.NEXT_PUBLIC_APP_URL ||
-      process.env.CF_PAGES_URL
-    )?.trim(),
+    APP_URL: appUrl,
+    APP_DOMAIN: rawDomain ? rawDomain.replace(/^https?:\/\//, '').split('/')[0] : undefined,
+    NEXT_PUBLIC_APP_URL: sanitizeUrlValue(process.env.NEXT_PUBLIC_APP_URL),
+    NEXT_PUBLIC_APP_DOMAIN: sanitizeUrlValue(process.env.NEXT_PUBLIC_APP_DOMAIN),
+    NEXT_PUBLIC_BASE_URL:
+      sanitizeUrlValue(process.env.NEXT_PUBLIC_BASE_URL) ||
+      appUrl,
     AI_API_KEY: isServer ? process.env.AI_API_KEY?.trim() : undefined,
     AI_ENDPOINT: isServer ? process.env.AI_ENDPOINT?.trim() : undefined,
     AI_MODEL: isServer ? process.env.AI_MODEL?.trim() : undefined,

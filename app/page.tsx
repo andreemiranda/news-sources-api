@@ -1,15 +1,20 @@
+import { headers } from 'next/headers';
 import { getAllSources, getAllMediaSources, getCategories, getTypes, getBaseUrl, getBaseDomain, formatAppEmail, formatAppUrl } from '@/lib/sources';
 import Link from 'next/link';
 import { BookOpen, KeyRound } from 'lucide-react';
 import HomePageTabs from '@/components/HomePageTabs';
 
+export const dynamic = 'force-dynamic';
+
 export default async function Home() {
-  const sources = getAllSources();
-  const mediaSources = getAllMediaSources();
-  const categories = getCategories().map((c) => c.category);
-  const types = getTypes().map((t) => t.type);
-  const baseUrl = getBaseUrl();
-  const baseDomain = getBaseDomain();
+  const headersList = await headers();
+  const reqLike = { headers: headersList } as unknown as Request;
+  const sources = getAllSources(reqLike);
+  const mediaSources = getAllMediaSources(reqLike);
+  const categories = getCategories(reqLike).map((c) => c.category);
+  const types = getTypes(reqLike).map((t) => t.type);
+  const baseUrl = getBaseUrl(reqLike);
+  const baseDomain = getBaseDomain(reqLike);
 
   const spec = {
     openapi: '3.0.3',
@@ -20,8 +25,8 @@ export default async function Home() {
       version: '1.0.0',
       contact: {
         name: 'Suporte API',
-        url: formatAppUrl('/docs'),
-        email: formatAppEmail('contato'),
+        url: formatAppUrl('/docs', reqLike),
+        email: formatAppEmail('contato', reqLike),
       },
     },
     servers: [
