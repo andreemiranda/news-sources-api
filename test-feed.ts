@@ -6,9 +6,20 @@ import {
   fetchSourceContent,
   clearPreferredHostTiers,
   formatHttpStatusError,
+  setCloudflareSocketConnector,
+  fetchViaSocket,
+  parseChunkedHttpBody,
+  SocketConnector,
 } from './lib/content';
 import { getDetailedNewsStats, clearStatsCache } from './lib/stats';
 import { getAllSources } from './lib/sources';
+import {
+  normalizeAdSenseClientId,
+  resolveAdSenseClientId,
+  buildAdsTxtContent,
+  buildRobotsTxtContent,
+  buildSitemapXmlContent,
+} from './lib/adsense';
 import worker from './worker.js';
 
 async function testOriginalNacaoJuridicaFeed() {
@@ -494,7 +505,255 @@ async function testHttp525RecoveryCustomDomainAndFavicon() {
   const docsHtml = await docsRes.text();
   assert.ok(docsHtml.includes('href="/favicon.svg"') && docsHtml.includes('href="/favicon.ico"'));
 
-  console.log('  OK: Recuperação 525, domínio news.normajuridica.com.br sem localhost e favicons validados.');
+  // 10e. Valida parser chunked e recuperação direta via socket TLS (cloudflare:sockets) quando fetch() retorna 525
+  const encodeChunked = (text: string): Uint8Array => {
+    const bytes = new TextEncoder().encode(text);
+    const mid = Math.max(1, Math.floor(bytes.length / 2));
+    const p1 = bytes.subarray(0, mid);
+    const p2 = bytes.subarray(mid);
+    const enc = new TextEncoder();
+    const h1 = enc.encode(`${p1.length.toString(16)};ext=1\r\n`);
+    const h2 = enc.encode(`\r\n${p2.length.toString(16)}\r\n`);
+    const tail = enc.encode(`\r\n0\r\nX-Trailer: ok\r\n\r\n`);
+    const out = new Uint8Array(h1.length + p1.length + h2.length + p2.length + tail.length);
+    let offset = 0;
+    for (const part of [h1, p1, h2, p2, tail]) {
+      out.set(part, offset);
+      offset += part.length;
+    }
+    return out;
+  };
+
+  const chunkedSample = encodeChunked(g1SampleXml);
+  const partialCheck = parseChunkedHttpBody(chunkedSample.subarray(0, 12), 0);
+  assert.equal(partialCheck.complete, false);
+  const fullCheck = parseChunkedHttpBody(chunkedSample, 0);
+  assert.equal(fullCheck.complete, true);
+  assert.equal(new TextDecoder().decode(fullCheck.data), g1SampleXml);
+
+  let socketCalls = 0;
+  let fetchCallsDuringSocketRecovery = 0;
+  const mockConnector: SocketConnector = (address, options) => {
+    socketCalls += 1;
+    assert.equal(address.hostname, 'g1.globo.com');
+    assert.equal(address.port, 443);
+    assert.equal(options?.secureTransport, 'on');
+
+    let capturedReq = '';
+    let controllerRef: ReadableStreamDefaultController<Uint8Array> | null = null;
+    const readable = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controllerRef = controller;
+      },
+    });
+    const writable = new WritableStream<Uint8Array>({
+      write(chunk) {
+        capturedReq += new TextDecoder().decode(chunk);
+        if (capturedReq.includes('\r\n\r\n') && controllerRef) {
+          if (capturedReq.startsWith('GET /dynamo/to/tocantins/rss2.xml ')) {
+            const resp =
+              'HTTP/1.1 301 Moved Permanently\r\n' +
+              'Location: /rss/g1/to/tocantins/\r\n' +
+              'Content-Length: 0\r\n\r\n';
+            controllerRef.enqueue(new TextEncoder().encode(resp));
+            controllerRef.close();
+          } else {
+            const head = new TextEncoder().encode(
+              'HTTP/1.1 200 OK\r\n' +
+                'Content-Type: application/xml; charset=utf-8\r\n' +
+                'Transfer-Encoding: chunked\r\n\r\n'
+            );
+            // Envia em dois pacotes simulando fragmentação TCP
+            controllerRef.enqueue(head);
+            controllerRef.enqueue(chunkedSample.subarray(0, 30));
+            controllerRef.enqueue(chunkedSample.subarray(30));
+            controllerRef.close();
+          }
+          controllerRef = null;
+        }
+      },
+    });
+
+    return {
+      readable,
+      writable,
+      close: () => {},
+    };
+  };
+
+  setCloudflareSocketConnector(mockConnector);
+  try {
+    await withMockedFetch(async () => {
+      fetchCallsDuringSocketRecovery += 1;
+      return new Response('', { status: 525, statusText: '<none>' });
+    }, async () => {
+      // Primeira requisição: fetch() retorna 525 -> fallback aciona socket TLS -> segue 301 -> decodifica chunked -> 200 OK
+      const req1 = new Request('https://news.normajuridica.com.br/api/news/7915414156447', {
+        headers: { host: 'news.normajuridica.com.br', 'x-api-key': 'test-key' },
+      });
+      const res1 = await worker.fetch(req1, { API_KEY: 'test-key' }, {} as any);
+      assert.equal(res1.status, 200);
+      const body1 = await res1.json();
+      assert.equal(body1.items.length, 1);
+      assert.equal(body1.items[0].title, 'Notícia Tocantins recuperada');
+      assert.ok(body1._links.self.href.startsWith('https://news.normajuridica.com.br/api/news/7915414156447'));
+      const fetchCallsAfterFirst = fetchCallsDuringSocketRecovery;
+      assert.ok(socketCalls >= 2, 'Socket deve ter seguido redirect 301 -> /rss/g1/to/tocantins/');
+
+      // Segunda requisição no mesmo host g1.globo.com: deve ir direto para socket sem gastar fetch() 525
+      const req2 = new Request('https://news.normajuridica.com.br/api/news/7915414156447', {
+        headers: { host: 'news.normajuridica.com.br', 'x-api-key': 'test-key' },
+      });
+      const res2 = await worker.fetch(req2, { API_KEY: 'test-key' }, {} as any);
+      assert.equal(res2.status, 200);
+      assert.equal(
+        fetchCallsDuringSocketRecovery,
+        fetchCallsAfterFirst,
+        'Segunda requisição ao mesmo host deve ir direto para socket sem novo fetch() 525'
+      );
+    });
+
+    // 10f. Valida descompressão gzip via fetchViaSocket
+    const gzipXml = await new Response(
+      new Blob([g1SampleXml]).stream().pipeThrough(new CompressionStream('gzip'))
+    ).arrayBuffer();
+    const gzipConnector: SocketConnector = () => {
+      let ctrl: ReadableStreamDefaultController<Uint8Array> | null = null;
+      return {
+        readable: new ReadableStream({
+          start(c) {
+            ctrl = c;
+          },
+        }),
+        writable: new WritableStream({
+          write() {
+            if (ctrl) {
+              const gzBytes = new Uint8Array(gzipXml);
+              const head = new TextEncoder().encode(
+                `HTTP/1.1 200 OK\r\nContent-Type: application/xml\r\nContent-Encoding: gzip\r\nContent-Length: ${gzBytes.length}\r\n\r\n`
+              );
+              const packet = new Uint8Array(head.length + gzBytes.length);
+              packet.set(head, 0);
+              packet.set(gzBytes, head.length);
+              ctrl.enqueue(packet);
+              ctrl.close();
+              ctrl = null;
+            }
+          },
+        }),
+        close: () => {},
+      };
+    };
+    const gzRes = await fetchViaSocket('https://g1.globo.com/rss/g1/to/tocantins/', { 'User-Agent': 'Test' }, undefined, 5000, gzipConnector);
+    assert.equal(gzRes.status, 200);
+    assert.equal(await gzRes.text(), g1SampleXml);
+  } finally {
+    setCloudflareSocketConnector(null);
+    clearPreferredHostTiers();
+  }
+
+  console.log('  OK: Recuperação 525 (inclusive via socket TLS direto), domínio news.normajuridica.com.br e favicons validados.');
+}
+
+async function testAdSenseAutoAdsSeoAndLegalPages() {
+  console.log('\n[11/11] Cenário: Google AdSense Auto Ads (somente frontend), /ads.txt, /robots.txt, /sitemap.xml, páginas legais e banner LGPD');
+
+  // 11a. Validação e normalização de ID do AdSense via env
+  assert.equal(normalizeAdSenseClientId('ca-pub-1234567890123456'), 'ca-pub-1234567890123456');
+  assert.equal(normalizeAdSenseClientId('pub-1234567890123456'), 'ca-pub-1234567890123456');
+  assert.equal(normalizeAdSenseClientId('1234567890123456'), 'ca-pub-1234567890123456');
+  assert.equal(normalizeAdSenseClientId('default'), null);
+  assert.equal(normalizeAdSenseClientId('ca-pub-xxxxxxxxxxxxxxxx'), null);
+  assert.equal(normalizeAdSenseClientId('<script>alert(1)</script>'), null);
+  assert.equal(resolveAdSenseClientId({ GOOGLE_ADSENSE_ID: '1234567890123456' }), 'ca-pub-1234567890123456');
+
+  // 11b. Builders /ads.txt, /robots.txt, /sitemap.xml
+  assert.equal(
+    buildAdsTxtContent(null).trim(),
+    'google.com, pub-0000000000000000, DIRECT, f08c47fec0942fa0'
+  );
+  assert.equal(
+    buildAdsTxtContent('ca-pub-1234567890123456').trim(),
+    'google.com, pub-1234567890123456, DIRECT, f08c47fec0942fa0'
+  );
+  const robots = buildRobotsTxtContent('https://news.normajuridica.com.br');
+  assert.ok(robots.includes('User-agent: Mediapartners-Google'));
+  assert.ok(robots.includes('User-agent: Googlebot'));
+  assert.ok(robots.includes('Disallow: /api/'));
+  assert.ok(robots.includes('Sitemap: https://news.normajuridica.com.br/sitemap.xml'));
+
+  const sitemap = buildSitemapXmlContent('https://news.normajuridica.com.br');
+  for (const p of ['/', '/docs', '/sobre', '/contato', '/politica-de-privacidade', '/termos-de-uso']) {
+    assert.ok(sitemap.includes(`https://news.normajuridica.com.br${p}</loc>`), `Sitemap deve incluir ${p}`);
+  }
+
+  // 11c. Worker rotas raiz SEO (/ads.txt, /robots.txt, /sitemap.xml)
+  const adsDefaultRes = await worker.fetch(new Request('https://news.normajuridica.com.br/ads.txt'), {}, {} as any);
+  assert.equal(adsDefaultRes.status, 200);
+  assert.equal((await adsDefaultRes.text()).trim(), 'google.com, pub-0000000000000000, DIRECT, f08c47fec0942fa0');
+
+  const adsConfiguredRes = await worker.fetch(
+    new Request('https://news.normajuridica.com.br/ads.txt'),
+    { GOOGLE_ADSENSE_ID: 'ca-pub-9876543210987654' },
+    {} as any
+  );
+  assert.equal(adsConfiguredRes.status, 200);
+  assert.equal((await adsConfiguredRes.text()).trim(), 'google.com, pub-9876543210987654, DIRECT, f08c47fec0942fa0');
+
+  const robotsRes = await worker.fetch(new Request('https://news.normajuridica.com.br/robots.txt'), {}, {} as any);
+  assert.equal(robotsRes.status, 200);
+  assert.ok((await robotsRes.text()).includes('Mediapartners-Google'));
+
+  const sitemapRes = await worker.fetch(new Request('https://news.normajuridica.com.br/sitemap.xml'), {}, {} as any);
+  assert.equal(sitemapRes.status, 200);
+  assert.ok((await sitemapRes.text()).includes('/politica-de-privacidade</loc>'));
+
+  // 11d. Páginas de frontend COM env GOOGLE_ADSENSE_ID: contém apenas Auto Ads no <head>, sem ad-slot, com banner LGPD
+  const frontendPaths = ['/', '/docs', '/politica-de-privacidade', '/termos-de-uso', '/contato', '/sobre'];
+  for (const path of frontendPaths) {
+    const res = await worker.fetch(
+      new Request(`https://news.normajuridica.com.br${path}`),
+      { GOOGLE_ADSENSE_ID: 'ca-pub-9876543210987654' },
+      {} as any
+    );
+    assert.equal(res.status, 200, `Página ${path} deve retornar 200`);
+    const html = await res.text();
+    assert.ok(
+      html.includes('https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9876543210987654'),
+      `Página ${path} deve conter script Auto Ads no <head>`
+    );
+    assert.ok(
+      html.includes('<meta name="google-adsense-account" content="ca-pub-9876543210987654">'),
+      `Página ${path} deve conter meta google-adsense-account`
+    );
+    assert.ok(!html.includes('data-ad-slot') && !html.includes('class="adsbygoogle"'), `Página ${path} não deve ter ad-slot manual`);
+    assert.ok(html.includes('id="cookie-consent-banner"'), `Página ${path} deve incluir banner LGPD`);
+    assert.ok(html.includes('Aceitar') && html.includes('Recusar'), `Página ${path} deve conter botões Aceitar/Recusar`);
+    assert.ok(html.includes('/politica-de-privacidade'), `Página ${path} deve conter link para Política de Privacidade`);
+  }
+
+  // 11e. Página de privacidade contém cláusula DART / Google AdSense obrigatória
+  const privRes = await worker.fetch(new Request('https://news.normajuridica.com.br/politica-de-privacidade'), {}, {} as any);
+  const privHtml = await privRes.text();
+  assert.ok(privHtml.includes('cookie DART'), 'Política de Privacidade deve citar cookie DART / Google AdSense');
+  assert.ok(!privHtml.includes('adsbygoogle.js'), 'Sem env configurada, não deve injetar script do AdSense');
+
+  // 11f. Endpoints da API (/api/*) NUNCA recebem AdSense nem Banner de Cookies
+  for (const apiPath of ['/api', '/api/health', '/api/news']) {
+    const apiRes = await worker.fetch(
+      new Request(`https://news.normajuridica.com.br${apiPath}`, {
+        headers: { 'x-api-key': 'test-key' },
+      }),
+      { API_KEY: 'test-key', GOOGLE_ADSENSE_ID: 'ca-pub-9876543210987654' },
+      {} as any
+    );
+    assert.equal(apiRes.status, 200);
+    const bodyText = await apiRes.text();
+    assert.ok(!bodyText.includes('adsbygoogle'), `Endpoint ${apiPath} não deve conter AdSense`);
+    assert.ok(!bodyText.includes('cookie-consent-banner'), `Endpoint ${apiPath} não deve conter banner de cookies`);
+  }
+
+  console.log('  OK: Google AdSense Auto Ads (frontend-only), /ads.txt, /robots.txt, /sitemap.xml, páginas legais e banner LGPD validados.');
 }
 
 async function runAll() {
@@ -508,6 +767,7 @@ async function runAll() {
   await testLastKnownGoodAndRecovery();
   await testWorkersSubrequestBudgetAndLiveComparison();
   await testHttp525RecoveryCustomDomainAndFavicon();
+  await testAdSenseAutoAdsSeoAndLegalPages();
   console.log('\nALL TESTS PASSED!');
 }
 

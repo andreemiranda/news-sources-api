@@ -277,8 +277,13 @@ A aplicação está totalmente configurada e otimizada para implantação no Clo
    - `NODE_VERSION`: `22` (ou `20`)
    - `API_KEY`: Sua chave secreta para proteger os endpoints da API.
    - `REVALIDATE_SECRET`: Token para revalidação via webhook.
-   - Opcionalmente `NEXT_PUBLIC_BASE_URL` ou `APP_URL` (se não preenchido, detecta automaticamente a URL `*.pages.dev`).
-4. **Flags de Compatibilidade:**
+   - `GOOGLE_ADSENSE_ID` (ou `NEXT_PUBLIC_GOOGLE_ADSENSE_ID`): ID de editor do Google AdSense (`ca-pub-XXXXXXXXXXXXXXXX`) para habilitar **Anúncios Automáticos (Auto Ads)** exclusivamente nas páginas web de frontend (`/`, `/docs`, `/sobre`, `/contato`, `/politica-de-privacidade`, `/termos-de-uso`), sem nenhum `ad-slot` manual e sem afetar os endpoints `/api/*`. Também atualiza automaticamente `/ads.txt`.
+   - Opcionalmente `NEXT_PUBLIC_BASE_URL` ou `APP_URL` (se não preenchido, detecta automaticamente o domínio da requisição).
+4. **Arquivos SEO, Páginas Legais e Banner LGPD (Frontend):**
+   - Raiz (`public/`, `server.js` e `worker.js`): `/ads.txt`, `/robots.txt` (`Mediapartners-Google`, `Googlebot`) e `/sitemap.xml`.
+   - Páginas institucionais: `/politica-de-privacidade` (com cláusula de cookie DART / Google AdSense), `/termos-de-uso`, `/contato` e `/sobre`.
+   - Banner de Consentimento de Cookies (LGPD/GDPR) no rodapé com opções **Aceitar** e **Recusar** persistidas em `localStorage`.
+5. **Flags de Compatibilidade:**
    - O arquivo `wrangler.toml` já inclui `compatibility_flags = ["nodejs_compat"]` e `compatibility_date = "2024-09-23"` garantindo suporte pleno ao runtime Node.js.
 
 ---
@@ -296,6 +301,7 @@ A aplicação está configurada para deploy contínuo e sem servidor no Netlify:
    - Cadastre `API_KEY` com a senha desejada para proteger os endpoints.
    - Opcionalmente cadastre `NEXT_PUBLIC_BASE_URL` caso utilize domínio personalizado.
    - Opcionalmente cadastre `REVALIDATE_SECRET`.
+   - Opcionalmente cadastre `GOOGLE_ADSENSE_ID` (ou `NEXT_PUBLIC_GOOGLE_ADSENSE_ID`) com seu ID `ca-pub-XXXXXXXXXXXXXXXX` para ativar Anúncios Automáticos do Google AdSense apenas no frontend (`/` e `/docs`).
 
 ---
 

@@ -219,6 +219,17 @@ export default function DocsPage() {
         )}
       </main>
 
+      <footer className="flex-none bg-slate-900 border-t border-slate-800 px-4 sm:px-6 py-2 flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-400">
+        <span>&copy; {new Date().getFullYear()} News &amp; Media Sources API</span>
+        <nav aria-label="Links institucionais e legais" className="flex flex-wrap items-center gap-4">
+          <Link href="/" className="hover:text-white transition-colors">Início</Link>
+          <Link href="/sobre" className="hover:text-white transition-colors">Sobre</Link>
+          <Link href="/contato" className="hover:text-white transition-colors">Contato</Link>
+          <Link href="/politica-de-privacidade" className="hover:text-white transition-colors">Política de Privacidade</Link>
+          <Link href="/termos-de-uso" className="hover:text-white transition-colors">Termos de Uso</Link>
+        </nav>
+      </footer>
+
       {/* Authorize Modal Dialog */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-150">

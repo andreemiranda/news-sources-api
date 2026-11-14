@@ -6,7 +6,11 @@ const inter = Inter({ subsets: ['latin'] });
 
 import ResizeObserverFix from '@/components/ResizeObserverFix';
 import DeploymentVersionSync from '@/components/DeploymentVersionSync';
+import CookieConsentBanner from '@/components/CookieConsentBanner';
 import { BUILD_ID } from '@/src/config/version';
+import { resolveAdSenseClientId } from '@/lib/adsense';
+
+export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
   title: 'News Sources API',
@@ -31,9 +35,21 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const adsenseClientId = resolveAdSenseClientId();
+
   return (
     <html lang="pt-BR" suppressHydrationWarning>
       <head>
+        {adsenseClientId ? (
+          <>
+            <meta name="google-adsense-account" content={adsenseClientId} />
+            <script
+              async
+              src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adsenseClientId}`}
+              crossOrigin="anonymous"
+            />
+          </>
+        ) : null}
         <script
           dangerouslySetInnerHTML={{
             __html: `
@@ -98,6 +114,7 @@ export default function RootLayout({
         <ResizeObserverFix />
         <DeploymentVersionSync serverBuildId={BUILD_ID} />
         {children}
+        <CookieConsentBanner />
       </body>
     </html>
   );

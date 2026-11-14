@@ -813,11 +813,30 @@ export function parseRssFeed(
 
 type UserAgentTier = 'chrome' | 'googlebot' | 'facebookbot' | 'minimal';
 
+export interface SocketLike {
+  readable: ReadableStream<Uint8Array>;
+  writable: WritableStream<Uint8Array>;
+  close?: () => Promise<void> | void;
+}
+
+export type SocketConnector = (
+  address: { hostname: string; port: number },
+  options?: { secureTransport?: 'on' | 'off' | 'starttls'; allowHalfOpen?: boolean }
+) => Promise<SocketLike> | SocketLike;
+
 const preferredTierByHost = new Map<string, { tier: UserAgentTier; expiresAt: number }>();
+const preferSocketByHost = new Map<string, number>();
 const PREFERRED_TIER_TTL_MS = 5 * 60 * 1000;
+
+let customSocketConnector: SocketConnector | null = null;
+
+export function setCloudflareSocketConnector(connector: SocketConnector | null): void {
+  customSocketConnector = connector;
+}
 
 export function clearPreferredHostTiers(): void {
   preferredTierByHost.clear();
+  preferSocketByHost.clear();
 }
 
 export function isCloudflareWorkersRuntime(): boolean {
@@ -828,6 +847,408 @@ export function isCloudflareWorkersRuntime(): boolean {
     // fallback false
   }
   return false;
+}
+
+function concatUint8Arrays(chunks: Uint8Array[]): Uint8Array {
+  let totalLen = 0;
+  for (let i = 0; i < chunks.length; i++) {
+    totalLen += chunks[i].byteLength;
+  }
+  const out = new Uint8Array(totalLen);
+  let offset = 0;
+  for (let i = 0; i < chunks.length; i++) {
+    out.set(chunks[i], offset);
+    offset += chunks[i].byteLength;
+  }
+  return out;
+}
+
+function findBytesSequence(buf: Uint8Array, seq: number[], startAt: number = 0): number {
+  const limit = buf.byteLength - seq.length;
+  for (let i = Math.max(0, startAt); i <= limit; i++) {
+    let matched = true;
+    for (let j = 0; j < seq.length; j++) {
+      if (buf[i + j] !== seq[j]) {
+        matched = false;
+        break;
+      }
+    }
+    if (matched) return i;
+  }
+  return -1;
+}
+
+function decodeAsciiSlice(buf: Uint8Array, start: number, end: number): string {
+  let str = '';
+  const slice = buf.subarray(start, end);
+  for (let i = 0; i < slice.byteLength; i++) {
+    str += String.fromCharCode(slice[i]);
+  }
+  return str;
+}
+
+export function parseChunkedHttpBody(
+  buf: Uint8Array,
+  startOffset: number = 0
+): { complete: boolean; seenZeroChunk: boolean; data: Uint8Array } {
+  let pos = startOffset;
+  const decodedChunks: Uint8Array[] = [];
+  let seenZeroChunk = false;
+
+  while (pos < buf.byteLength) {
+    const lineEnd = findBytesSequence(buf, [13, 10], pos);
+    if (lineEnd === -1) {
+      return { complete: false, seenZeroChunk, data: concatUint8Arrays(decodedChunks) };
+    }
+
+    const sizeLine = decodeAsciiSlice(buf, pos, lineEnd);
+    const hexPart = sizeLine.split(';')[0].trim();
+    if (!hexPart) {
+      pos = lineEnd + 2;
+      continue;
+    }
+
+    const chunkSize = parseInt(hexPart, 16);
+    if (isNaN(chunkSize) || chunkSize < 0) {
+      throw new Error(`Invalid HTTP chunk size: ${hexPart}`);
+    }
+
+    const dataStart = lineEnd + 2;
+    if (chunkSize === 0) {
+      seenZeroChunk = true;
+      const trailerEnd = findBytesSequence(buf, [13, 10, 13, 10], lineEnd);
+      if (trailerEnd !== -1) {
+        return { complete: true, seenZeroChunk: true, data: concatUint8Arrays(decodedChunks) };
+      }
+      return { complete: false, seenZeroChunk: true, data: concatUint8Arrays(decodedChunks) };
+    }
+
+    if (dataStart + chunkSize + 2 > buf.byteLength) {
+      return { complete: false, seenZeroChunk: false, data: concatUint8Arrays(decodedChunks) };
+    }
+
+    decodedChunks.push(buf.subarray(dataStart, dataStart + chunkSize));
+    pos = dataStart + chunkSize + 2;
+  }
+
+  return { complete: false, seenZeroChunk, data: concatUint8Arrays(decodedChunks) };
+}
+
+interface ParsedHttpHead {
+  status: number;
+  statusText: string;
+  headers: Headers;
+  headerEntries: Array<[string, string]>;
+  bodyStart: number;
+  isChunked: boolean;
+  contentLength: number | null;
+}
+
+function parseRawHttpHead(buf: Uint8Array): ParsedHttpHead | null {
+  const headerEnd = findBytesSequence(buf, [13, 10, 13, 10], 0);
+  if (headerEnd === -1) return null;
+
+  const headText = decodeAsciiSlice(buf, 0, headerEnd);
+  const lines = headText.split('\r\n');
+  const statusLine = lines[0] || '';
+  const statusMatch = statusLine.match(/^HTTP\/\d+(?:\.\d+)?\s+(\d{3})(?:\s+(.*))?$/i);
+  if (!statusMatch) {
+    throw new Error(`Invalid HTTP status line from socket: ${statusLine.slice(0, 80)}`);
+  }
+
+  const status = parseInt(statusMatch[1], 10);
+  const statusText = (statusMatch[2] || '').trim();
+  const headers = new Headers();
+  const headerEntries: Array<[string, string]> = [];
+
+  for (let i = 1; i < lines.length; i++) {
+    const line = lines[i];
+    const colonIdx = line.indexOf(':');
+    if (colonIdx > 0) {
+      const name = line.slice(0, colonIdx).trim();
+      const val = line.slice(colonIdx + 1).trim();
+      if (name) {
+        try {
+          headers.append(name, val);
+          headerEntries.push([name, val]);
+        } catch {
+          // ignore malformed header names
+        }
+      }
+    }
+  }
+
+  const transferEncoding = (headers.get('transfer-encoding') || '').toLowerCase();
+  const isChunked = transferEncoding.includes('chunked');
+  const rawContentLen = headers.get('content-length');
+  let contentLength: number | null = null;
+  if (!isChunked && rawContentLen !== null && rawContentLen.trim() !== '') {
+    const parsedLen = parseInt(rawContentLen.trim(), 10);
+    if (!isNaN(parsedLen) && parsedLen >= 0) {
+      contentLength = parsedLen;
+    }
+  }
+
+  return {
+    status,
+    statusText,
+    headers,
+    headerEntries,
+    bodyStart: headerEnd + 4,
+    isChunked,
+    contentLength,
+  };
+}
+
+async function decompressBodyIfNeeded(body: Uint8Array, headers: Headers): Promise<Uint8Array> {
+  const encoding = (headers.get('content-encoding') || '').toLowerCase().trim();
+  if (!encoding || encoding === 'identity' || body.byteLength === 0) {
+    return body;
+  }
+
+  let format: 'gzip' | 'deflate' | null = null;
+  if (encoding === 'gzip' || encoding === 'x-gzip') {
+    format = 'gzip';
+  } else if (encoding === 'deflate') {
+    format = 'deflate';
+  }
+
+  if (!format || typeof DecompressionStream === 'undefined') {
+    return body;
+  }
+
+  try {
+    const ds = new DecompressionStream(format);
+    const stream = new Blob([body as unknown as BlobPart]).stream().pipeThrough(ds);
+    const ab = await new Response(stream).arrayBuffer();
+    headers.delete('content-encoding');
+    headers.delete('content-length');
+    return new Uint8Array(ab);
+  } catch {
+    return body;
+  }
+}
+
+export async function fetchViaSocket(
+  url: string,
+  headers: Record<string, string>,
+  externalSignal?: AbortSignal,
+  timeoutMs: number = 9000,
+  connector?: SocketConnector | null,
+  onSubrequest?: () => void
+): Promise<Response> {
+  const activeConnector = connector || customSocketConnector;
+  if (!activeConnector) {
+    throw new Error('No socket connector registered');
+  }
+
+  let currentUrl = url;
+  const maxRedirects = 5;
+
+  for (let hop = 0; hop <= maxRedirects; hop++) {
+    if (externalSignal?.aborted) {
+      throw externalSignal.reason || new DOMException('The operation was aborted.', 'AbortError');
+    }
+
+    const parsed = new URL(currentUrl);
+    const isHttps = parsed.protocol === 'https:';
+    const isHttp = parsed.protocol === 'http:';
+    if (!isHttps && !isHttp) {
+      throw new Error(`Unsupported socket protocol: ${parsed.protocol}`);
+    }
+
+    const port = parsed.port ? parseInt(parsed.port, 10) : isHttps ? 443 : 80;
+    const pathAndQuery = `${parsed.pathname || '/'}${parsed.search || ''}`;
+
+    const reqHeaders: Record<string, string> = {
+      Host: parsed.host,
+      'Accept-Encoding': 'identity',
+      Connection: 'close',
+    };
+    const headerKeys = Object.keys(headers);
+    for (let i = 0; i < headerKeys.length; i++) {
+      const k = headerKeys[i];
+      const lowerK = k.toLowerCase();
+      if (lowerK === 'host' || lowerK === 'connection' || lowerK === 'accept-encoding') continue;
+      reqHeaders[k] = String(headers[k] ?? '').replace(/[\r\n]+/g, ' ');
+    }
+
+    const headerLines = Object.keys(reqHeaders).map((k) => `${k}: ${reqHeaders[k]}`);
+    const rawRequest = `GET ${pathAndQuery} HTTP/1.1\r\n${headerLines.join('\r\n')}\r\n\r\n`;
+
+    const attemptController = new AbortController();
+    let timedOut = false;
+    const timeoutId = setTimeout(() => {
+      timedOut = true;
+      attemptController.abort(new DOMException(`Socket timeout after ${timeoutMs}ms`, 'TimeoutError'));
+    }, timeoutMs);
+
+    const onExternalAbort = () => {
+      attemptController.abort(externalSignal?.reason || new DOMException('Aborted', 'AbortError'));
+    };
+    if (externalSignal) {
+      externalSignal.addEventListener('abort', onExternalAbort, { once: true });
+    }
+
+    let socket: SocketLike | null = null;
+    let reader: ReadableStreamDefaultReader<Uint8Array> | null = null;
+
+    const onAttemptAbort = () => {
+      try {
+        reader?.cancel().catch(() => {});
+      } catch {}
+      try {
+        socket?.close?.();
+      } catch {}
+    };
+    attemptController.signal.addEventListener('abort', onAttemptAbort, { once: true });
+
+    try {
+      onSubrequest?.();
+      socket = await activeConnector(
+        { hostname: parsed.hostname, port },
+        { secureTransport: isHttps ? 'on' : 'off', allowHalfOpen: false }
+      );
+
+      const writer = socket.writable.getWriter();
+      await writer.write(new TextEncoder().encode(rawRequest));
+      writer.releaseLock();
+
+      reader = socket.readable.getReader();
+      const chunks: Uint8Array[] = [];
+      let totalBytes = 0;
+      let parsedHead: ParsedHttpHead | null = null;
+      let rawBuffer: Uint8Array = new Uint8Array(0);
+      let completedCleanly = false;
+      let chunkedResultData: Uint8Array | null = null;
+
+      while (true) {
+        if (attemptController.signal.aborted) {
+          throw attemptController.signal.reason || new DOMException('Aborted', 'AbortError');
+        }
+
+        const readResult = await reader.read();
+        if (readResult.value && readResult.value.byteLength > 0) {
+          chunks.push(readResult.value);
+          totalBytes += readResult.value.byteLength;
+          rawBuffer = concatUint8Arrays(chunks);
+          // Compacta array de chunks para evitar re-cópia quadrática
+          chunks.length = 0;
+          chunks.push(rawBuffer);
+
+          if (!parsedHead && totalBytes >= 16) {
+            parsedHead = parseRawHttpHead(rawBuffer);
+          }
+
+          if (parsedHead) {
+            const noBodyStatus =
+              parsedHead.status === 204 ||
+              parsedHead.status === 304 ||
+              (parsedHead.status >= 100 && parsedHead.status < 200);
+            if (noBodyStatus) {
+              completedCleanly = true;
+              break;
+            }
+            if (parsedHead.isChunked) {
+              const chunkParsed = parseChunkedHttpBody(rawBuffer, parsedHead.bodyStart);
+              if (chunkParsed.complete) {
+                completedCleanly = true;
+                chunkedResultData = chunkParsed.data;
+                break;
+              }
+            } else if (parsedHead.contentLength !== null) {
+              if (rawBuffer.byteLength - parsedHead.bodyStart >= parsedHead.contentLength) {
+                completedCleanly = true;
+                break;
+              }
+            }
+          }
+        }
+
+        if (readResult.done) {
+          break;
+        }
+      }
+
+      if (!parsedHead) {
+        parsedHead = parseRawHttpHead(rawBuffer);
+      }
+      if (!parsedHead) {
+        throw new Error(`Incomplete HTTP response from socket for ${currentUrl}`);
+      }
+
+      let bodyBytes: Uint8Array;
+      if (
+        parsedHead.status === 204 ||
+        parsedHead.status === 304 ||
+        (parsedHead.status >= 100 && parsedHead.status < 200)
+      ) {
+        bodyBytes = new Uint8Array(0);
+      } else if (parsedHead.isChunked) {
+        if (chunkedResultData !== null) {
+          bodyBytes = chunkedResultData;
+        } else {
+          const finalChunked = parseChunkedHttpBody(rawBuffer, parsedHead.bodyStart);
+          bodyBytes = finalChunked.data;
+        }
+      } else if (parsedHead.contentLength !== null) {
+        const end = Math.min(rawBuffer.byteLength, parsedHead.bodyStart + parsedHead.contentLength);
+        bodyBytes = rawBuffer.subarray(parsedHead.bodyStart, end);
+      } else {
+        bodyBytes = rawBuffer.subarray(parsedHead.bodyStart);
+      }
+
+      const finalBody = await decompressBodyIfNeeded(bodyBytes, parsedHead.headers);
+      const isRedirect =
+        parsedHead.status === 301 ||
+        parsedHead.status === 302 ||
+        parsedHead.status === 303 ||
+        parsedHead.status === 307 ||
+        parsedHead.status === 308;
+
+      if (isRedirect) {
+        const loc = parsedHead.headers.get('location');
+        if (loc && hop < maxRedirects) {
+          const nextUrl = new URL(loc, currentUrl).toString();
+          if (nextUrl !== currentUrl) {
+            currentUrl = nextUrl;
+            continue;
+          }
+        }
+      }
+
+      const safeStatus = parsedHead.status >= 200 && parsedHead.status <= 599 ? parsedHead.status : 502;
+      void completedCleanly;
+      return new Response(finalBody as unknown as BodyInit, {
+        status: safeStatus,
+        statusText: parsedHead.statusText || formatHttpStatusError(safeStatus, ''),
+        headers: parsedHead.headers,
+      });
+    } catch (err: any) {
+      if (timedOut && err && typeof err === 'object' && !err.isTimeoutError) {
+        const timeoutErr = new Error(`Socket timeout after ${timeoutMs}ms fetching ${currentUrl}`);
+        (timeoutErr as any).name = 'TimeoutError';
+        (timeoutErr as any).isTimeoutError = true;
+        (timeoutErr as any).cause = err;
+        throw timeoutErr;
+      }
+      throw err;
+    } finally {
+      clearTimeout(timeoutId);
+      attemptController.signal.removeEventListener('abort', onAttemptAbort);
+      if (externalSignal) {
+        externalSignal.removeEventListener('abort', onExternalAbort);
+      }
+      try {
+        reader?.releaseLock();
+      } catch {}
+      try {
+        await socket?.close?.();
+      } catch {}
+    }
+  }
+
+  throw new Error(`Exceeded maximum socket redirects (${maxRedirects}) for ${url}`);
 }
 
 export function formatHttpStatusError(status: number, statusText?: string | null): string {
@@ -973,6 +1394,7 @@ export interface ResilientFetchOptions {
 
 /**
  * Resilient HTTP fetcher with multi-tier bypass against 401/403/503,
+ * direct TLS socket fallback against Cloudflare edge HTTP 525/526,
  * keyed strictly by upstream target hostname (never appDomain) and independent timeouts per attempt.
  */
 export async function resilientFetch(
@@ -1040,6 +1462,55 @@ export async function resilientFetch(
     tierOrder = [cachedTierEntry.tier, ...baseOrder.filter((t) => t !== cachedTierEntry.tier)];
   }
 
+  const trySocketWithTiers = async (targetUrl: string): Promise<Response | null> => {
+    if (!customSocketConnector) return null;
+    const socketTiers: UserAgentTier[] = [tierOrder[0], 'googlebot', 'minimal'];
+    const seen = new Set<UserAgentTier>();
+    let lastSockRes: Response | null = null;
+    for (let i = 0; i < socketTiers.length; i++) {
+      const tier = socketTiers[i];
+      if (seen.has(tier)) continue;
+      seen.add(tier);
+      if (i > 0 && shouldContinue && !shouldContinue()) break;
+      try {
+        const sockRes = await fetchViaSocket(
+          targetUrl,
+          getHeadersForTier(tier),
+          signal,
+          perAttemptTimeoutMs,
+          customSocketConnector,
+          onSubrequest
+        );
+        if (sockRes.ok) {
+          preferSocketByHost.set(targetHost, Date.now() + PREFERRED_TIER_TTL_MS);
+          preferredTierByHost.set(targetHost, {
+            tier,
+            expiresAt: Date.now() + PREFERRED_TIER_TTL_MS,
+          });
+          return sockRes;
+        }
+        lastSockRes = sockRes;
+        if (sockRes.status !== 401 && sockRes.status !== 403 && sockRes.status !== 406) {
+          return sockRes;
+        }
+      } catch (err: any) {
+        if (signal?.aborted) throw err;
+        break;
+      }
+    }
+    return lastSockRes;
+  };
+
+  // Se este host já exigiu socket direto recentemente (ex.: g1.globo.com com TLS 1.2 sob Cloudflare 525), usa socket direto
+  const socketExp = preferSocketByHost.get(targetHost);
+  if (customSocketConnector && socketExp && socketExp > Date.now()) {
+    const directSockRes = await trySocketWithTiers(url);
+    if (directSockRes && directSockRes.ok) {
+      return directSockRes;
+    }
+    preferSocketByHost.delete(targetHost);
+  }
+
   let lastResponse: Response | undefined;
   let lastError: any;
 
@@ -1070,6 +1541,10 @@ export async function resilientFetch(
       }
 
       lastResponse = res;
+      // Erros SSL/TLS (525/526) não dependem de User-Agent: pula direto para fallback TLS/socket
+      if (res.status === 525 || res.status === 526) {
+        break;
+      }
       if (!isRetryableEdgeOrBlockStatus(res.status)) {
         return res;
       }
@@ -1083,12 +1558,28 @@ export async function resilientFetch(
     }
   }
 
-  // Fallback específico para falhas de handshake SSL/TLS (HTTP 525 / 526) em HTTPS
-  const failedWithSslHandshake =
-    lastResponse && (lastResponse.status === 525 || lastResponse.status === 526);
-  if (failedWithSslHandshake && (!shouldContinue || shouldContinue())) {
+  // Fallback específico para falhas de handshake SSL/TLS ou rede edge (HTTP 520-530 / erro TLS) em Cloudflare Workers
+  const failedWithEdgeOrSsl =
+    (lastResponse && (lastResponse.status === 525 || lastResponse.status === 526 || (lastResponse.status >= 520 && lastResponse.status <= 530))) ||
+    (!lastResponse && Boolean(lastError));
+
+  if (failedWithEdgeOrSsl && (!shouldContinue || shouldContinue())) {
+    if (customSocketConnector) {
+      const sockRes = await trySocketWithTiers(url);
+      if (sockRes && sockRes.ok) {
+        return sockRes;
+      }
+      const canonicalG1Sock = getCanonicalG1RssFallbackUrl(url);
+      if (canonicalG1Sock && canonicalG1Sock !== url && (!shouldContinue || shouldContinue())) {
+        const g1SockRes = await trySocketWithTiers(canonicalG1Sock);
+        if (g1SockRes && g1SockRes.ok) {
+          return g1SockRes;
+        }
+      }
+    }
+
     const canonicalG1 = getCanonicalG1RssFallbackUrl(url);
-    if (canonicalG1 && canonicalG1 !== url) {
+    if (canonicalG1 && canonicalG1 !== url && (!shouldContinue || shouldContinue())) {
       try {
         const g1Res = await fetchWithIndependentTimeout(
           canonicalG1,
@@ -1103,7 +1594,7 @@ export async function resilientFetch(
       }
     }
 
-    if (url.toLowerCase().startsWith('https://')) {
+    if (url.toLowerCase().startsWith('https://') && (!shouldContinue || shouldContinue())) {
       const httpUrl = `http://${url.slice(8)}`;
       try {
         const httpRes = await fetchWithIndependentTimeout(

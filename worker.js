@@ -13,10 +13,34 @@ import {
   getBaseDomain,
   formatAppEmail,
 } from './lib/sources';
-import { fetchSourceContent, fetchMediaContent, cleanText } from './lib/content';
+import {
+  fetchSourceContent,
+  fetchMediaContent,
+  cleanText,
+  isCloudflareWorkersRuntime,
+  setCloudflareSocketConnector,
+  resilientFetch,
+} from './lib/content';
 import { toCleanSource, paginateWithHateoas } from './lib/hateoas';
 import { getOpenApiSpec } from './lib/openapi-spec';
 import { getApiIndexPayload, getDetailedNewsStats, clearStatsCache } from './lib/stats';
+import {
+  resolveAdSenseClientId,
+  renderAdSenseHeadTags,
+  buildAdsTxtContent,
+  buildRobotsTxtContent,
+  buildSitemapXmlContent,
+} from './lib/adsense';
+
+let cachedCfConnectPromise = null;
+async function cfSocketConnector(address, options) {
+  if (!cachedCfConnectPromise) {
+    // @ts-ignore - módulo nativo exclusivo do runtime Cloudflare Workers
+    cachedCfConnectPromise = import('cloudflare:sockets').then((mod) => mod.connect);
+  }
+  const connect = await cachedCfConnectPromise;
+  return connect(address, options);
+}
 
 const URL_ENV_KEYS = new Set([
   'APP_URL',
@@ -25,6 +49,15 @@ const URL_ENV_KEYS = new Set([
   'NEXT_PUBLIC_APP_DOMAIN',
   'NEXT_PUBLIC_BASE_URL',
 ]);
+
+const WORKER_ADSENSE_ENV_KEYS = [
+  'GOOGLE_ADSENSE_ID',
+  'NEXT_PUBLIC_GOOGLE_ADSENSE_ID',
+  'ADSENSE_ID',
+  'NEXT_PUBLIC_ADSENSE_ID',
+  'GOOGLE_ADSENSE_CLIENT_ID',
+  'NEXT_PUBLIC_GOOGLE_ADSENSE_CLIENT_ID',
+];
 
 const FAVICON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
   <rect width="64" height="64" rx="14" fill="#2563eb"/>
@@ -141,12 +174,77 @@ function escapeHtml(str) {
     .replace(/'/g, '&#39;');
 }
 
-function renderHomePage(baseUrl, baseDomain, sources, categories, mediaCount = 0) {
+function renderSiteFooterHtml(currentYear) {
+  return `<footer class="border-t border-slate-200 bg-white">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <p class="text-sm text-slate-500 text-center sm:text-left">
+          &copy; ${currentYear} News &amp; Media Sources API. Todos os direitos reservados.
+        </p>
+        <nav aria-label="Links institucionais e legais" class="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs sm:text-sm text-slate-600">
+          <a href="/" class="hover:text-blue-600 transition-colors">Início</a>
+          <a href="/docs" class="hover:text-blue-600 transition-colors">Documentação</a>
+          <a href="/sobre" class="hover:text-blue-600 transition-colors">Sobre</a>
+          <a href="/contato" class="hover:text-blue-600 transition-colors">Contato</a>
+          <a href="/politica-de-privacidade" class="hover:text-blue-600 transition-colors">Política de Privacidade</a>
+          <a href="/termos-de-uso" class="hover:text-blue-600 transition-colors">Termos de Uso</a>
+        </nav>
+      </div>
+    </footer>`;
+}
+
+function renderCookieBannerSnippet() {
+  return `<aside id="cookie-consent-banner" role="dialog" aria-live="polite" aria-label="Consentimento de Cookies e Privacidade" class="hidden fixed bottom-0 inset-x-0 z-50 p-3 sm:p-4 pointer-events-none">
+    <div class="max-w-5xl mx-auto pointer-events-auto bg-slate-900/95 backdrop-blur-md text-slate-100 border border-slate-700/80 rounded-2xl shadow-2xl p-4 sm:p-5">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div class="text-xs sm:text-sm text-slate-300 leading-relaxed flex-1">
+          <p class="font-semibold text-white mb-1">Privacidade e Cookies (LGPD / GDPR)</p>
+          <p>Utilizamos cookies essenciais e de terceiros (incluindo Google AdSense) para melhorar sua experiência de navegação e exibir anúncios relevantes. Ao clicar em &quot;Aceitar&quot;, você concorda com nossa <a href="/politica-de-privacidade" class="text-blue-400 hover:text-blue-300 underline underline-offset-2 font-medium">Política de Privacidade</a>.</p>
+        </div>
+        <div class="flex items-center gap-2.5 shrink-0 justify-end">
+          <button type="button" id="btn-cookie-reject" onclick="handleCookieDecision('rejected')" class="px-4 py-2 rounded-lg text-xs sm:text-sm font-medium text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 border border-slate-600 transition-colors">Recusar</button>
+          <button type="button" id="btn-cookie-accept" onclick="handleCookieDecision('accepted')" class="px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold text-white bg-blue-600 hover:bg-blue-500 transition-colors shadow-sm">Aceitar</button>
+        </div>
+      </div>
+    </div>
+  </aside>
+  <script>
+    (function() {
+      var KEY = 'cookie_consent_status';
+      var banner = document.getElementById('cookie-consent-banner');
+      try {
+        var saved = window.localStorage.getItem(KEY);
+        if (saved === 'rejected') {
+          window.adsbygoogle = window.adsbygoogle || [];
+          window.adsbygoogle.requestNonPersonalizedAds = 1;
+        }
+        if (saved !== 'accepted' && saved !== 'rejected' && banner) {
+          banner.classList.remove('hidden');
+        }
+      } catch (e) {
+        if (banner) banner.classList.remove('hidden');
+      }
+      window.handleCookieDecision = function(status) {
+        try {
+          window.localStorage.setItem(KEY, status);
+          window.localStorage.setItem('cookie_consent_updated_at', new Date().toISOString());
+          if (status === 'rejected') {
+            window.adsbygoogle = window.adsbygoogle || [];
+            window.adsbygoogle.requestNonPersonalizedAds = 1;
+          }
+        } catch (e) {}
+        if (banner) banner.classList.add('hidden');
+      };
+    })();
+  </script>`;
+}
+
+function renderHomePage(baseUrl, baseDomain, sources, categories, mediaCount = 0, adsenseClientId = null) {
   const sourcesJson = JSON.stringify(sources).replace(/</g, '\\u003c');
   const categoriesJson = JSON.stringify(categories).replace(/</g, '\\u003c');
   const safeBaseUrlJson = JSON.stringify(baseUrl || '').replace(/</g, '\\u003c');
   const safeBaseDomainJson = JSON.stringify(baseDomain || '').replace(/</g, '\\u003c');
   const safeBaseDomainHtml = escapeHtml(baseDomain || '');
+  const adsenseHeadTags = renderAdSenseHeadTags(adsenseClientId);
   const currentYear = new Date().getFullYear();
 
   return `<!DOCTYPE html>
@@ -158,6 +256,7 @@ function renderHomePage(baseUrl, baseDomain, sources, categories, mediaCount = 0
   <meta name="description" content="API REST de alta performance para consulta e extração unificada de fontes de notícias e imagens jornalísticas.">
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="icon" href="/favicon.ico" sizes="any">
+  ${adsenseHeadTags ? adsenseHeadTags : ''}
   <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5/swagger-ui.css">
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
@@ -419,14 +518,9 @@ function renderHomePage(baseUrl, baseDomain, sources, categories, mediaCount = 0
       </div>
     </div>
 
-    <footer class="border-t border-slate-200 bg-white">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 text-center">
-        <p class="text-sm text-slate-500">
-          &copy; ${currentYear} News &amp; Media Sources API. Todos os direitos reservados.
-        </p>
-      </div>
-    </footer>
+    ${renderSiteFooterHtml(currentYear)}
   </main>
+  ${renderCookieBannerSnippet()}
 
   <script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
   <script>
@@ -683,8 +777,9 @@ function renderHomePage(baseUrl, baseDomain, sources, categories, mediaCount = 0
 </html>`;
 }
 
-function renderDocsPage(baseUrl, baseDomain) {
+function renderDocsPage(baseUrl, baseDomain, adsenseClientId = null) {
   const safeDomainHtml = escapeHtml(baseDomain || '');
+  const adsenseHeadTags = renderAdSenseHeadTags(adsenseClientId);
   return `<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -693,6 +788,7 @@ function renderDocsPage(baseUrl, baseDomain) {
   <title>RapiDoc - News &amp; Media Sources API</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="icon" href="/favicon.ico" sizes="any">
+  ${adsenseHeadTags ? adsenseHeadTags : ''}
   <script type="module" src="https://unpkg.com/rapidoc/dist/rapidoc-min.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
@@ -763,6 +859,17 @@ function renderDocsPage(baseUrl, baseDomain) {
       style="width: 100%; height: 100%; display: block;"
     ></rapi-doc>
   </main>
+
+  <footer class="flex-none bg-slate-900 border-t border-slate-800 px-4 sm:px-6 py-2 flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-400">
+    <span>&copy; ${new Date().getFullYear()} News &amp; Media Sources API</span>
+    <nav aria-label="Links institucionais e legais" class="flex flex-wrap items-center gap-4">
+      <a href="/" class="hover:text-white transition-colors">Início</a>
+      <a href="/sobre" class="hover:text-white transition-colors">Sobre</a>
+      <a href="/contato" class="hover:text-white transition-colors">Contato</a>
+      <a href="/politica-de-privacidade" class="hover:text-white transition-colors">Política de Privacidade</a>
+      <a href="/termos-de-uso" class="hover:text-white transition-colors">Termos de Uso</a>
+    </nav>
+  </footer>
 
   <!-- Authorize Modal Dialog -->
   <div id="auth-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onclick="closeAuthModal()">
@@ -932,17 +1039,245 @@ function renderDocsPage(baseUrl, baseDomain) {
       closeAuthModal();
     }
   </script>
+  ${renderCookieBannerSnippet()}
 </body>
 </html>`;
+}
+
+function renderInstitutionalShell({ title, subtitle, description, bodyHtml, adsenseClientId = null }) {
+  const adsenseHeadTags = renderAdSenseHeadTags(adsenseClientId);
+  const currentYear = new Date().getFullYear();
+  return `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${escapeHtml(title)} – News &amp; Media Sources API</title>
+  <meta name="description" content="${escapeHtml(description)}">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  ${adsenseHeadTags ? adsenseHeadTags : ''}
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="min-h-screen flex flex-col bg-slate-50 font-sans text-slate-900 antialiased">
+  <header class="bg-gradient-to-r from-slate-900 to-slate-800 text-white border-b border-slate-800">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+          <a href="/" class="w-10 h-10 rounded-lg bg-blue-600 hover:bg-blue-500 flex items-center justify-center shadow-md transition-colors shrink-0" aria-label="Início">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
+            </svg>
+          </a>
+          <div>
+            <h1 class="text-xl font-bold tracking-tight text-white">${escapeHtml(title)}</h1>
+            <p class="text-xs sm:text-sm text-slate-400 mt-0.5">${escapeHtml(subtitle)}</p>
+          </div>
+        </div>
+        <nav class="flex flex-wrap items-center gap-2">
+          <a href="/" class="inline-flex items-center gap-1.5 text-xs font-medium text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3 py-2 rounded-lg transition-colors">Início</a>
+          <a href="/docs" class="inline-flex items-center gap-1.5 text-xs font-medium text-white bg-blue-600 hover:bg-blue-500 px-3 py-2 rounded-lg transition-colors shadow-sm">Documentação</a>
+        </nav>
+      </div>
+    </div>
+  </header>
+  <main class="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-10">
+    ${bodyHtml}
+  </main>
+  ${renderSiteFooterHtml(currentYear)}
+  ${renderCookieBannerSnippet()}
+</body>
+</html>`;
+}
+
+function renderPrivacyPolicyPage(baseDomain, contactEmail, adsenseClientId = null) {
+  return renderInstitutionalShell({
+    title: 'Política de Privacidade',
+    subtitle: 'Transparência, cookies, Google AdSense e proteção de dados (LGPD / GDPR)',
+    description: 'Política de Privacidade, uso de cookies do Google AdSense (cookie DART), LGPD e proteção de dados.',
+    adsenseClientId,
+    bodyHtml: `<article class="bg-white border border-slate-200 rounded-2xl shadow-sm p-6 sm:p-10 space-y-8 text-slate-700 leading-relaxed">
+      <div class="border-b border-slate-200 pb-5">
+        <p class="text-xs font-semibold uppercase tracking-wider text-blue-600 mb-1">Documento Institucional</p>
+        <h2 class="text-2xl font-bold text-slate-900">Política de Privacidade e Uso de Cookies</h2>
+        <p class="text-xs text-slate-500 mt-2">Domínio: <span class="font-mono">${escapeHtml(baseDomain || 'nosso portal')}</span> &middot; Atualizado em novembro de 2026</p>
+      </div>
+      <section class="space-y-3">
+        <h3 class="text-lg font-bold text-slate-900">1. Compromisso com a Privacidade</h3>
+        <p class="text-sm sm:text-base">A sua privacidade é importante para o <strong>News &amp; Media Sources API</strong>. Esta Política descreve como tratamos informações durante a navegação nas páginas web e na documentação interativa, em conformidade com a LGPD (Lei nº 13.709/2018) e o GDPR.</p>
+      </section>
+      <section class="space-y-3 bg-blue-50/70 border border-blue-200 rounded-xl p-5">
+        <h3 class="text-lg font-bold text-slate-900">2. Google AdSense, Cookie DART e Cookies de Terceiros</h3>
+        <p class="text-sm sm:text-base">Utilizamos serviços de publicidade de terceiros, incluindo o <strong>Google AdSense</strong>, exclusivamente nas páginas públicas de conteúdo web:</p>
+        <ul class="list-disc pl-5 space-y-2 text-sm sm:text-base">
+          <li>O Google, como fornecedor de terceiros, utiliza cookies (incluindo o <strong>cookie DART</strong> e identificadores de publicidade) para exibir anúncios neste site com base nas visitas anteriores do usuário a este endereço e a outros sites na Internet.</li>
+          <li>Com a utilização do cookie DART, o Google e seus parceiros podem veicular anúncios relevantes com base nos seus interesses de navegação.</li>
+          <li>Você pode desativar a publicidade personalizada e o cookie DART acessando as <a href="https://adssettings.google.com" target="_blank" rel="noopener noreferrer" class="text-blue-700 hover:underline font-medium">Configurações de Anúncios do Google</a> ou <a href="https://www.aboutads.info/choices/" target="_blank" rel="noopener noreferrer" class="text-blue-700 hover:underline font-medium">aboutads.info</a>.</li>
+          <li>Ao clicar em &quot;Recusar&quot; no banner de consentimento, sinalizamos preferência por anúncios não personalizados e salvamos sua escolha localmente.</li>
+        </ul>
+      </section>
+      <section class="space-y-3">
+        <h3 class="text-lg font-bold text-slate-900">3. Armazenamento Local (LocalStorage)</h3>
+        <p class="text-sm sm:text-base">Armazenamos apenas sua preferência de consentimento (<code class="bg-slate-100 px-1.5 py-0.5 rounded font-mono text-xs">cookie_consent_status</code>) e, opcionalmente, sua chave de teste na documentação (<code class="bg-slate-100 px-1.5 py-0.5 rounded font-mono text-xs">news_api_key</code>).</p>
+      </section>
+      <section class="space-y-3">
+        <h3 class="text-lg font-bold text-slate-900">4. Contato</h3>
+        <p class="text-sm sm:text-base">Para dúvidas sobre privacidade ou solicitações sob a LGPD/GDPR, escreva para <a href="mailto:${escapeHtml(contactEmail)}" class="text-blue-600 hover:underline font-medium">${escapeHtml(contactEmail)}</a> ou acesse <a href="/contato" class="text-blue-600 hover:underline font-medium">/contato</a>.</p>
+      </section>
+    </article>`,
+  });
+}
+
+function renderTermsOfUsePage(contactEmail, adsenseClientId = null) {
+  return renderInstitutionalShell({
+    title: 'Termos de Uso',
+    subtitle: 'Condições gerais de utilização do portal e da documentação interativa',
+    description: 'Termos e condições gerais de uso do portal News & Media Sources API.',
+    adsenseClientId,
+    bodyHtml: `<article class="bg-white border border-slate-200 rounded-2xl shadow-sm p-6 sm:p-10 space-y-8 text-slate-700 leading-relaxed">
+      <div class="border-b border-slate-200 pb-5">
+        <p class="text-xs font-semibold uppercase tracking-wider text-blue-600 mb-1">Documento Legal</p>
+        <h2 class="text-2xl font-bold text-slate-900">Termos e Condições de Uso</h2>
+        <p class="text-xs text-slate-500 mt-2">Atualizado em novembro de 2026</p>
+      </div>
+      <section class="space-y-3">
+        <h3 class="text-lg font-bold text-slate-900">1. Aceitação</h3>
+        <p class="text-sm sm:text-base">Ao acessar este site e sua documentação técnica, você concorda com estes Termos de Uso e com a <a href="/politica-de-privacidade" class="text-blue-600 hover:underline font-medium">Política de Privacidade</a>.</p>
+      </section>
+      <section class="space-y-3">
+        <h3 class="text-lg font-bold text-slate-900">2. Uso Permitido</h3>
+        <p class="text-sm sm:text-base">O acesso aos endpoints autenticados requer credencial válida. É proibido realizar varreduras abusivas, tentativas de negação de serviço ou redistribuição sem observância dos créditos dos veículos originais.</p>
+      </section>
+      <section class="space-y-3">
+        <h3 class="text-lg font-bold text-slate-900">3. Disponibilidade e Publicidade</h3>
+        <p class="text-sm sm:text-base">As páginas web podem exibir anúncios automáticos do Google AdSense. Não nos responsabilizamos pela indisponibilidade de servidores de origem externos.</p>
+      </section>
+      <section class="space-y-3">
+        <h3 class="text-lg font-bold text-slate-900">4. Contato Legal</h3>
+        <p class="text-sm sm:text-base">Dúvidas podem ser enviadas para <a href="mailto:${escapeHtml(contactEmail)}" class="text-blue-600 hover:underline font-medium">${escapeHtml(contactEmail)}</a> ou via <a href="/contato" class="text-blue-600 hover:underline font-medium">/contato</a>.</p>
+      </section>
+    </article>`,
+  });
+}
+
+function renderContactPage(baseDomain, contactEmail, adsenseClientId = null) {
+  return renderInstitutionalShell({
+    title: 'Contato',
+    subtitle: 'Fale conosco sobre suporte técnico, parcerias e privacidade',
+    description: 'Canal oficial de contato do News & Media Sources API.',
+    adsenseClientId,
+    bodyHtml: `<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div class="lg:col-span-2 bg-white border border-slate-200 rounded-2xl shadow-sm p-6 sm:p-8">
+        <h2 class="text-xl font-bold text-slate-900 mb-2">Envie uma mensagem</h2>
+        <p class="text-sm text-slate-600 mb-6">Preencha o formulário abaixo para entrar em contato com nossa equipe.</p>
+        <div id="contact-feedback" class="hidden mb-4 p-4 rounded-xl text-sm"></div>
+        <form id="worker-contact-form" onsubmit="return submitWorkerContact(event)" class="space-y-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label for="contact-name" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Nome completo</label>
+              <input id="contact-name" type="text" required placeholder="Seu nome" class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-sm">
+            </div>
+            <div>
+              <label for="contact-email" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">E-mail</label>
+              <input id="contact-email" type="email" required placeholder="voce@exemplo.com.br" class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-sm">
+            </div>
+          </div>
+          <div>
+            <label for="contact-subject" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Assunto</label>
+            <input id="contact-subject" type="text" required placeholder="Dúvida técnica, parceria ou privacidade" class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-sm">
+          </div>
+          <div>
+            <label for="contact-message" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Mensagem</label>
+            <textarea id="contact-message" rows="5" required placeholder="Escreva sua mensagem..." class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-sm"></textarea>
+          </div>
+          <button type="submit" class="px-5 py-2.5 rounded-lg text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-colors">Enviar Mensagem</button>
+        </form>
+        <script>
+          function submitWorkerContact(e) {
+            e.preventDefault();
+            var name = document.getElementById('contact-name').value.trim();
+            var email = document.getElementById('contact-email').value.trim();
+            var subject = document.getElementById('contact-subject').value.trim();
+            var message = document.getElementById('contact-message').value.trim();
+            var fb = document.getElementById('contact-feedback');
+            if (!name || !email || !subject || !message) {
+              fb.className = 'mb-4 p-4 rounded-xl text-sm bg-red-50 border border-red-200 text-red-700';
+              fb.textContent = 'Por favor, preencha todos os campos obrigatórios.';
+              return false;
+            }
+            fb.className = 'mb-4 p-4 rounded-xl text-sm bg-emerald-50 border border-emerald-200 text-emerald-800';
+            fb.textContent = 'Mensagem registrada! Obrigado pelo contato, ' + name + '. Caso precise de resposta urgente, envie para ${escapeHtml(contactEmail)}.';
+            document.getElementById('worker-contact-form').reset();
+            return false;
+          }
+        </script>
+      </div>
+      <aside class="space-y-4">
+        <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-6 space-y-4">
+          <h3 class="font-bold text-slate-900 text-base">Canais Diretos</h3>
+          <div>
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider block">E-mail Oficial</span>
+            <a href="mailto:${escapeHtml(contactEmail)}" class="text-sm font-medium text-blue-600 hover:underline break-all">${escapeHtml(contactEmail)}</a>
+          </div>
+          <div>
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider block">Atendimento</span>
+            <p class="text-sm text-slate-700">Segunda a sexta-feira, das 08h às 18h (Brasília)</p>
+          </div>
+        </div>
+        <div class="bg-slate-900 text-slate-200 rounded-2xl p-5 border border-slate-800 text-xs space-y-1">
+          <p class="font-semibold text-white">Ambiente Ativo</p>
+          <p class="font-mono text-blue-300 break-all">${escapeHtml(baseDomain || 'Portal Web')}</p>
+        </div>
+      </aside>
+    </div>`,
+  });
+}
+
+function renderAboutPage(sourcesCount, mediaCount, categoriesCount, adsenseClientId = null) {
+  return renderInstitutionalShell({
+    title: 'Sobre o Projeto',
+    subtitle: 'Missão, arquitetura técnica e transparência do News & Media Sources API',
+    description: 'Conheça o projeto News & Media Sources API e sua arquitetura unificada.',
+    adsenseClientId,
+    bodyHtml: `<section class="bg-white border border-slate-200 rounded-2xl shadow-sm p-6 sm:p-10 space-y-5">
+      <p class="text-xs font-semibold uppercase tracking-wider text-blue-600">Quem Somos</p>
+      <h2 class="text-2xl font-bold text-slate-900">Infraestrutura unificada para leitura e organização de fontes jornalísticas</h2>
+      <p class="text-sm sm:text-base text-slate-700 leading-relaxed">O <strong>News &amp; Media Sources API</strong> centraliza, padroniza e documenta fontes públicas de notícias e mídia de todo o Brasil, oferecendo documentação interativa em Swagger UI e RapiDoc.</p>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-3">
+        <div class="bg-slate-50 border border-slate-200 rounded-xl p-4">
+          <span class="text-xs text-slate-500 block">Fontes Catalogadas</span>
+          <span class="text-2xl font-bold text-blue-600">${sourcesCount}</span>
+        </div>
+        <div class="bg-slate-50 border border-slate-200 rounded-xl p-4">
+          <span class="text-xs text-slate-500 block">Endpoints de Mídia</span>
+          <span class="text-2xl font-bold text-emerald-600">${mediaCount}</span>
+        </div>
+        <div class="bg-slate-50 border border-slate-200 rounded-xl p-4">
+          <span class="text-xs text-slate-500 block">Categorias Ativas</span>
+          <span class="text-2xl font-bold text-purple-600">${categoriesCount}</span>
+        </div>
+      </div>
+    </section>`,
+  });
 }
 
 const worker = {
   async fetch(request, env, ctx) {
     try {
+      // 0. Habilitar fallback direto TLS/TCP via cloudflare:sockets quando em execução no Cloudflare Workers
+      if (isCloudflareWorkersRuntime()) {
+        setCloudflareSocketConnector(cfSocketConnector);
+      }
+
       // 1. Injetar variáveis do Cloudflare Worker no process.env e globalThis (sanitizando "/" ou "default")
       if (typeof process !== 'undefined' && process.env) {
         for (const key of URL_ENV_KEYS) {
           if (!env || !(key in env) || isInvalidUrlEnvVal(key, env[key]) || isInvalidUrlEnvVal(key, process.env[key])) {
+            delete process.env[key];
+          }
+        }
+        for (const key of WORKER_ADSENSE_ENV_KEYS) {
+          if (!env || !(key in env) || !env[key]) {
             delete process.env[key];
           }
         }
@@ -1007,6 +1342,44 @@ const worker = {
       });
     }
 
+    const baseUrl = getBaseUrl(request);
+    const baseDomain = getBaseDomain(request);
+    const adsenseClientId = resolveAdSenseClientId(env);
+
+    // 2.2. Arquivos estáticos SEO / AdSense na raiz (/) antes de ASSETS
+    if (pathname === '/ads.txt') {
+      return new Response(buildAdsTxtContent(adsenseClientId), {
+        status: 200,
+        headers: {
+          'Content-Type': 'text/plain; charset=utf-8',
+          'Cache-Control': 'public, max-age=3600',
+          'Access-Control-Allow-Origin': '*',
+        },
+      });
+    }
+
+    if (pathname === '/robots.txt') {
+      return new Response(buildRobotsTxtContent(baseUrl), {
+        status: 200,
+        headers: {
+          'Content-Type': 'text/plain; charset=utf-8',
+          'Cache-Control': 'public, max-age=3600',
+          'Access-Control-Allow-Origin': '*',
+        },
+      });
+    }
+
+    if (pathname === '/sitemap.xml') {
+      return new Response(buildSitemapXmlContent(baseUrl), {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/xml; charset=utf-8',
+          'Cache-Control': 'public, max-age=3600',
+          'Access-Control-Allow-Origin': '*',
+        },
+      });
+    }
+
     // 3. Tentar servir assets estáticos primeiro se for asset específico
     if (
       env?.ASSETS &&
@@ -1019,20 +1392,35 @@ const worker = {
       }
     }
 
-    const baseUrl = getBaseUrl(request);
-    const baseDomain = getBaseDomain(request);
-
     // 4. FRONTEND: Rota Raiz (/) -> Renderiza Explorer + Swagger UI idêntico ao Next.js
     if (pathname === '/' || pathname === '/index.html') {
       const sources = getAllSources(request);
       const mediaSources = getAllMediaSources(request);
       const categories = getCategories(request).map((c) => c.category);
-      return htmlResponse(renderHomePage(baseUrl, baseDomain, sources, categories, mediaSources.length));
+      return htmlResponse(renderHomePage(baseUrl, baseDomain, sources, categories, mediaSources.length, adsenseClientId));
     }
 
     // 5. FRONTEND: Rota de Documentação RapiDoc (/docs)
     if (pathname === '/docs' || pathname === '/docs/') {
-      return htmlResponse(renderDocsPage(baseUrl, baseDomain));
+      return htmlResponse(renderDocsPage(baseUrl, baseDomain, adsenseClientId));
+    }
+
+    // 5.0.1. FRONTEND: Páginas Institucionais e Legais (Google AdSense / LGPD / SEO)
+    const contactEmail = formatAppEmail('contato', request);
+    if (pathname === '/politica-de-privacidade' || pathname === '/politica-de-privacidade/') {
+      return htmlResponse(renderPrivacyPolicyPage(baseDomain, contactEmail, adsenseClientId));
+    }
+    if (pathname === '/termos-de-uso' || pathname === '/termos-de-uso/') {
+      return htmlResponse(renderTermsOfUsePage(contactEmail, adsenseClientId));
+    }
+    if (pathname === '/contato' || pathname === '/contato/') {
+      return htmlResponse(renderContactPage(baseDomain, contactEmail, adsenseClientId));
+    }
+    if (pathname === '/sobre' || pathname === '/sobre/') {
+      const sources = getAllSources(request);
+      const mediaSources = getAllMediaSources(request);
+      const categories = getCategories(request);
+      return htmlResponse(renderAboutPage(sources.length, mediaSources.length, categories.length, adsenseClientId));
     }
 
     // 5.1. ENDPOINT: Página Inicial da API em JSON (/api ou /api/)
@@ -1092,13 +1480,9 @@ const worker = {
         testUrl.searchParams.set('page', '1');
         testUrl.searchParams.set('_embed', '1');
 
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 6000);
-        const res = await fetch(testUrl.toString(), {
-          headers: { 'User-Agent': 'NewsAPI-SyncMonitor/1.0', 'Accept': 'application/json' },
-          signal: controller.signal,
+        const res = await resilientFetch(testUrl.toString(), primaryTargetUrl, true, undefined, false, {
+          perAttemptTimeoutMs: 6000,
         });
-        clearTimeout(timeout);
         latencyMs = Date.now() - startTime;
 
         if (res.ok) {

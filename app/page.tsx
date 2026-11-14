@@ -3,6 +3,7 @@ import { getAllSources, getAllMediaSources, getCategories, getTypes, getBaseUrl,
 import Link from 'next/link';
 import { BookOpen, KeyRound } from 'lucide-react';
 import HomePageTabs from '@/components/HomePageTabs';
+import SiteFooter from '@/components/SiteFooter';
 
 export const dynamic = 'force-dynamic';
 
@@ -692,13 +693,7 @@ export default async function Home() {
         />
       </div>
 
-      <footer className="border-t border-slate-200 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 text-center">
-          <p className="text-sm text-slate-500">
-            &copy; {new Date().getFullYear()} News & Media Sources API. Todos os direitos reservados.
-          </p>
-        </div>
-      </footer>
+      <SiteFooter />
     </main>
   );
 }
