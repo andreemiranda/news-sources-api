@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { validateApiKey, unauthorizedResponse } from '@/lib/auth';
-import { getAllMediaSources, getMediaSourceById, getBaseUrl } from '@/lib/sources';
+import { getAllMediaSources, getMediaSourceById, getBaseUrl, getBaseDomain } from '@/lib/sources';
 import { getCachedMediaContent } from '@/lib/next-cache';
 import { toCleanSource, paginateWithHateoas } from '@/lib/hateoas';
 
@@ -13,11 +13,12 @@ export async function GET(req: NextRequest) {
   const url = new URL(req.url);
   const idParam = url.searchParams.get('id');
   const baseUrl = getBaseUrl(req);
+  const baseDomain = getBaseDomain(req);
   const format = url.searchParams.get('format');
 
   // Se ?id= for passado diretamente em /api/images
   if (idParam) {
-    const source = getMediaSourceById(idParam);
+    const source = getMediaSourceById(idParam, req);
     if (!source) {
       return NextResponse.json(
         { success: false, error: `Image source with id '${idParam}' not found.` },
@@ -30,7 +31,7 @@ export async function GET(req: NextRequest) {
     const search = url.searchParams.get('search') || '';
 
     try {
-      const data = await getCachedMediaContent(String(source.id), page, limit, search);
+      const data = await getCachedMediaContent(String(source.id), page, limit, search, baseDomain);
 
       const itemsWithHateoas = data.items.map((item) => ({
         ...item,
@@ -82,7 +83,7 @@ export async function GET(req: NextRequest) {
   const limitParam = url.searchParams.get('limit') || url.searchParams.get('per_page') || '100';
   const limit = parseInt(limitParam, 10);
   const activeParam = url.searchParams.get('active');
-  let sources = getAllMediaSources();
+  let sources = getAllMediaSources(req);
 
   if (activeParam !== null && activeParam !== undefined && activeParam !== '') {
     const isActive = activeParam.toLowerCase() === 'true';

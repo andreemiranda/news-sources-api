@@ -3,11 +3,15 @@ import { getSourceById, getMediaSourceById } from './sources';
 import { fetchSourceContent, fetchMediaContent } from './content';
 
 export const getCachedSourceContent = unstable_cache(
-  async (id: string, page: number, limit: number, search: string = '') => {
-    const source = getSourceById(id);
-    if (!source) {
+  async (id: string, page: number, limit: number, search: string = '', baseDomain?: string) => {
+    const baseSource = getSourceById(id);
+    if (!baseSource) {
       throw new Error(`News source with id '${id}' not found.`);
     }
+    const source =
+      baseDomain && (!baseSource.site || baseSource.site === 'localhost')
+        ? { ...baseSource, site: baseDomain }
+        : baseSource;
     return fetchSourceContent(source, { page, limit, search: search || undefined });
   },
   ['source-content'],
@@ -18,11 +22,15 @@ export const getCachedSourceContent = unstable_cache(
 );
 
 export const getCachedMediaContent = unstable_cache(
-  async (id: string, page: number, limit: number, search: string = '') => {
-    const source = getMediaSourceById(id);
-    if (!source) {
+  async (id: string, page: number, limit: number, search: string = '', baseDomain?: string) => {
+    const baseSource = getMediaSourceById(id);
+    if (!baseSource) {
       throw new Error(`Image source with id '${id}' not found.`);
     }
+    const source =
+      baseDomain && (!baseSource.site || baseSource.site === 'localhost')
+        ? { ...baseSource, site: baseDomain }
+        : baseSource;
     return fetchMediaContent(source, { page, limit, search: search || undefined });
   },
   ['media-content'],

@@ -11,6 +11,14 @@ import { BUILD_ID } from '@/src/config/version';
 export const metadata: Metadata = {
   title: 'News Sources API',
   description: 'API REST para acesso a fontes de notícias brasileiras com documentação interativa via Swagger UI e RapiDoc.',
+  icons: {
+    icon: [
+      { url: '/icon.svg', type: 'image/svg+xml' },
+      { url: '/favicon.ico', sizes: '32x32' },
+    ],
+    shortcut: '/favicon.ico',
+    apple: '/icon.svg',
+  },
   openGraph: {
     title: 'News Sources API',
     description: 'API REST para acesso a fontes de notícias brasileiras com documentação interativa via Swagger UI e RapiDoc.',

@@ -5,9 +5,11 @@ import {
   resolveWpTotalCount,
   fetchSourceContent,
   clearPreferredHostTiers,
+  formatHttpStatusError,
 } from './lib/content';
 import { getDetailedNewsStats, clearStatsCache } from './lib/stats';
 import { getAllSources } from './lib/sources';
+import worker from './worker.js';
 
 async function testOriginalNacaoJuridicaFeed() {
   console.log('\n[1/9] Teste original: https://www.nacaojuridica.com.br/feed/');
@@ -415,6 +417,86 @@ async function testWorkersSubrequestBudgetAndLiveComparison() {
   }
 }
 
+async function testHttp525RecoveryCustomDomainAndFavicon() {
+  console.log('\n[10/10] Cenário: Recuperação de HTTP 525, subdomínio news.normajuridica.com.br (sem localhost) e Favicons');
+  assert.equal(formatHttpStatusError(525, '<none>'), 'SSL Handshake Failed');
+  assert.equal(formatHttpStatusError(526, ''), 'Invalid SSL Certificate');
+
+  const g1SampleXml = `<?xml version="1.0" encoding="UTF-8"?>
+    <rss version="2.0"><channel><title>G1 Tocantins</title>
+      <item><title>Notícia Tocantins recuperada</title><description>Conteúdo jornalístico completo recuperado após fallback canônico contra HTTP 525.</description><guid>to-1</guid></item>
+    </channel></rss>`;
+
+  // 10a. Simula Worker no subdomínio customizado com 525 persistente -> erro não pode conter localhost nem <none>
+  await withMockedFetch(async () => new Response('', { status: 525, statusText: '<none>' }), async () => {
+    const req = new Request('https://news.normajuridica.com.br/api/news/7915414156447', {
+      headers: { host: 'news.normajuridica.com.br', 'x-api-key': 'test-key' },
+    });
+    const res = await worker.fetch(req, { API_KEY: 'test-key' }, {} as any);
+    assert.equal(res.status, 502);
+    const body = await res.json();
+    assert.equal(body.success, false);
+    assert.ok(!body.error.includes('localhost'), `Erro não deve conter localhost: ${body.error}`);
+    assert.ok(!body.error.includes('<none>'), `Erro não deve conter <none>: ${body.error}`);
+    assert.ok(body.error.includes('news.normajuridica.com.br'), `Erro deve refletir o domínio real: ${body.error}`);
+    assert.ok(body.error.includes('SSL Handshake Failed'), `Erro deve descrever HTTP 525: ${body.error}`);
+  });
+
+  // 10b. Simula /dynamo/.../rss2.xml retornando HTTP 525 e endpoint canônico /rss/g1/to/tocantins/ retornando 200
+  await withMockedFetch(async (url) => {
+    if (url.includes('/dynamo/to/tocantins/rss2.xml')) {
+      return new Response('', { status: 525, statusText: '<none>' });
+    }
+    if (url.includes('/rss/g1/to/tocantins/')) {
+      return new Response(g1SampleXml, { status: 200, headers: { 'Content-Type': 'application/xml' } });
+    }
+    return new Response('Not Found', { status: 404 });
+  }, async () => {
+    const req = new Request('https://news.normajuridica.com.br/api/news/7915414156447', {
+      headers: { host: 'news.normajuridica.com.br', 'x-api-key': 'test-key' },
+    });
+    const res = await worker.fetch(req, { API_KEY: 'test-key' }, {} as any);
+    assert.equal(res.status, 200);
+    const body = await res.json();
+    assert.equal(body.items.length, 1);
+    assert.equal(body.items[0].title, 'Notícia Tocantins recuperada');
+    assert.ok(body._links.self.href.startsWith('https://news.normajuridica.com.br/api/news/7915414156447'));
+  });
+
+  // 10c. Simula fallback http:// quando https:// retorna 525
+  await withMockedFetch(async (url) => {
+    if (url.startsWith('https://')) {
+      return new Response('', { status: 525, statusText: '<none>' });
+    }
+    if (url.startsWith('http://')) {
+      return new Response('[{"id":77}]', { status: 200, headers: { 'Content-Type': 'application/json', 'x-wp-total': '1' } });
+    }
+    return new Response('', { status: 404 });
+  }, async () => {
+    const res = await resilientFetch('https://tls-broken.example.com/wp-json/wp/v2/posts', 'news.normajuridica.com.br', true);
+    assert.equal(res.status, 200);
+  });
+
+  // 10d. Valida rotas de favicon e links no HTML do Worker (/ e /docs)
+  const icoRes = await worker.fetch(new Request('https://news.normajuridica.com.br/favicon.ico'), {}, {} as any);
+  assert.equal(icoRes.status, 200);
+  assert.equal(icoRes.headers.get('content-type'), 'image/x-icon');
+
+  const svgRes = await worker.fetch(new Request('https://news.normajuridica.com.br/favicon.svg'), {}, {} as any);
+  assert.equal(svgRes.status, 200);
+  assert.ok((svgRes.headers.get('content-type') || '').includes('image/svg+xml'));
+
+  const homeRes = await worker.fetch(new Request('https://news.normajuridica.com.br/'), {}, {} as any);
+  const homeHtml = await homeRes.text();
+  assert.ok(homeHtml.includes('href="/favicon.svg"') && homeHtml.includes('href="/favicon.ico"'));
+
+  const docsRes = await worker.fetch(new Request('https://news.normajuridica.com.br/docs'), {}, {} as any);
+  const docsHtml = await docsRes.text();
+  assert.ok(docsHtml.includes('href="/favicon.svg"') && docsHtml.includes('href="/favicon.ico"'));
+
+  console.log('  OK: Recuperação 525, domínio news.normajuridica.com.br sem localhost e favicons validados.');
+}
+
 async function runAll() {
   await testOriginalNacaoJuridicaFeed();
   await testNormalFetchAndEditorialFiltering();
@@ -425,6 +507,7 @@ async function runAll() {
   await testAtomAndInvalidHtmlRejection();
   await testLastKnownGoodAndRecovery();
   await testWorkersSubrequestBudgetAndLiveComparison();
+  await testHttp525RecoveryCustomDomainAndFavicon();
   console.log('\nALL TESTS PASSED!');
 }
 

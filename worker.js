@@ -26,6 +26,24 @@ const URL_ENV_KEYS = new Set([
   'NEXT_PUBLIC_BASE_URL',
 ]);
 
+const FAVICON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <rect width="64" height="64" rx="14" fill="#2563eb"/>
+  <path d="M46 48H18a4 4 0 0 1-4-4V20a4 4 0 0 1 4-4h20a4 4 0 0 1 4 4v2m4 26a4 4 0 0 1-4-4V24m4 24a4 4 0 0 0 4-4V28a4 4 0 0 0-4-4h-4m-10-4h-8m-4 20h12M20 26h12v8H20v-8Z" fill="none" stroke="#ffffff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>`;
+
+const FAVICON_ICO_BASE64 =
+  'AAABAAEAICAAAAEAIACnAAAAFgAAAIlQTkcNChoKAAAADUlIRFIAAAAgAAAAIAgGAAAAc3p69AAAAG5JREFUeJxjYEADqsmv/9MSo9tHN4vxOoTelmM4YkAdMFCWwx0x6gBcEpSC4eMAUoOUJg4gxcfD2wHEBDkhBw5tB5ATBcPDAaTg4ekAYsHwdcBoFAxoCFALDD0H0AuPOmDgOyaDwgED3jkdyO45AIKz2T9JMzYtAAAAAElFTkSuQmCC';
+
+function decodeBase64Bytes(b64) {
+  if (typeof atob === 'function') {
+    const bin = atob(b64);
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return bytes;
+  }
+  return Buffer.from(b64, 'base64');
+}
+
 function isInvalidUrlEnvVal(key, value) {
   if (!URL_ENV_KEYS.has(key)) return false;
   const v = String(value ?? '').trim();
@@ -138,6 +156,8 @@ function renderHomePage(baseUrl, baseDomain, sources, categories, mediaCount = 0
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>News &amp; Media Sources API - Documentação Interativa</title>
   <meta name="description" content="API REST de alta performance para consulta e extração unificada de fontes de notícias e imagens jornalísticas.">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="icon" href="/favicon.ico" sizes="any">
   <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5/swagger-ui.css">
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
@@ -671,6 +691,8 @@ function renderDocsPage(baseUrl, baseDomain) {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>RapiDoc - News &amp; Media Sources API</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="icon" href="/favicon.ico" sizes="any">
   <script type="module" src="https://unpkg.com/rapidoc/dist/rapidoc-min.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
@@ -920,7 +942,7 @@ const worker = {
       // 1. Injetar variáveis do Cloudflare Worker no process.env e globalThis (sanitizando "/" ou "default")
       if (typeof process !== 'undefined' && process.env) {
         for (const key of URL_ENV_KEYS) {
-          if (isInvalidUrlEnvVal(key, process.env[key])) {
+          if (!env || !(key in env) || isInvalidUrlEnvVal(key, env[key]) || isInvalidUrlEnvVal(key, process.env[key])) {
             delete process.env[key];
           }
         }
@@ -958,6 +980,29 @@ const worker = {
           'Access-Control-Allow-Origin': '*',
           'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
           'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-api-key',
+        },
+      });
+    }
+
+    // 2.1. Servir Favicon SVG/ICO diretamente em todas as plataformas Cloudflare
+    if (pathname === '/favicon.svg' || pathname === '/icon.svg') {
+      return new Response(FAVICON_SVG, {
+        status: 200,
+        headers: {
+          'Content-Type': 'image/svg+xml; charset=utf-8',
+          'Cache-Control': 'public, max-age=86400',
+          'Access-Control-Allow-Origin': '*',
+        },
+      });
+    }
+
+    if (pathname === '/favicon.ico') {
+      return new Response(decodeBase64Bytes(FAVICON_ICO_BASE64), {
+        status: 200,
+        headers: {
+          'Content-Type': 'image/x-icon',
+          'Cache-Control': 'public, max-age=86400',
+          'Access-Control-Allow-Origin': '*',
         },
       });
     }
@@ -1225,7 +1270,7 @@ const worker = {
 
       // Se for consulta com ?id=, busca conteúdo da fonte
       if (idParam) {
-        const source = getMediaSourceById(idParam) || getSourceById(idParam);
+        const source = getMediaSourceById(idParam, request) || getSourceById(idParam, request);
         if (!source) {
           return jsonResponse({ success: false, error: `Image source with id '${idParam}' not found.` }, 404);
         }
@@ -1337,7 +1382,7 @@ const worker = {
     if (imagesMatch) {
       if (!validateKey(request, env)) return unauthorizedResponse();
       const id = imagesMatch[1];
-      const source = getMediaSourceById(id) || getSourceById(id);
+      const source = getMediaSourceById(id, request) || getSourceById(id, request);
       if (!source) {
         return jsonResponse({ success: false, error: `Image source with id '${id}' not found.` }, 404);
       }
@@ -1454,7 +1499,7 @@ const worker = {
     if (newsIdMatch) {
       if (!validateKey(request, env)) return unauthorizedResponse();
       const id = newsIdMatch[1];
-      const source = getSourceById(id);
+      const source = getSourceById(id, request);
       if (!source) {
         return jsonResponse({ success: false, error: `News source with id '${id}' not found.` }, 404);
       }
@@ -1634,6 +1679,8 @@ const worker = {
 <head>
   <meta charset="utf-8">
   <title>News & Media Sources API - Worker Error</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="icon" href="/favicon.ico" sizes="any">
   <style>
     body { font-family: system-ui, -apple-system, sans-serif; background: #0f172a; color: #f8fafc; padding: 2rem; }
     .card { background: #1e293b; border-radius: 12px; padding: 2rem; max-width: 800px; margin: 2rem auto; border: 1px solid #334155; }

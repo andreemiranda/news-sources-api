@@ -811,7 +811,7 @@ export function parseRssFeed(
   return { feed, items, rawItemCount, filteredOutCount, isValidFeed: true };
 }
 
-type UserAgentTier = 'chrome' | 'googlebot' | 'facebookbot';
+type UserAgentTier = 'chrome' | 'googlebot' | 'facebookbot' | 'minimal';
 
 const preferredTierByHost = new Map<string, { tier: UserAgentTier; expiresAt: number }>();
 const PREFERRED_TIER_TTL_MS = 5 * 60 * 1000;
@@ -830,23 +830,93 @@ export function isCloudflareWorkersRuntime(): boolean {
   return false;
 }
 
+export function formatHttpStatusError(status: number, statusText?: string | null): string {
+  const cleaned = (statusText || '').trim();
+  const hasValidText =
+    Boolean(cleaned) &&
+    cleaned.toLowerCase() !== '<none>' &&
+    cleaned.toLowerCase() !== 'none' &&
+    cleaned.toLowerCase() !== 'unknown';
+  if (hasValidText) return cleaned;
+
+  const statusMap: Record<number, string> = {
+    400: 'Bad Request',
+    401: 'Unauthorized',
+    403: 'Forbidden',
+    404: 'Not Found',
+    406: 'Not Acceptable',
+    429: 'Too Many Requests',
+    500: 'Internal Server Error',
+    502: 'Bad Gateway',
+    503: 'Service Unavailable',
+    504: 'Gateway Timeout',
+    520: 'Web Server Returned an Unknown Error',
+    521: 'Web Server Is Down',
+    522: 'Connection Timed Out',
+    523: 'Origin Is Unreachable',
+    524: 'A Timeout Occurred',
+    525: 'SSL Handshake Failed',
+    526: 'Invalid SSL Certificate',
+    530: 'Origin DNS Error',
+  };
+  return statusMap[status] || 'HTTP Error';
+}
+
+function formatUpstreamHttpError(status: number, statusText?: string | null): string {
+  const text = formatHttpStatusError(status, statusText);
+  if ((status === 525 || status === 526) && isCloudflareWorkersRuntime()) {
+    return `Upstream returned HTTP ${status}: ${text} (verifique no painel Cloudflare da zona se SSL/TLS está em "Full" ou "Full (Strict)" em vez de "Flexible" e prefira vincular via Workers Custom Domain)`;
+  }
+  return `Upstream returned HTTP ${status}: ${text}`;
+}
+
+export function getCanonicalG1RssFallbackUrl(url: string): string | null {
+  try {
+    const parsed = new URL(url);
+    if (parsed.hostname.toLowerCase() === 'g1.globo.com') {
+      const dynamoMatch = parsed.pathname.match(/^\/dynamo\/(.+?)\/rss2\.xml$/i);
+      if (dynamoMatch && dynamoMatch[1]) {
+        return `https://g1.globo.com/rss/g1/${dynamoMatch[1].replace(/^\/+|\/+$/g, '')}/`;
+      }
+    }
+  } catch {
+    // ignore invalid url
+  }
+  return null;
+}
+
+function isRetryableEdgeOrBlockStatus(status: number): boolean {
+  return (
+    status === 401 ||
+    status === 403 ||
+    status === 406 ||
+    status === 502 ||
+    status === 503 ||
+    status === 504 ||
+    (status >= 520 && status <= 530)
+  );
+}
+
 function buildPlatformFetchInit(
   headers: Record<string, string>,
   signal: AbortSignal,
-  bypassCache: boolean
+  bypassCache: boolean,
+  extra?: { redirect?: RequestRedirect }
 ): RequestInit {
   if (isCloudflareWorkersRuntime()) {
     // Cloudflare Workers pode lançar TypeError ao receber `cache: 'no-store'` sem flag específica
-    return { headers, signal };
+    return extra?.redirect ? { headers, signal, redirect: extra.redirect } : { headers, signal };
   }
 
-  return bypassCache
+  const baseInit: RequestInit = bypassCache
     ? { headers, signal, cache: 'no-store' }
     : {
         headers,
         signal,
         next: { revalidate: 20, tags: ['news', 'sources', 'wordpress', 'content'] },
       };
+
+  return extra?.redirect ? { ...baseInit, redirect: extra.redirect } : baseInit;
 }
 
 export async function fetchWithIndependentTimeout(
@@ -944,6 +1014,12 @@ export async function resilientFetch(
         'Referer': refererUrl,
       };
     }
+    if (tier === 'minimal') {
+      return {
+        'User-Agent': 'Mozilla/5.0 (compatible; NewsReader/1.0)',
+        'Accept': isJson ? 'application/json, */*' : 'application/rss+xml, application/xml, text/xml, */*',
+      };
+    }
     return {
       'User-Agent':
         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
@@ -958,7 +1034,7 @@ export async function resilientFetch(
 
   // Monta sequência de tentativas por hostname (sem bloqueio global entre domínios)
   const cachedTierEntry = preferredTierByHost.get(targetHost);
-  const baseOrder: UserAgentTier[] = ['chrome', 'googlebot', 'facebookbot'];
+  const baseOrder: UserAgentTier[] = ['chrome', 'googlebot', 'facebookbot', 'minimal'];
   let tierOrder: UserAgentTier[] = baseOrder;
   if (cachedTierEntry && cachedTierEntry.expiresAt > Date.now() && cachedTierEntry.tier !== 'chrome') {
     tierOrder = [cachedTierEntry.tier, ...baseOrder.filter((t) => t !== cachedTierEntry.tier)];
@@ -994,8 +1070,7 @@ export async function resilientFetch(
       }
 
       lastResponse = res;
-      const isAuthOrBlockError = res.status === 401 || res.status === 403 || res.status === 503;
-      if (!isAuthOrBlockError) {
+      if (!isRetryableEdgeOrBlockStatus(res.status)) {
         return res;
       }
     } catch (err: any) {
@@ -1005,6 +1080,65 @@ export async function resilientFetch(
         throw err;
       }
       // Se falhou na primeira tentativa (ex.: timeout ou bloqueio de socket por UA), continua para próximo tier
+    }
+  }
+
+  // Fallback específico para falhas de handshake SSL/TLS (HTTP 525 / 526) em HTTPS
+  const failedWithSslHandshake =
+    lastResponse && (lastResponse.status === 525 || lastResponse.status === 526);
+  if (failedWithSslHandshake && (!shouldContinue || shouldContinue())) {
+    const canonicalG1 = getCanonicalG1RssFallbackUrl(url);
+    if (canonicalG1 && canonicalG1 !== url) {
+      try {
+        const g1Res = await fetchWithIndependentTimeout(
+          canonicalG1,
+          (attemptSignal) => buildPlatformFetchInit(getHeadersForTier('minimal'), attemptSignal, bypassCache),
+          signal,
+          perAttemptTimeoutMs,
+          onSubrequest
+        );
+        if (g1Res.ok) return g1Res;
+      } catch {
+        // segue para fallback http://
+      }
+    }
+
+    if (url.toLowerCase().startsWith('https://')) {
+      const httpUrl = `http://${url.slice(8)}`;
+      try {
+        const httpRes = await fetchWithIndependentTimeout(
+          httpUrl,
+          (attemptSignal) =>
+            buildPlatformFetchInit(getHeadersForTier('minimal'), attemptSignal, bypassCache, {
+              redirect: 'manual',
+            }),
+          signal,
+          perAttemptTimeoutMs,
+          onSubrequest
+        );
+        if (httpRes.ok) {
+          return httpRes;
+        }
+        if (httpRes.status >= 300 && httpRes.status < 400) {
+          const loc = httpRes.headers.get('location');
+          if (loc) {
+            const resolvedLoc = new URL(loc, httpUrl).toString();
+            if (resolvedLoc !== url && resolvedLoc !== httpUrl && (!shouldContinue || shouldContinue())) {
+              const followedRes = await fetchWithIndependentTimeout(
+                resolvedLoc,
+                (attemptSignal) =>
+                  buildPlatformFetchInit(getHeadersForTier('minimal'), attemptSignal, bypassCache),
+                signal,
+                perAttemptTimeoutMs,
+                onSubrequest
+              );
+              if (followedRes.ok) return followedRes;
+            }
+          }
+        }
+      } catch {
+        // preserva resposta/erro original caso http:// também falhe
+      }
     }
   }
 
@@ -1349,7 +1483,7 @@ export async function fetchSourceContent(
         if (primaryError) {
           throw primaryError;
         } else if (response) {
-          throw new Error(`Upstream returned HTTP ${response.status}: ${response.statusText}`);
+          throw new Error(formatUpstreamHttpError(response.status, response.statusText));
         }
       }
 
@@ -1432,13 +1566,30 @@ export async function fetchSourceContent(
       };
     } else {
       // RSS Feed source
-      const response = await resilientFetch(source.url, source.site, false, undefined, bypassCache, {
+      let response = await resilientFetch(source.url, source.site, false, undefined, bypassCache, {
         perAttemptTimeoutMs: 12000,
       });
+
+      if (!response.ok) {
+        const canonicalG1Url = getCanonicalG1RssFallbackUrl(source.url);
+        if (canonicalG1Url && canonicalG1Url !== source.url) {
+          try {
+            const altRes = await resilientFetch(canonicalG1Url, source.site, false, undefined, bypassCache, {
+              perAttemptTimeoutMs: 12000,
+            });
+            if (altRes.ok) {
+              response = altRes;
+            }
+          } catch {
+            // preserva erro original
+          }
+        }
+      }
+
       clearTimeout(timeoutId);
 
       if (!response.ok) {
-        throw new Error(`Upstream returned HTTP ${response.status}: ${response.statusText}`);
+        throw new Error(formatUpstreamHttpError(response.status, response.statusText));
       }
 
       const xmlText = await response.text();
@@ -1582,7 +1733,9 @@ export async function fetchMediaContent(
     let response: Response | undefined;
     let primaryError: any;
     try {
-      response = await resilientFetch(urlObj.toString(), mediaSource.site, true, controller.signal, bypassCache);
+      response = await resilientFetch(urlObj.toString(), mediaSource.site, true, undefined, bypassCache, {
+        perAttemptTimeoutMs: 12000,
+      });
     } catch (e: any) {
       primaryError = e;
     }
@@ -1592,10 +1745,9 @@ export async function fetchMediaContent(
       console.warn(`WP-API Posts for media failed (${errorMsg}) for ${mediaSource.site}. Attempting fallback to RSS feed for media...`);
       const feedUrl = urlObj.origin + '/feed/';
       try {
-        let feedRes = await resilientFetch(feedUrl, mediaSource.site, false, controller.signal);
-        if (!feedRes.ok) {
-          feedRes = await fetch(feedUrl, { signal: controller.signal });
-        }
+        const feedRes = await resilientFetch(feedUrl, mediaSource.site, false, undefined, bypassCache, {
+          perAttemptTimeoutMs: 10000,
+        });
         if (feedRes.ok) {
           clearTimeout(timeoutId);
           const xmlText = await feedRes.text();
@@ -1647,7 +1799,7 @@ export async function fetchMediaContent(
       if (primaryError) {
         throw primaryError;
       } else if (response) {
-        throw new Error(`Upstream returned HTTP ${response.status}: ${response.statusText}`);
+        throw new Error(formatUpstreamHttpError(response.status, response.statusText));
       }
     }
 

@@ -18,10 +18,10 @@ export async function GET(req: NextRequest) {
   const type = url.searchParams.get('type');
   const format = url.searchParams.get('format');
 
-  let sources = getAllSources();
+  let sources = getAllSources(req);
 
   if (category) {
-    sources = getSourcesByCategory(category);
+    sources = getSourcesByCategory(category, req);
   }
 
   if (type) {
